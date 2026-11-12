@@ -297,7 +297,7 @@
     "source_id": "cms-dmepos-ppa-codes",
     "file": "CMS-DMEPOS-probationary-PA-code-list.pdf",
     "title": "CMS DMEPOS Probationary Prior Authorization List",
-    "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/probationary-prior-authorization-process-newly-enrolled-suppliers-certain-durable-medical-equipment",
+    "url": "https://www.cms.gov/files/document/dmepos-probationary-prior-authorization-code-list.pdf",
     "edition": "As linked from the program page",
     "open_question": "download and record with place --record; checks.py then fails if any code of a screened concept (such as J0885) appears in it, and the program stays unscreened until it is saved"
   },
