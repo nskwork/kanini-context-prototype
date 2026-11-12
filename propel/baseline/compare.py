@@ -11,8 +11,8 @@ whether they match the reviewed rules (C is the reference: same reviewed pack, n
     python -m propel.baseline.compare --offline          # C only, plus the size of A's prompts (no API key needed)
     python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY and the Kanini server)
 
-Mode A is given the right documents for the coverage and state, which favours it: a real deployment would also
-have to find them. Billing articles are cut to the pages the rules cite (their other pages carry licensed CPT text).
+Mode A is given the documents the pack binds to the coverage, place, code and date, which favours it: a real
+deployment would also have to find them. Sources with licensed text are cut to the pages the rules cite.
 """
 from __future__ import annotations
 
@@ -38,19 +38,8 @@ PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text())["pati
 MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())}
 OUT = ROOT / "propel/baseline/results"
 MODEL = os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini")
-SCENARIOS = [("1", "maria-tn"), ("2", "maria-tn-egfr52"), ("2b", "maria-oh"), ("3", "maria-uhc"),
-             ("3b", "maria-uhc-esa"), ("4", "maria-nohgb")]
+SCENARIOS = [(str(i), pid) for i, pid in enumerate(PATIENTS, 1)]   # every patient in the journey data
 OUTCOMES = ["pa_required", "no_pa", "exempt", "other_gate", "needs_facts", "unknown"]
-
-# The documents mode A reads, by coverage and state: (source_id, pages or None for all)
-DOCS = {
-    ("original-medicare", "TN"): [("mcd-lcd-l39237", None), ("mcd-article-a58982", [10, 17]),
-                                  ("cms-pa-program-stats", None), ("cms-wiser-factsheet", None)],
-    ("original-medicare", "OH"): [("mcd-lcd-l34356", None), ("mcd-article-a56462", [9, 10]),
-                                  ("cms-pa-program-stats", None), ("cms-wiser-factsheet", None)],
-    ("uhc-ma", "TN"): [("uhc-ma-pa-list", None), ("uhc-ma-partb-step-therapy", None), ("ecfr-42-422-568", None),
-                       ("cfr-42-422-572", None), ("mcd-lcd-l39237", None), ("mcd-article-a58982", [10, 17])],
-}
 
 PROMPT = """You decide whether an order needs prior authorization, using only the policy documents below.
 Coverage: {plan} ({state}). Order: HCPCS {code}, {desc}, date of service {dos}, {enc}, {urg} request.
@@ -72,9 +61,29 @@ def order(pid: str) -> tuple[dict, dict, dict]:
     return p, o, f
 
 
-def docs_text(plan: str, state: str) -> str:
+def docs_for(plan: str, state: str, code: str, dos: str) -> dict[str, list[int] | None]:
+    """The documents mode A reads: every source behind a rule the pack binds to this coverage, place, code and
+    date (the same documents Kanini Context answers from). A source with licensed text (license_note in the
+    manifest) is cut to the pages its rules cite; the others are given whole."""
+    with psycopg.connect("dbname=kc_client") as c:
+        refs = [r["rule_ref"].split("@")[0] for r in
+                (c.execute("SELECT kc_api.applicable_rules(%s,%s,%s,%s::date)", (plan, state, "HCPCS|" + code, dos)).fetchone()[0]
+                 .get("rules") or [])]
+        rows = c.execute("""SELECT sn.source_id, r.source_locator FROM kc_core.rule r JOIN kc_core.snapshot sn ON sn.snapshot_id = r.snapshot_id
+                             WHERE r.rule_key = ANY (%s) AND upper_inf(r.recorded)""", (refs,)).fetchall()
+    docs: dict[str, list[int] | None] = {}
+    for sid, loc in rows:
+        if "license_note" not in MANIFEST[sid]:
+            docs[sid] = None
+            continue
+        cited = [loc["page"]] + [loc[k]["page"] for k in ("continued", "row_statement", "code_cell") if k in loc]
+        docs[sid] = sorted(set((docs.get(sid) or []) + cited))
+    return docs
+
+
+def docs_text(docs: dict[str, list[int] | None]) -> str:
     out = []
-    for sid, pg in DOCS[(plan, state)]:
+    for sid, pg in sorted(docs.items()):
         txt = pages(MANIFEST[sid]["file"])
         sel = [txt[i - 1] for i in pg] if pg else txt
         out.append(f"=== {MANIFEST[sid]['title']} ({MANIFEST[sid]['edition']})\n" + "\n".join(sel))
@@ -83,9 +92,10 @@ def docs_text(plan: str, state: str) -> str:
 
 def prompt_for(pid: str) -> str:
     p, o, f = order(pid)
+    docs = docs_for(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
     return PROMPT.format(plan=p["coverage"]["plan"], state=p["coverage"]["state"], code=o["code"], desc=o["description"],
                          dos=o["date_of_service"], enc=o["encounter_type"], urg=o["urgency"], facts=json.dumps(p["facts"]),
-                         outcomes=OUTCOMES, docs=docs_text(p["coverage"]["plan"], p["coverage"]["state"]))
+                         outcomes=OUTCOMES, docs=docs_text(docs))
 
 
 # --- C: workflow with Kanini Context, no LLM ----------------------------------------------------------------------

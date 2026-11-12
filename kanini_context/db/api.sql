@@ -75,11 +75,11 @@ BEGIN
           END IF;
         ELSIF v_op = 'includes' THEN
           v_state := CASE WHEN v_val ? (v_t ->> 'value') THEN 'met' ELSE 'not_met' END;
-          v_detail := format('diagnosis %s %s on the order', v_t ->> 'value', CASE v_state WHEN 'met' THEN 'is' ELSE 'is not' END);
+          v_detail := format('%s: %s %s on the order', it ->> 'element', v_t ->> 'value', CASE v_state WHEN 'met' THEN 'is' ELSE 'is not' END);
         ELSIF v_op = 'includes_any' THEN
           v_state := CASE WHEN EXISTS (SELECT 1 FROM jsonb_array_elements_text(v_t -> 'value') x WHERE v_val ? x)
                           THEN 'met' ELSE 'not_met' END;
-          v_detail := format('%s of the listed diagnoses (%s) is on the order', CASE v_state WHEN 'met' THEN 'one' ELSE 'none' END,
+          v_detail := format('%s: %s of the listed codes (%s) is on the order', it ->> 'element', CASE v_state WHEN 'met' THEN 'one' ELSE 'none' END,
                              (SELECT string_agg(x, ', ') FROM jsonb_array_elements_text(v_t -> 'value') x));
         ELSE
           v_state := 'unknown'; v_detail := 'unsupported test ' || v_op;
@@ -88,7 +88,7 @@ BEGIN
       IF v_state = 'not_met' THEN v_greasons := array_append(v_greasons, v_detail); END IF;
       IF v_state = 'met' THEN v_gmet := array_append(v_gmet, v_detail); END IF;
       IF v_state = 'not_met' AND it ->> 'lookback' IS NOT NULL THEN
-        v_grepeat := array_append(v_grepeat, regexp_replace(it ->> 'element', '^Date of most recent ', '')); END IF;
+        v_grepeat := array_append(v_grepeat, it ->> 'element'); END IF;
       v_states := array_append(v_states, v_state);
       v_items := v_items || jsonb_build_object('element', it ->> 'element', 'fact', it ->> 'fact', 'status', v_state, 'detail', v_detail);
     END LOOP;
@@ -198,7 +198,7 @@ CREATE FUNCTION kc_api.gap_text(p_gap text, p_cov jsonb, p_as_of date) RETURNS t
     WHEN 'plan_or_state_not_in_pack' THEN 'plan or state not in the pack'
     WHEN 'item_not_in_pack' THEN 'service or code not in the pack'
     WHEN 'no_reviewed_rule_in_scope' THEN 'no reviewed rule for this plan, place and date'
-    WHEN 'source_aging' THEN 'a source was last confirmed more than 14 days ago'
+    WHEN 'source_aging' THEN 'a source is past its freshness limit'
     WHEN 'sync_aging' THEN 'this copy has not synced recently'
     WHEN 'basis_interpreted' THEN 'the rule rests on an interpretation, not a stated rule'
     WHEN 'needs_facts' THEN 'facts needed'
@@ -331,10 +331,18 @@ BEGIN
   ELSE
     v_hold := v_hold || ARRAY(SELECT jsonb_array_elements_text(v_appr -> 'actionable_reasons'));
     v_explain := array_append(v_explain, CASE v_pa
-      WHEN 'pa_required' THEN 'Prior authorization required: ' || (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr -> 'sources') w)
-      WHEN 'exempt' THEN 'Prior authorization not required for emergency or urgent care: ' || (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr -> 'sources') w)
-      ELSE 'Prior authorization not required: not on any of the ' || jsonb_array_length(v_appr_win)
-           || ' Original Medicare prior authorization program lists that apply here' END);
+      WHEN 'exempt' THEN 'Prior authorization not required (exemption: '
+           || (SELECT string_agg(DISTINCT replace(w -> 'payload' ->> 'reason', '_', ' '), ', ') FROM jsonb_array_elements(v_appr_win) w
+                WHERE w -> 'payload' ? 'exempt') || '): '
+           || (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr_win) w WHERE w -> 'payload' ? 'exempt')
+      WHEN 'pa_required' THEN 'Prior authorization required: '
+           || (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr_win) w WHERE (w -> 'payload' ->> 'required')::boolean)
+      ELSE 'Prior authorization not required: '
+           || concat_ws('; ',
+                (SELECT 'not on any of the ' || count(*) || ' closed prior authorization lists bound to this coverage ('
+                        || string_agg(w ->> 'citation', ', ' ORDER BY w ->> 'citation') || ')'
+                   FROM jsonb_array_elements(v_appr_win) w WHERE w ->> 'basis' = 'closed_list' HAVING count(*) > 0),
+                (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr_win) w WHERE w ->> 'basis' <> 'closed_list')) END);
   END IF;
 
   -- 2. Coverage criteria, checked against the facts; every applicable policy's criteria must be met
@@ -416,7 +424,8 @@ BEGIN
   v_detail := CASE
     WHEN v_outcome = 'needs_facts' THEN 'Obtain ' || array_to_string(ARRAY(SELECT DISTINCT x FROM unnest(v_obtain) x), '; ')
     WHEN v_outcome = 'other_gate' AND cardinality(v_repeat) > 0 THEN
-      'Repeat ' || array_to_string(ARRAY(SELECT DISTINCT x FROM unnest(v_repeat) x), ', ') || ' and re-evaluate, or hold the order'
+      'Obtain a newer result for ' || array_to_string(ARRAY(SELECT DISTINCT x FROM unnest(v_repeat) x), ', ')
+      || ': the policy''s time limit has passed. Re-evaluate with a newer result, or hold the order'
     WHEN v_outcome = 'other_gate' THEN 'Coverage criteria not met: document further or hold the order'
     WHEN v_outcome = 'unknown' THEN 'Route to staff: ' || kc_api.gap_text(coalesce(v_gap, v_appr ->> 'reason', v_appr ->> 'status'), v_cov, p_as_of)
     WHEN NOT v_safe THEN 'Route to staff: ' || array_to_string(ARRAY(SELECT kc_api.gap_text(h, v_cov, p_as_of) FROM unnest(v_hold) h), '; ')
@@ -440,15 +449,28 @@ BEGIN
   -- the deciding rule: the approval rule when approval is required or exempt; otherwise the coverage policy (LCD first)
   v_primary := CASE
     WHEN v_pa IN ('pa_required','exempt') THEN (SELECT jsonb_build_object('rule_ref', kc_api.rule_ref(w ->> 'rule_key', w ->> 'confirmed_valid'))
-                                                  FROM jsonb_array_elements(v_appr_win) w LIMIT 1)
+                                                  FROM jsonb_array_elements(v_appr_win) w
+                                                 WHERE CASE v_pa WHEN 'exempt' THEN w -> 'payload' ? 'exempt'
+                                                                 ELSE coalesce((w -> 'payload' ->> 'required')::boolean, false) END
+                                                 ORDER BY w ->> 'rule_key' LIMIT 1)
     WHEN jsonb_array_length(v_ceval) > 0 THEN (SELECT jsonb_build_object('rule_ref', x ->> 'rule_ref', 'citation', x ->> 'citation')
-                                                 FROM jsonb_array_elements(v_ceval) x ORDER BY (x ->> 'citation') NOT LIKE 'LCD%', x ->> 'citation' LIMIT 1)
+                                                 FROM jsonb_array_elements(v_ceval) x
+                                                 LEFT JOIN LATERAL (SELECT w ->> 'authority_kind' AS kind FROM jsonb_array_elements(v_crit -> 'winning_rules') w
+                                                                     WHERE kc_api.rule_ref(w ->> 'rule_key', w ->> 'confirmed_valid') = x ->> 'rule_ref') k ON true
+                                                ORDER BY CASE x ->> 'status' WHEN v_cstatus THEN 0 ELSE 1 END,
+                                                         k.kind = 'billing_article', x ->> 'citation' LIMIT 1)
     ELSE (SELECT jsonb_build_object('rule_ref', kc_api.rule_ref(w ->> 'rule_key', w ->> 'confirmed_valid'))
             FROM jsonb_array_elements(v_appr_win) w LIMIT 1) END;
   IF v_primary IS NOT NULL AND NOT v_primary ? 'citation' THEN
-    v_primary := v_primary || jsonb_build_object('citation', (SELECT w ->> 'citation' FROM jsonb_array_elements(v_appr -> 'sources') w LIMIT 1));
+    v_primary := v_primary || jsonb_build_object('citation', (SELECT w ->> 'citation' FROM jsonb_array_elements(v_appr_win) w
+                                                                WHERE kc_api.rule_ref(w ->> 'rule_key', w ->> 'confirmed_valid') = v_primary ->> 'rule_ref'));
   END IF;
-  SELECT array_agg(DISTINCT x ->> 'citation' ORDER BY x ->> 'citation') INTO v_aging
+  SELECT array_agg(DISTINCT (x ->> 'citation') || ', last confirmed '
+                   || (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok)::date
+                   || ', limit ' || justify_interval(src.aging_after)::text
+         ORDER BY (x ->> 'citation') || ', last confirmed '
+                   || (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok)::date
+                   || ', limit ' || justify_interval(src.aging_after)::text) INTO v_aging
     FROM jsonb_array_elements(v_sources) x JOIN kc_core.snapshot sn ON sn.content_sha256 = x ->> 'sha256'
     JOIN kc_core.source src ON src.source_id = sn.source_id
    WHERE p_recorded_as_of - (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok) > src.aging_after;

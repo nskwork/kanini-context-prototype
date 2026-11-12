@@ -188,7 +188,8 @@ def check_file(path: Path) -> Report:
                 rep.err("a closed-list screen needs a reviewer finding")
     outside = sorted(located_codes - drafted)
     if outside:
-        rep.note(f"{len(outside)} other HCPCS codes on the located pages are outside the first slice (kidney care ESA and IV iron)")
+        rep.note(f"{len(outside)} other HCPCS codes on the located pages are not drafted in this pack: {', '.join(outside[:12])}"
+                 + (" ..." if len(outside) > 12 else ""))
     rv = d["review"]
     n = len({x for x in rv.get("reviewed_by", []) if x})
     if n == 0:

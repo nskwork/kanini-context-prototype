@@ -133,7 +133,7 @@ INSERT INTO kc_core.data_element (entity_id, name, code_system_id, code, value_t
  (kc_core.eid('data_element','LOINC|98979-8'),'eGFR (CKD-EPI 2021)','LOINC','98979-8','quantity','mL/min/{1.73_m2}','us-core-observation-lab','egfr'),
  (kc_core.eid('data_element','LOINC|2164-2'),'Creatinine clearance','LOINC','2164-2','quantity','mL/min','us-core-observation-lab','crcl_ml_min'),
  (kc_core.eid('data_element','LOINC|2160-0'),'Serum creatinine','LOINC','2160-0','quantity','mg/dL','us-core-observation-lab','serum_creatinine_mg_dl'),
- (kc_core.eid('data_element','LOINC|2160-0|date'),'Date of most recent serum creatinine','LOINC','2160-0','date',NULL,'us-core-observation-lab','creatinine_date'),
+ (kc_core.eid('data_element','LOINC|2160-0|date'),'Serum creatinine (date of most recent result)','LOINC','2160-0','date',NULL,'us-core-observation-lab','creatinine_date'),
  (kc_core.eid('data_element','ICD10CM|D63.1'),'Diagnosis: anemia in chronic kidney disease','ICD10CM','D63.1','coded',NULL,'us-core-condition-problems-health-concerns','diagnosis_codes'),
  (kc_core.eid('data_element','ICD10CM|ckd-not-on-dialysis'),'Diagnosis: chronic kidney disease stage (listed codes)','ICD10CM',NULL,'coded',NULL,'us-core-condition-problems-health-concerns','diagnosis_codes'),
  (kc_core.eid('data_element','KCDE|iv-iron-preferred-trials'),'Trial of at least 3 weeks of at least two preferred IV iron therapies, each with minimal clinical response','KCDE','iv-iron-preferred-trials','attachment',NULL,'us-core-documentreference',NULL),

@@ -60,8 +60,8 @@ def test_freshness_names_source(db):
     # As if asked on 2026-11-18: A56462 (last confirmed 2026-10-15) is past 14 days, the others are not.
     out = db.execute("SELECT kc_api.evaluate_order('original-medicare','OH','HCPCS|J0885',%s::date,%s::jsonb,'2026-11-18 12:00-06')",
                      (DOS, json.dumps(facts(egfr=52, diagnosis_codes=["D63.1", "N18.31"])))).fetchone()[0]
-    assert out["aging_sources"] == ["Article A56462"] and out["safe_to_act"] is False
-    assert out["next_step_detail"].endswith("(Article A56462)")
+    assert out["aging_sources"] == ["Article A56462, last confirmed 2026-10-15, limit 14 days"] and out["safe_to_act"] is False
+    assert out["next_step_detail"].endswith("(Article A56462, last confirmed 2026-10-15, limit 14 days)")
 
 
 def test_every_answer_shows_the_review_exception(kc):

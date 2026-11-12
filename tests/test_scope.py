@@ -192,7 +192,7 @@ def test_18_implausible_value(kc):
 def test_19_stale_lab(kc):
     out = ev(kc, creatinine_date="2026-09-01")
     assert out["outcome"] == "other_gate" and out["safe_to_act"] is False
-    assert out["next_step_detail"].startswith("Repeat serum creatinine")
+    assert out["next_step_detail"].startswith("Obtain a newer result for Serum creatinine (date of most recent result): the policy")
 
 
 def test_20_overlapping_rule_version(release, tmp_path, db):

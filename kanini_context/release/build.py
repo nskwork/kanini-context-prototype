@@ -31,7 +31,13 @@ ROOT = Path(__file__).resolve().parents[2]
 DB = ROOT / "kanini_context" / "db"
 from kanini_context import env  # noqa: F401,E402  (.env and PostgreSQL defaults)
 
-COVERS_THROUGH = "2026-12-31"   # the next known changes start 2027-01-01 (UHC step therapy edition, WISeR year 2)
+# The last date of service a release answers for: the day before the earliest change the pack already knows is
+# coming (an open change flag, or the end of a loaded edition). With none known, the end of the following month.
+COVERS_THROUGH_SQL = """
+SELECT coalesce(least(
+         (SELECT min(applies_from) FROM kc_gov.change_flag WHERE state = 'open' AND applies_from > %(d)s::date),
+         (SELECT min(valid_to_lo) FROM kc_core.authority_version WHERE valid_to_lo > %(d)s::date AND upper_inf(recorded))) - 1,
+       (date_trunc('month', %(d)s::date) + interval '2 months' - interval '1 day')::date)"""
 GRAPH = "ref"
 SQL_FILES = ["schema.sql", "registry.sql", "resolver.sql", "api.sql"]
 
@@ -129,6 +135,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--test-review", action="store_true")
     ap.add_argument("--release", help="release id, default YYYY.MM.DD (TEST- prefix for a test build)")
     ap.add_argument("--no-graph", action="store_true")
+    ap.add_argument("--covers-through", help="override the last date of service the release answers for (YYYY-MM-DD)")
     args = ap.parse_args(argv)
     now = datetime.now(timezone.utc)
     release = args.release or now.strftime("%Y.%m.%d")
@@ -158,14 +165,15 @@ def main(argv: list[str]) -> int:
         c.execute('CREATE DATABASE "kc_client" TEMPLATE "kc_build"')
         c.execute(f"ALTER DATABASE kc_client SET kc.release = '{release}'")
     with psycopg.connect(dsn("kc_client")) as c, c.cursor() as cur:
+        covers = args.covers_through or cur.execute(COVERS_THROUGH_SQL, {"d": now.date()}).fetchone()[0]
         cur.execute("INSERT INTO kc_gov.release VALUES (%s, %s, %s, %s, %s, 'built', %s)",
-                    (release, now, git_commit(), now, digest, COVERS_THROUGH))
+                    (release, now, git_commit(), now, digest, covers))
         cur.execute("UPDATE kc_core.rule SET release_id = %s WHERE release_id IS NULL", (release,))
         cur.execute("INSERT INTO kc_client.sync_log VALUES (%s, %s)", (now, release))
         n_rules = cur.execute("SELECT count(*) FROM kc_core.rule WHERE status = 'active'").fetchone()[0]
         graph = None if args.no_graph else build_graph(cur, GRAPH)
 
-    print(f"release {release}: {n_rules} active rules, digest {digest[:12]}, answers dates of service through {COVERS_THROUGH}")
+    print(f"release {release}: {n_rules} active rules, digest {digest[:12]}, answers dates of service through {covers}")
     if graph:
         print(f"graph: {graph[0]} vertices, {graph[1]} edges")
     elif not args.no_graph:

@@ -477,7 +477,8 @@ BEGIN
                         'rule_kind', x -> 'rule_kind', 'effect', x -> 'effect', 'payload', x -> 'payload',
                         'basis', x -> 'basis', 'mapping_confidence', x -> 'mapping_confidence',
                         'confirmed_valid', x -> 'confirmed_valid', 'not_stated', x -> 'not_stated',
-                        'review_exception', x -> 'review_exception'))
+                        'review_exception', x -> 'review_exception', 'authority_kind', x -> 'authority_kind',
+                        'citation', x -> 'citation'))
                       FROM jsonb_array_elements(v_win) x),
     'sources', (SELECT jsonb_agg(jsonb_build_object('citation', x -> 'citation', 'authority', x -> 'authority',
                   'version', x -> 'version', 'layer', x -> 'layer', 'snapshot_id', x -> 'snapshot_id',
