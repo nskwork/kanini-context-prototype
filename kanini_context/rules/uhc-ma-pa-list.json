@@ -1,0 +1,80 @@
+{
+  "source_id": "uhc-ma-pa-list",
+  "authority": {
+    "key": "UHC-MA-PA", "kind": "payer_list", "issuer": "uhc", "layer": "T3",
+    "citation": "UHC MA prior authorization requirements",
+    "title": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements",
+    "closed_list": false,
+    "closed_list_note": "Not a closed list: participating professionals contracted with a delegated medical group must follow the delegate's protocols (page 1), so prior authorization rules exist outside this document"
+  },
+  "edition": {
+    "label": "Effective October 1, 2026",
+    "valid_from_basis": "stated", "valid_from": "2026-10-01",
+    "locator": {"page": 1, "section": "Title"},
+    "quote": "Peoples Health Plans prior authorization requirements Effective October 1, 2026"
+  },
+  "bindings": [
+    {"plan": "uhc-ma", "program": "medicare_advantage", "item_scope": "all",
+     "note": "Plans included: Medicare Advantage HMO, HMO-POS, PPO and Regional PPO plans, including AARP Medicare Advantage (page 1)"}
+  ],
+  "endpoints": [
+    {"key": "uhc-pa-portal", "payer": "uhc", "interface": "portal", "preference": 1, "live": true,
+     "base_url": "https://www.uhcprovider.com", "excludes_drugs": false, "valid_from": "2026-10-01",
+     "verified_at": "2026-11-12T13:00:00-06:00",
+     "locator": {"page": 19, "band": [348, 612], "section": "Injectable medications", "item": "how to obtain prior authorization"},
+     "quote": "use the Prior Authorization and Notification tool on the UnitedHealthcare Provider Portal at UHCprovider.com. After you sign in, select the Prior Authorization link. From the \"Create a new authorization submission\" section, select Specialty Pharmacy from the dropdown menu. Or, you can call 888-397-8129"},
+    {"key": "uhc-pa-phone", "payer": "uhc", "interface": "phone", "preference": 2, "live": true,
+     "base_url": "tel:888-397-8129", "excludes_drugs": false, "valid_from": "2026-10-01",
+     "verified_at": "2026-11-12T13:00:00-06:00",
+     "locator": {"page": 19, "band": [348, 612], "section": "Injectable medications"},
+     "quote": "Or, you can call 888-397-8129"}
+  ],
+  "rules": [
+    {
+      "rule_key": "kc:rule/all-items/uhc-ma-emergency-urgent",
+      "rule_kind": "exemption",
+      "subject": {"value_set": "vs:all-items"},
+      "scope": {"program": "medicare_advantage", "payer": "uhc"},
+      "conditions": [{"fact": "encounter_type", "op": "in", "value": ["emergency", "urgent"]}],
+      "payload": {"exempt": true, "reason": "emergency_or_urgent"},
+      "basis": "stated",
+      "locator": {"page": 1, "section": "General information"},
+      "quote": "Prior authorization is not required for emergency or urgent care.",
+      "extracted_by": "llm_assisted"
+    },
+    {
+      "rule_key": "kc:rule/J1439/uhc-ma-pa",
+      "rule_kind": "approval_required",
+      "subject": {"code": "HCPCS|J1439"},
+      "scope": {"program": "medicare_advantage", "payer": "uhc"},
+      "payload": {"required": true, "submit_via": "Prior Authorization and Notification tool, Specialty Pharmacy"},
+      "basis": "stated",
+      "not_stated": ["applies_to"],
+      "locator": {"page": 17, "band": [348, 612], "section": "Injectable medications", "entry": "Intravenous Iron Replacement",
+                  "row_statement": {"page": 15, "band": [215, 348], "quote": "For all plans including Erickson Advantage, prior authorization required"}},
+      "quote": "Intravenous Iron Replacement J1437 - Monoferric J1439 - Injectafer",
+      "extracted_by": "parser"
+    },
+    {
+      "rule_key": "kc:rule/J0885/uhc-ma-pa-cancer",
+      "rule_kind": "approval_required",
+      "subject": {"code": "HCPCS|J0885"},
+      "scope": {"program": "medicare_advantage", "payer": "uhc"},
+      "conditions": [{"fact": "diagnosis_codes", "op": "prefix_overlaps", "value": ["C", "D0"]}],
+      "payload": {"required": true, "submit_via": "Prior Authorization and Notification tool"},
+      "basis": "interpreted",
+      "mapping_confidence": 0.85,
+      "interpretation": "J0885 is listed under 'Cancer supportive Care', whose requirement is stated for drugs 'administered in an outpatient setting for a cancer diagnosis'. Kanini reads 'cancer diagnosis' as ICD-10-CM C00-C96 (malignant neoplasms) and D00-D09 (in situ). For other diagnoses the list states nothing about J0885.",
+      "not_stated": ["applies_to"],
+      "locator": {"page": 7, "band": [215, 348], "section": "Cancer supportive Care", "entry": "Erythropoiesis Stimulating Agents J0885",
+                  "code_cell": {"page": 7, "band": [348, 612], "quote": "Erythropoiesis Stimulating Agents J0885"}},
+      "quote": "For all plans including Erickson Advantage, prior authorization required for colony- stimulating factor drugs and bone-modifying agent(s) administered in an outpatient setting for a cancer diagnosis",
+      "extracted_by": "llm_assisted"
+    }
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12; the J1439 row by the table parser",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

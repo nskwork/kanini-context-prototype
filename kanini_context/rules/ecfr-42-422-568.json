@@ -1,0 +1,34 @@
+{
+  "source_id": "ecfr-42-422-568",
+  "authority": {
+    "key": "42CFR422.568", "kind": "regulation", "issuer": "cms", "layer": "T0",
+    "citation": "42 CFR 422.568(b)(3)", "title": "Standard timeframes and notice requirements for organization determinations"
+  },
+  "edition": {
+    "label": "eCFR, up to date as of 2026-11-09",
+    "valid_from_basis": "document_date", "valid_from": "2026-11-09",
+    "locator": {"page": 1, "section": "Title"},
+    "quote": "42 CFR 422.568 (up to date as of 11/09/2026)"
+  },
+  "bindings": [
+    {"program": "medicare_advantage", "jurisdiction": "US", "item_scope": "drugs"}
+  ],
+  "rules": [
+    {
+      "rule_key": "kc:rule/part-b-drug/422.568-b3",
+      "rule_kind": "decision_timeframe",
+      "subject": {"value_set": "vs:all-drugs"},
+      "scope": {"program": "medicare_advantage"},
+      "payload": {"standard_hours": 72, "clock_starts": "receipt"},
+      "basis": "stated",
+      "locator": {"page": 2, "section": "422.568(b)(3)", "item": "Requests for a Part B drug"},
+      "quote": "but no later than 72 hours after receipt of the request. This 72-hour period may not be extended",
+      "extracted_by": "llm_assisted"
+    }
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "source_id": "mcd-article-a56462",
+  "authority": {
+    "key": "ART-A56462", "kind": "billing_article", "issuer": "cms", "layer": "T1",
+    "citation": "Article A56462", "title": "Billing and Coding: Erythropoiesis Stimulating Agents (ESA) (CGS, for LCD L34356)"
+  },
+  "edition": {
+    "label": "Effective 2026-09-27 (version 38)",
+    "valid_from_basis": "stated", "valid_from": "2026-09-27",
+    "locator": {"page": 72, "section": "Public Versions"},
+    "quote": "10/07/2026 09/27/2026 - N/A Currently in Effect"
+  },
+  "bindings": [
+    {"program": "medicare_ffs", "jurisdiction": "J15", "item_scope": "drugs"},
+    {"program": "medicare_advantage", "jurisdiction": "J15", "item_scope": "drugs",
+     "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"}
+  ],
+  "rules": [
+    {
+      "rule_key": "kc:rule/esa-ckd-nd/A56462-dx",
+      "rule_kind": "coverage_criteria",
+      "subject": {"concept": "esa-ckd-nd"},
+      "conditions": [{"fact": "dialysis_status", "op": "in", "value": ["none"]}],
+      "payload": {"logic": "all", "indication": "Diagnoses that support medical necessity for CKD not yet on dialysis (ICD-10-CM Group 2)"},
+      "basis": "stated",
+      "locator": {"page": 9, "section": "ICD-10-CM Codes that Support Medical Necessity", "item": "Group 2"},
+      "quote": "For patients with chronic kidney disease (not yet on dialysis) and anemia - must include D63.1 and one other listed diagnosis.",
+      "extracted_by": "llm_assisted",
+      "requirements": [
+        {"group": 1, "logic": "all", "element": "ICD10CM|D63.1", "test": {"op": "includes", "value": "D63.1"}, "when": "both"},
+        {"group": 2, "logic": "all", "element": "ICD10CM|ckd-not-on-dialysis",
+         "test": {"op": "includes_any", "value": ["I12.0", "I12.9", "I13.0", "I13.10", "I13.11", "I13.2", "N18.30", "N18.31", "N18.32", "N18.4", "N18.5"]},
+         "when": "both",
+         "list_locator": {"page": 9, "section": "ICD-10-CM Codes that Support Medical Necessity", "item": "Group 2 Codes (pages 9 and 10)"}}
+      ]
+    }
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

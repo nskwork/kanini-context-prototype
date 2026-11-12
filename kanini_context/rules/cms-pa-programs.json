@@ -1,0 +1,86 @@
+{
+  "description": "Original Medicare applies prior authorization only through named programs, each covering a defined set of items or services. Each program is recorded as a closed list, and each is screened for the ESA concept: a reviewer confirms the concept is outside the program's list. The resolver gives 'not required' only when every program bound to the coverage, state and date has been screened (proposal section 10.4). The program set comes from the CMS program statistics for fiscal year 2024 and the WISeR fact sheet; WISeR states that its codes do not overlap with the existing programs.",
+  "programs": [
+    {
+      "source_id": "cms-pa-program-stats",
+      "authority": {"key": "CMS-PA-HOPD", "kind": "pa_program", "issuer": "cms", "layer": "T1", "closed_list": true,
+                    "citation": "CMS prior authorization: certain hospital OPD services",
+                    "title": "Prior authorization for certain hospital outpatient department services"},
+      "edition": {"label": "As reported for fiscal year 2024 (published 2025-09-16)", "valid_from_basis": "document_date", "valid_from": "2025-09-16",
+                  "locator": {"page": 3}, "quote": "established a nationwide prior authorization process and requirements for certain hospital OPD services"},
+      "bindings": [{"program": "medicare_ffs", "jurisdiction": "US", "item_scope": "all"}],
+      "list_quote": {"locator": {"page": 3}, "quote": "These services are blepharoplasty, botulinum toxin injection, rhinoplasty, panniculectomy, and vein ablation."},
+      "list_note": "Also added: cervical fusion with disc removal and implanted spinal neurostimulators (CY 2021), facet joint interventions (CY 2024), page 3"
+    },
+    {
+      "source_id": "cms-pa-program-stats",
+      "authority": {"key": "CMS-PA-RSNAT", "kind": "pa_program", "issuer": "cms", "layer": "T1", "closed_list": true,
+                    "citation": "CMS RSNAT prior authorization model",
+                    "title": "Repetitive, scheduled non-emergent ambulance transport prior authorization model"},
+      "edition": {"label": "As reported for fiscal year 2024 (published 2025-09-16)", "valid_from_basis": "document_date", "valid_from": "2025-09-16",
+                  "locator": {"page": 6}, "quote": "The RSNAT Prior Authorization Model is a nationwide model"},
+      "bindings": [{"program": "medicare_ffs", "jurisdiction": "US", "item_scope": "all"}],
+      "list_quote": {"locator": {"page": 6}, "quote": "The RSNAT Prior Authorization Model is a nationwide model that applies to independent ambulance suppliers that are not based at an institution and provide non-emergent ambulance services covered by Part B Medicare."}
+    },
+    {
+      "source_id": "cms-pa-program-stats",
+      "authority": {"key": "CMS-PA-DMEPOS", "kind": "pa_program", "issuer": "cms", "layer": "T1", "closed_list": true,
+                    "citation": "CMS Required Prior Authorization List (DMEPOS)",
+                    "title": "Prior authorization process for certain durable medical equipment, prosthetics, orthotics and supplies"},
+      "edition": {"label": "As reported for fiscal year 2024 (published 2025-09-16)", "valid_from_basis": "document_date", "valid_from": "2025-09-16",
+                  "locator": {"page": 8}, "quote": "Prior authorization of these HCPCS is required as a condition of payment nationwide."},
+      "bindings": [{"program": "medicare_ffs", "jurisdiction": "US", "item_scope": "all"}],
+      "list_quote": {"locator": {"page": 8}, "quote": "The CMS Required Prior Authorization List currently contains 67 Healthcare Common Procedure Coding System (HCPCS) items including 46 power mobility devices (PMDs), five pressure reducing support surfaces (PRSSs), six lower limb prosthetics (LLPs), and ten orthoses."}
+    },
+    {
+      "source_id": "cms-pa-program-stats",
+      "authority": {"key": "CMS-RCD-HH", "kind": "pa_program", "issuer": "cms", "layer": "T1", "closed_list": true,
+                    "citation": "CMS Review Choice Demonstration for Home Health Services",
+                    "title": "Review Choice Demonstration for home health services (pre-claim review)"},
+      "edition": {"label": "As reported for fiscal year 2024 (published 2025-09-16)", "valid_from_basis": "document_date", "valid_from": "2025-09-16",
+                  "locator": {"page": 11}, "quote": "which is currently implemented in Illinois, Ohio, Texas, North Carolina, Florida, and Oklahoma"},
+      "bindings": [
+        {"program": "medicare_ffs", "jurisdiction": "IL", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "OH", "item_scope": "all"},
+        {"program": "medicare_ffs", "jurisdiction": "TX", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "NC", "item_scope": "all"},
+        {"program": "medicare_ffs", "jurisdiction": "FL", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "OK", "item_scope": "all"}
+      ],
+      "list_quote": {"locator": {"page": 11}, "quote": "helps ensure through either pre-claim review or postpayment review that payments for home health services are appropriate."}
+    },
+    {
+      "source_id": "cms-pa-program-stats",
+      "authority": {"key": "CMS-RCD-IRF", "kind": "pa_program", "issuer": "cms", "layer": "T1", "closed_list": true,
+                    "citation": "CMS Review Choice Demonstration for IRF Services",
+                    "title": "Review Choice Demonstration for inpatient rehabilitation facility services (pre-claim review)"},
+      "edition": {"label": "As reported for fiscal year 2024 (published 2025-09-16)", "valid_from_basis": "document_date", "valid_from": "2025-09-16",
+                  "locator": {"page": 13}, "quote": "On March 1, 2024, CMS announced its expansion into Pennsylvania, beginning June 17, 2024."},
+      "bindings": [{"program": "medicare_ffs", "jurisdiction": "AL", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "PA", "item_scope": "all"}],
+      "list_quote": {"locator": {"page": 13}, "quote": "The Review Choice Demonstration for IRF Services establishes a review choice process for IRF services"}
+    },
+    {
+      "source_id": "cms-wiser-factsheet",
+      "authority": {"key": "CMS-WISER", "kind": "pa_program", "issuer": "cms", "layer": "T1", "closed_list": true,
+                    "citation": "CMS WISeR Model, performance year 1",
+                    "title": "Wasteful and Inappropriate Service Reduction (WISeR) Model"},
+      "edition": {"label": "Performance year 1 (2026)", "valid_from_basis": "stated", "valid_from": "2026-01-01", "valid_to": "2027-01-01",
+                  "locator": {"page": 2}, "quote": "SERVICES INCLUDED: PERFORMANCE YEAR 1 (PY1) 2026"},
+      "bindings": [
+        {"program": "medicare_ffs", "jurisdiction": "TX", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "NJ", "item_scope": "all"},
+        {"program": "medicare_ffs", "jurisdiction": "OK", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "OH", "item_scope": "all"},
+        {"program": "medicare_ffs", "jurisdiction": "WA", "item_scope": "all"}, {"program": "medicare_ffs", "jurisdiction": "AZ", "item_scope": "all"}
+      ],
+      "bindings_locator": {"page": 1, "quote": "Innovaccer Inc. J15 CGS Ohio"},
+      "list_quote": {"locator": {"page": 2}, "quote": "Services included in the model for the first performance year and their associated NCDs and LCDs are noted in the table below."},
+      "list_note": "Service categories: nerve stimulators, epidural steroid injections, vertebral augmentation, cervical fusion, knee arthroscopy, hypoglossal nerve stimulation, incontinence control devices, impotence, lumbar decompression, skin and tissue substitutes (page 2). 'Codes in WISeR do not overlap with existing Medicare prior authorization programs.'"
+    }
+  ],
+  "screens": [
+    {"concept": "esa-ckd-nd",
+     "finding": "Erythropoiesis stimulating agents (physician-administered Part B drugs) are on none of the program lists.",
+     "rule_key_prefix": "kc:rule/esa-ckd-nd/no-pa"}
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copies, 2026-11-12",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

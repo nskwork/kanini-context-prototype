@@ -1,0 +1,50 @@
+{
+  "source_id": "mcd-lcd-l39237",
+  "authority": {
+    "key": "LCD-L39237", "kind": "lcd", "issuer": "cms", "layer": "T1",
+    "citation": "LCD L39237", "title": "Erythropoiesis Stimulating Agents (Palmetto GBA, A/B Jurisdictions J and M)"
+  },
+  "edition": {
+    "label": "Revision effective 2026-09-17 (version 13)",
+    "valid_from_basis": "stated", "valid_from": "2026-09-17",
+    "locator": {"page": 2, "section": "Revision Effective Date"},
+    "quote": "For services performed on or after 09/17/2026"
+  },
+  "bindings": [
+    {"program": "medicare_ffs", "jurisdiction": "JJ", "item_scope": "drugs"},
+    {"program": "medicare_ffs", "jurisdiction": "JM", "item_scope": "drugs"},
+    {"program": "medicare_advantage", "jurisdiction": "JJ", "item_scope": "drugs",
+     "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"},
+    {"program": "medicare_advantage", "jurisdiction": "JM", "item_scope": "drugs",
+     "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"}
+  ],
+  "rules": [
+    {
+      "rule_key": "kc:rule/esa-ckd-nd/L39237",
+      "rule_kind": "coverage_criteria",
+      "subject": {"concept": "esa-ckd-nd"},
+      "scope": {"jurisdiction": null},
+      "conditions": [{"fact": "dialysis_status", "op": "in", "value": ["none"]}],
+      "payload": {
+        "logic": "all",
+        "indication": "Anemia of CKD, patient not on dialysis (Coverage Criteria B)",
+        "not_modelled": ["Use of an ESA that is FDA-approved for this indication (met by the ordered product)"]
+      },
+      "basis": "stated",
+      "locator": {"page": 7, "section": "Coverage Indications, Limitations, and/or Medical Necessity", "item": "Coverage Criteria B"},
+      "quote": "B. For CKD patients NOT on dialysis Anemia of CKD with a Hb < 10 g/dL or a HCT < 30% at initiation of therapy Most recent creatinine within the past month prior to initiation or next dosing of ESA Glomerular filtration rate (GFR) less than 45 mL/min/1.73 m2",
+      "extracted_by": "llm_assisted",
+      "requirements": [
+        {"group": 1, "logic": "any", "element": "LOINC|718-7", "test": {"op": "lt", "value": 10, "unit": "g/dL"}, "when": "initial"},
+        {"group": 1, "logic": "any", "element": "LOINC|4544-3", "test": {"op": "lt", "value": 30, "unit": "%"}, "when": "initial"},
+        {"group": 2, "logic": "all", "element": "LOINC|2160-0|date", "test": {"op": "present"}, "lookback": "1 month", "when": "both"},
+        {"group": 3, "logic": "all", "element": "LOINC|98979-8", "test": {"op": "lt", "value": 45, "unit": "mL/min/{1.73_m2}"}, "when": "initial"}
+      ]
+    }
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

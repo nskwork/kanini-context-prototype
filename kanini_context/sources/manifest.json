@@ -1,92 +1,239 @@
 [
   {
+    "source_id": "mcd-lcd-l39237",
     "file": "c86e457c-LCD-L39237-v13.pdf",
-    "title": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA, J-J/J-M)",
+    "title": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA, A/B Jurisdictions J and M)",
+    "publisher": "Palmetto GBA (Medicare Coverage Database)",
+    "source_class": "medicare_policy",
+    "access_method": "manual_upload",
     "url": "https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=39237&ver=13",
-    "revision": "revision effective 2026-09-17",
+    "license_class": "public",
+    "edition": "Revision effective 2026-09-17 (version 13)",
+    "retrieved_at": "2026-10-01T21:23:00-05:00",
+    "checks": [
+      {
+        "at": "2026-10-01T21:23:00-05:00",
+        "ok": true,
+        "note": "copy printed from the MCD; Public Versions shows 09/17/2026 - N/A Currently in Effect"
+      },
+      {
+        "at": "2026-11-12T13:00:00-06:00",
+        "ok": true,
+        "note": "live MCD page: revision effective 09/17/2026, currently in effect"
+      }
+    ],
     "sha256": "134d2e595b0957cadb1cb5c51784bb6574f717334f053823e7db453701c01474",
-    "bytes": 250265,
-    "retrieved": "2026-11-12"
+    "bytes": 250265
   },
   {
+    "source_id": "mcd-article-a58982",
     "file": "d4b23b2c-Article-A58982-v21.pdf",
-    "title": "Billing and Coding Article A58982 (for L39237)",
-    "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleid=58982",
-    "revision": "v21",
+    "title": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237)",
+    "publisher": "Palmetto GBA (Medicare Coverage Database)",
+    "source_class": "medicare_policy",
+    "access_method": "manual_upload",
+    "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleid=58982&ver=21",
+    "license_class": "public",
+    "license_note": "contains AMA CPT content shown under the MCD click-through licence; only HCPCS and ICD-10-CM codes are taken into the pack",
+    "edition": "Revision effective 2026-10-01 (version 21)",
+    "retrieved_at": "2026-09-04T17:46:00-05:00",
+    "checks": [
+      {
+        "at": "2026-09-04T17:46:00-05:00",
+        "ok": true,
+        "note": "copy printed while version 21 was future effective from 10/01/2026"
+      },
+      {
+        "at": "2026-11-12T13:00:00-06:00",
+        "ok": true,
+        "note": "live MCD page: version 21, 10/01/2026 - N/A, currently in effect"
+      }
+    ],
     "sha256": "9b731c084a05cfe73a2b8be5657ea0a072feab431371b0e8ee766569d9191970",
-    "bytes": 4180381,
-    "retrieved": "2026-11-12"
+    "bytes": 4180381
   },
   {
+    "source_id": "mcd-lcd-l34356",
     "file": "2dd69ba4-LCD-L34356-v35.pdf",
-    "title": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (CGS, J15)",
+    "title": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (CGS, A/B Jurisdiction 15)",
+    "publisher": "CGS Administrators (Medicare Coverage Database)",
+    "source_class": "medicare_policy",
+    "access_method": "manual_upload",
     "url": "https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=34356&ver=35",
-    "revision": "revision effective 2026-10-04",
+    "license_class": "public",
+    "edition": "Revision effective 2026-10-04 (version 35, R22)",
+    "retrieved_at": "2026-09-04T18:30:00-05:00",
+    "checks": [
+      {
+        "at": "2026-09-04T18:30:00-05:00",
+        "ok": true,
+        "note": "copy printed while version 35 was future effective from 10/04/2026"
+      },
+      {
+        "at": "2026-11-12T13:00:00-06:00",
+        "ok": true,
+        "note": "live MCD page: version 35, 10/04/2026 - N/A, currently in effect"
+      }
+    ],
     "sha256": "ffed028a8ca1f12e0092de264b5d8f944d031880eac3e81a630e192e3ef3f1a7",
-    "bytes": 259650,
-    "retrieved": "2026-11-12"
+    "bytes": 259650
   },
   {
+    "source_id": "mcd-article-a56462",
     "file": "db77d55a-Article-A56462-v38.pdf",
-    "title": "Billing and Coding Article A56462 (for L34356)",
-    "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleId=56462",
-    "revision": "v38",
+    "title": "Billing and Coding Article A56462, Erythropoiesis Stimulating Agents (ESA) (for L34356)",
+    "publisher": "CGS Administrators (Medicare Coverage Database)",
+    "source_class": "medicare_policy",
+    "access_method": "manual_upload",
+    "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleid=56462&ver=38",
+    "license_class": "public",
+    "license_note": "contains AMA CPT content shown under the MCD click-through licence; only HCPCS and ICD-10-CM codes are taken into the pack",
+    "edition": "Effective 2026-09-27 (version 38)",
+    "retrieved_at": "2026-10-15T19:40:00-05:00",
+    "checks": [
+      {
+        "at": "2026-10-15T19:40:00-05:00",
+        "ok": true,
+        "note": "copy printed; Public Versions shows 09/27/2026 - N/A Currently in Effect"
+      }
+    ],
+    "open_question": "the live page could not be confirmed from the build environment on 2026-11-12; confirm version 38 is still current and record the check",
     "sha256": "e2c62cae95a41c6c2baa8b440d74f57c907282ddade1ff8d686801567ac4d61a",
-    "bytes": 3260669,
-    "retrieved": "2026-11-12"
+    "bytes": 3260669
   },
   {
+    "source_id": "uhc-ma-pa-list",
     "file": "2739ae5c-72c5ea26-220f-4d1d-b45d-aa8be0e80f08.pdf",
-    "title": "UnitedHealthcare Medicare Advantage/Peoples Health prior authorization requirements",
+    "title": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements",
+    "publisher": "UnitedHealthcare",
+    "source_class": "payer_list",
+    "access_method": "manual_upload",
     "url": "https://www.uhcprovider.com/content/dam/provider/docs/public/prior-auth/pa-requirements/medicare/Med-Adv-Dual-Eff-10-1-26.pdf",
-    "revision": "effective 2026-10-01",
+    "license_class": "public",
+    "edition": "Effective 2026-10-01",
+    "retrieved_at": "2026-11-12T12:30:00-06:00",
+    "checks": [
+      {
+        "at": "2026-11-12T13:00:00-06:00",
+        "ok": true,
+        "note": "no edition later than October 1, 2026 found; UHC November policy overview announces no Medicare Advantage list change"
+      }
+    ],
     "sha256": "2b92044dfbe3eb4240ba7d591925a4aa0f93c13c9dfdac7456ce61f07997c03f",
-    "bytes": 813293,
-    "retrieved": "2026-11-12"
+    "bytes": 813293
   },
   {
+    "source_id": "uhc-ma-partb-step-therapy",
     "file": "6c74f4dd-de5df8d2-fb7c-4521-8f2e-8b46952da46d.pdf",
-    "title": "UHC MA Medicare Part B Step Therapy Programs IAP.001.30",
+    "title": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs",
+    "publisher": "UnitedHealthcare",
+    "source_class": "payer_policy",
+    "access_method": "manual_upload",
     "url": "https://www.uhcprovider.com/content/dam/provider/docs/public/policies/index/mamp/medicare-part-b-step-therapy-programs-07012026.pdf",
-    "revision": "effective 2026-07-01",
+    "license_class": "public",
+    "edition": "Effective 2026-07-01 (IAP.001.30)",
+    "retrieved_at": "2026-11-12T12:30:00-06:00",
+    "checks": [
+      {
+        "at": "2026-11-12T13:00:00-06:00",
+        "ok": true,
+        "note": "a new edition effective 2027-01-01 is published (medicare-part-b-step-therapy-programs-01012027.pdf); opened as a change flag applying from 2027-01-01"
+      }
+    ],
+    "change_flags": [
+      {
+        "detected_at": "2026-11-12T13:00:00-06:00",
+        "applies_from": "2027-01-01",
+        "url": "https://www.uhcprovider.com/content/dam/provider/docs/public/policies/index/mamp/medicare-part-b-step-therapy-programs-01012027.pdf"
+      }
+    ],
     "sha256": "48b53dcb169c375972e4083b2e27115aada24302c906d567e55e87cb43a6f4c2",
-    "bytes": 721884,
-    "retrieved": "2026-11-12"
+    "bytes": 721884
   },
   {
+    "source_id": "ecfr-42-422-568",
     "file": "0acc19a0-42_CFR_422.568_up_to_date_as_of_11-09-2026.pdf",
-    "title": "42 CFR 422.568",
+    "title": "42 CFR 422.568, Standard timeframes and notice requirements for organization determinations",
+    "publisher": "Office of the Federal Register (eCFR)",
+    "source_class": "federal",
+    "access_method": "manual_upload",
     "url": "https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-B/part-422/subpart-M/section-422.568",
-    "revision": "eCFR as of 2026-11-09",
+    "license_class": "public",
+    "edition": "eCFR up to date as of 2026-11-09",
+    "retrieved_at": "2026-11-09T12:00:00-06:00",
+    "checks": [
+      {
+        "at": "2026-11-09T12:00:00-06:00",
+        "ok": true,
+        "note": "eCFR export, up to date as of 11/09/2026"
+      }
+    ],
     "sha256": "6023ce79ec41befabd83022617bc9af402485f568f90743e649369334798d3db",
-    "bytes": 62210,
-    "retrieved": "2026-11-12"
+    "bytes": 62210
   },
   {
+    "source_id": "cfr-42-422-572",
     "file": "7c361845-279f70af-68ec-4fc8-b8a2-9bf8de7396fb.pdf",
-    "title": "42 CFR 422.572 (printed CFR page)",
+    "title": "42 CFR 422.572, Timeframes and notice requirements for expedited organization determinations",
+    "publisher": "Office of the Federal Register",
+    "source_class": "federal",
+    "access_method": "manual_upload",
     "url": "https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-B/part-422/subpart-M/section-422.572",
-    "revision": "print edition, date to confirm",
+    "license_class": "public",
+    "columns": 2,
+    "edition": "Printed CFR page (edition date not shown on the page)",
+    "retrieved_at": "2026-11-12T12:30:00-06:00",
+    "checks": [
+      {
+        "at": "2026-11-12T12:30:00-06:00",
+        "ok": true,
+        "note": "manual upload of a printed CFR page"
+      }
+    ],
+    "open_question": "replace with an eCFR export (up to date as of a stated date), as for 422.568",
     "sha256": "163e839e8da8ab938c7d78fade6910743a7b886f27f139130af25e73e4ca2182",
-    "bytes": 199533,
-    "retrieved": "2026-11-12"
+    "bytes": 199533
   },
   {
+    "source_id": "cms-wiser-factsheet",
     "file": "70d0109f-2ebbe841-bc5d-4b9e-a580-d00fd1dd5d45.pdf",
-    "title": "CMS WISeR Model provider fact sheet",
+    "title": "CMS Wasteful and Inappropriate Service Reduction (WISeR) Model provider fact sheet",
+    "publisher": "CMS Innovation Center",
+    "source_class": "federal",
+    "access_method": "manual_upload",
     "url": "https://www.cms.gov/priorities/innovation/files/wiser-provider-fact-sheet.pdf",
-    "revision": "PY1 2026",
+    "license_class": "public",
+    "edition": "Performance year 1 (2026)",
+    "retrieved_at": "2026-11-12T12:30:00-06:00",
+    "checks": [
+      {
+        "at": "2026-11-12T13:00:00-06:00",
+        "ok": true,
+        "note": "live fact sheet read: same states (TX, NJ, OK, OH, WA, AZ) and PY1 2026 service list"
+      }
+    ],
     "sha256": "bd17fae93d160dba126b11c71483814e1d833857313636e80398f072a0638189",
-    "bytes": 248874,
-    "retrieved": "2026-11-12"
+    "bytes": 248874
   },
   {
+    "source_id": "cms-pa-program-stats",
     "file": "c623928b-1a07e055-cf73-47a0-ac60-0101562bc1d5.pdf",
-    "title": "CMS Prior Authorization and Pre-Claim Review Program Stats FY2024",
+    "title": "CMS Prior Authorization and Pre-Claim Review Program Stats for Fiscal Year 2024",
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
     "url": "https://www.cms.gov/files/document/prior-authorization-and-pre-claim-review-program-statistics.pdf",
-    "revision": "published 2025-09-16",
+    "license_class": "public",
+    "edition": "Published 2025-09-16 (fiscal year 2024)",
+    "retrieved_at": "2026-11-12T12:30:00-06:00",
+    "checks": [
+      {
+        "at": "2026-11-12T12:30:00-06:00",
+        "ok": true,
+        "note": "manual upload; the most recent CMS summary of the Original Medicare prior authorization and pre-claim review programs"
+      }
+    ],
     "sha256": "eeddfd4c7ef35bb718423b4268a74c7601db0f3783a3693004c8320af4508441",
-    "bytes": 596793,
-    "retrieved": "2026-11-12"
+    "bytes": 596793
   }
 ]

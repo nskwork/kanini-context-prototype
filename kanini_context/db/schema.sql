@@ -11,6 +11,8 @@
 --   data_element.fact      the registered fact that carries the element's value
 --   kc_gov.release.covers_through   last date of service the release answers for
 --   graph_edges            adds documented_by, issued_in and replaced_by, so every relation appears
+--   review_exception       on rule, concept_map and authority_binding: two approvers stay the rule; one named approver
+--                          is accepted only with a recorded exception, which every answer shows
 --
 -- Valid time:  when a fact is true in the real world. Stored as four bounds so an
 --              uncertain start or end is never turned into an invented date:
@@ -202,7 +204,8 @@ CREATE TABLE kc_core.concept_map (          -- relation: maps_to (concept -> cod
   recorded       tstzrange NOT NULL DEFAULT tstzrange(now(), NULL),
   snapshot_id    uuid REFERENCES kc_core.snapshot,
   reviewed_by    text[] NOT NULL DEFAULT '{}',
-  CHECK (kc_core.n_approvers(reviewed_by) >= 2),
+  review_exception text,                    -- see kc_core.rule.review_exception
+  CHECK (kc_core.n_approvers(reviewed_by) >= 2 OR (kc_core.n_approvers(reviewed_by) = 1 AND review_exception IS NOT NULL)),
   EXCLUDE USING gist (concept_id WITH =, code_system_id WITH =, code WITH =, valid WITH &&)
     WHERE (upper_inf(recorded))
 );
@@ -286,7 +289,8 @@ CREATE TABLE kc_core.authority_binding (    -- relation: binds (authority -> sco
   recorded               tstzrange NOT NULL DEFAULT tstzrange(now(), NULL),
   snapshot_id            uuid REFERENCES kc_core.snapshot,
   reviewed_by            text[] NOT NULL DEFAULT '{}',
-  CHECK (kc_core.n_approvers(reviewed_by) >= 2)
+  review_exception       text,              -- see kc_core.rule.review_exception
+  CHECK (kc_core.n_approvers(reviewed_by) >= 2 OR (kc_core.n_approvers(reviewed_by) = 1 AND review_exception IS NOT NULL))
 );
 CREATE INDEX authority_binding_auth ON kc_core.authority_binding (authority_id);
 
@@ -408,6 +412,8 @@ CREATE TABLE kc_core.rule (
   source_quote         text NOT NULL,
   extracted_by         text NOT NULL CHECK (extracted_by IN ('parser','llm_assisted','manual')),
   reviewed_by          text[] NOT NULL DEFAULT '{}',
+  review_exception     text,                         -- a recorded exception to two-person approval (one named approver),
+                                                     -- e.g. 'prototype: second review pending'; shown on every answer
   reviewed_at          timestamptz,
   release_id           text,                         -- first release that shipped this row
   license_class        text NOT NULL DEFAULT 'public',
@@ -418,7 +424,8 @@ CREATE TABLE kc_core.rule (
   CHECK (valid_from_basis = 'unknown' OR valid_from_lo = valid_from_hi),
   CHECK (valid_to_lo IS NULL OR valid_to_hi IS NULL OR valid_to_lo <= valid_to_hi),
   CHECK (valid_to_lo IS NULL OR valid_from_hi < valid_to_lo),
-  CHECK (status <> 'active' OR kc_core.n_approvers(reviewed_by) >= 2),
+  CHECK (status <> 'active' OR kc_core.n_approvers(reviewed_by) >= 2
+         OR (kc_core.n_approvers(reviewed_by) = 1 AND review_exception IS NOT NULL)),
   CHECK (basis <> 'interpreted' OR mapping_confidence IS NOT NULL),
   -- one authority, subject, rule kind, aspect and scope: no two current active versions
   -- may both be confirmed valid on the same date

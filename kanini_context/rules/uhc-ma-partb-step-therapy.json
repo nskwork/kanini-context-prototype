@@ -1,0 +1,115 @@
+{
+  "source_id": "uhc-ma-partb-step-therapy",
+  "authority": {
+    "key": "UHC-MA-PARTB-STEP",
+    "kind": "payer_policy",
+    "issuer": "uhc",
+    "layer": "T3",
+    "citation": "UHC MA Drug Policy IAP.001.30",
+    "title": "UnitedHealthcare Medicare Advantage Drug Policy: Medicare Part B Step Therapy Programs (IAP.001.30)"
+  },
+  "edition": {
+    "label": "IAP.001.30, effective July 1, 2026",
+    "valid_from_basis": "stated",
+    "valid_from": "2026-07-01",
+    "locator": {
+      "page": 1,
+      "section": "Policy header"
+    },
+    "quote": "Policy Number: IAP.001.30 Effective Date: July 1, 2026"
+  },
+  "bindings": [
+    {
+      "plan": "uhc-ma",
+      "program": "medicare_advantage",
+      "item_scope": "drugs"
+    }
+  ],
+  "codes": [
+    {
+      "code": "HCPCS|J1439",
+      "display": "Injection, ferric carboxymaltose, 1 mg",
+      "item_type": "drug"
+    }
+  ],
+  "codes_valid_from": "2026-07-01",
+  "codes_locator": {
+    "page": 18,
+    "section": "Applicable Codes",
+    "item": "Intravenous Iron Replacement Therapy"
+  },
+  "codes_quote": "J1439 Injection, ferric carboxymaltose, 1 mg",
+  "rules": [
+    {
+      "rule_key": "kc:rule/J1439/uhc-step-therapy",
+      "rule_kind": "documentation_requirement",
+      "subject": {
+        "code": "HCPCS|J1439"
+      },
+      "scope": {
+        "program": "medicare_advantage",
+        "payer": "uhc"
+      },
+      "conditions": [
+        {
+          "fact": "dialysis_status",
+          "op": "in",
+          "value": [
+            "none"
+          ]
+        }
+      ],
+      "payload": {
+        "logic": "any",
+        "applies_when": "Injectafer is non-preferred; preferred: Feraheme, Ferrlecit, INFeD, Venofer"
+      },
+      "basis": "stated",
+      "locator": {
+        "page": 8,
+        "section": "Intravenous Iron Replacement Therapy",
+        "item": "Non-Preferred Product Step Therapy Criteria"
+      },
+      "quote": "Injectafer or Monoferric may be covered for iron deficiency anemia without chronic kidney disease and iron deficiency anemia associated with chronic kidney disease (without end stage renal disease) when any of the criteria listed below are satisfied: Trial of at least 3 weeks of therapy, to at least two of the preferred intravenous iron therapies each, resulting in minimal clinical response to therapy; or History of contraindication, intolerance or adverse event(s) to at least two of the preferred intravenous iron therapies; or",
+      "quote_continued": {
+        "page": 9,
+        "section": "Intravenous Iron Replacement Therapy",
+        "quote": "Continuation of prior therapy within the past 365 days."
+      },
+      "extracted_by": "llm_assisted",
+      "requirements": [
+        {
+          "group": 1,
+          "logic": "any",
+          "element": "KCDE|iv-iron-preferred-trials",
+          "test": {
+            "op": "present"
+          },
+          "when": "initial"
+        },
+        {
+          "group": 1,
+          "logic": "any",
+          "element": "KCDE|iv-iron-preferred-intolerance",
+          "test": {
+            "op": "present"
+          },
+          "when": "initial"
+        },
+        {
+          "group": 1,
+          "logic": "any",
+          "element": "KCDE|iv-iron-continuation-365d",
+          "test": {
+            "op": "present"
+          },
+          "when": "both"
+        }
+      ]
+    }
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

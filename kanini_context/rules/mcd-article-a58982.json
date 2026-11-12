@@ -1,0 +1,163 @@
+{
+  "source_id": "mcd-article-a58982",
+  "authority": {
+    "key": "ART-A58982",
+    "kind": "billing_article",
+    "issuer": "cms",
+    "layer": "T1",
+    "citation": "Article A58982",
+    "title": "Billing and Coding: Erythropoiesis Stimulating Agents (Palmetto GBA, for LCD L39237)"
+  },
+  "edition": {
+    "label": "Revision effective 2026-10-01 (version 21)",
+    "valid_from_basis": "stated",
+    "valid_from": "2026-10-01",
+    "locator": {
+      "page": 2,
+      "section": "Article Information"
+    },
+    "quote": "Revision Effective Date 10/01/2026"
+  },
+  "bindings": [
+    {
+      "program": "medicare_ffs",
+      "jurisdiction": "JJ",
+      "item_scope": "drugs"
+    },
+    {
+      "program": "medicare_ffs",
+      "jurisdiction": "JM",
+      "item_scope": "drugs"
+    },
+    {
+      "program": "medicare_advantage",
+      "jurisdiction": "JJ",
+      "item_scope": "drugs",
+      "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"
+    },
+    {
+      "program": "medicare_advantage",
+      "jurisdiction": "JM",
+      "item_scope": "drugs",
+      "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"
+    }
+  ],
+  "codes": [
+    {
+      "code": "HCPCS|J0881",
+      "display": "Injection, darbepoetin alfa, 1 microgram (non-ESRD use)",
+      "item_type": "drug"
+    },
+    {
+      "code": "HCPCS|J0885",
+      "display": "Injection, epoetin alfa, (for non-ESRD use), 1000 units",
+      "item_type": "drug"
+    },
+    {
+      "code": "HCPCS|J0888",
+      "display": "Injection, epoetin beta, 1 microgram, (for non ESRD use)",
+      "item_type": "drug"
+    },
+    {
+      "code": "HCPCS|Q5106",
+      "display": "Injection, epoetin alfa-epbx, biosimilar, (Retacrit) (for non-ESRD use), 1000 units",
+      "item_type": "drug"
+    }
+  ],
+  "codes_valid_from": "2026-10-01",
+  "codes_locator": {
+    "page": 17,
+    "section": "CPT/HCPCS Codes",
+    "item": "Group 2"
+  },
+  "codes_quote": "Group 2 Paragraph For anemia in patients with CKD (non-dialysis requiring) Group 2 Codes Code Description J0881 INJECTION, DARBEPOETIN ALFA, 1 MICROGRAM (NON-ESRD USE) J0885 INJECTION, EPOETIN ALFA, (FOR NON-ESRD USE), 1000 UNITS J0888 INJECTION, EPOETIN BETA, 1 MICROGRAM, (FOR NON ESRD USE) Q5106 INJECTION, EPOETIN ALFA-EPBX, BIOSIMILAR, (RETACRIT) (FOR NON-ESRD USE)",
+  "concepts": [
+    {
+      "key": "esa-ckd-nd",
+      "label": "ESA, CKD not on dialysis",
+      "definition": "Erythropoiesis stimulating agents billed for anemia in chronic kidney disease, patient not on dialysis (non-ESRD use)",
+      "maps": [
+        {
+          "code": "HCPCS|J0881",
+          "map_kind": "narrower"
+        },
+        {
+          "code": "HCPCS|J0885",
+          "map_kind": "narrower"
+        },
+        {
+          "code": "HCPCS|J0888",
+          "map_kind": "narrower"
+        },
+        {
+          "code": "HCPCS|Q5106",
+          "map_kind": "narrower"
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule_key": "kc:rule/esa-ckd-nd/A58982-dx",
+      "rule_kind": "coverage_criteria",
+      "subject": {
+        "concept": "esa-ckd-nd"
+      },
+      "conditions": [
+        {
+          "fact": "dialysis_status",
+          "op": "in",
+          "value": [
+            "none"
+          ]
+        }
+      ],
+      "payload": {
+        "logic": "all",
+        "indication": "Diagnoses that must be billed for CKD not on dialysis"
+      },
+      "basis": "stated",
+      "locator": {
+        "page": 10,
+        "section": "Article Text",
+        "item": "CKD NOT on Dialysis"
+      },
+      "quote": "For patients with CKD who are not on dialysis, a diagnosis code of D63.1 a diagnosis of I12.0, I13.11, I13.2, N18.32, N18.4, or N18.5 must be billed with HCPCS code J0881, J0885, J0888, or Q5106.",
+      "extracted_by": "llm_assisted",
+      "requirements": [
+        {
+          "group": 1,
+          "logic": "all",
+          "element": "ICD10CM|D63.1",
+          "test": {
+            "op": "includes",
+            "value": "D63.1"
+          },
+          "when": "both"
+        },
+        {
+          "group": 2,
+          "logic": "all",
+          "element": "ICD10CM|ckd-not-on-dialysis",
+          "test": {
+            "op": "includes_any",
+            "value": [
+              "I12.0",
+              "I13.11",
+              "I13.2",
+              "N18.32",
+              "N18.4",
+              "N18.5"
+            ]
+          },
+          "when": "both"
+        }
+      ]
+    }
+  ],
+  "review": {
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
+    "reviewed_by": [],
+    "review_exception": null
+  }
+}

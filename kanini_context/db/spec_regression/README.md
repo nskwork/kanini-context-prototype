@@ -15,5 +15,7 @@ All 61 tests give the same verdict, including the 9 expected refusals. The diffe
 | --- | --- |
 | Winning rules carry `rule_key` and `version` | Readable rule references (`rule_key@edition`) for the decision log |
 | Requirement items carry `element_id`, `fact` and `unit` | Criteria are checked against registered facts; forms join items by element id |
-| Refusal messages show one more column | `rule.rule_key` was added to the rule table |
+| Winning rules carry `review_exception` | An answer shows when a rule was approved by one named approver under a recorded exception |
+| Refusal messages show two more columns | `rule.rule_key` and `rule.review_exception` were added to the rule table |
+| The one-approver binding refusal names `authority_binding_check` | The approval check on bindings now also accepts one approver with a recorded exception; with neither, as in the test, it still refuses |
 | N16 lists `issued_in` | The combined links view now includes `issued_in`, `documented_by` and `replaced_by`. `documented_by` has no rows at N16 time, and `replaced_by` has none because the replacement code X0002 is not in the sample data |

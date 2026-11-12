@@ -185,6 +185,7 @@ BEGIN
            'rule_id', r.rule_id, 'rule_key', r.rule_key, 'rule_kind', r.rule_kind, 'effect', r.effect, 'payload', r.payload,
            'conditions', r.conditions,
            'basis', r.basis, 'mapping_confidence', r.mapping_confidence, 'not_stated', to_jsonb(r.not_stated),
+           'reviewed_by', to_jsonb(r.reviewed_by), 'review_exception', r.review_exception,
            'layer', a.layer, 'lrank', kc_meta.layer_rank(a.layer), 'issuer', a.issuer_id, 'citation', a.citation, 'authority', a.title,
            'authority_id', a.entity_id, 'authority_kind', a.kind, 'closed_list', a.closed_list, 'version', av.version_label,
            'confirmed_valid', r.valid::text, 'uncertain', NOT (r.valid @> p_as_of),
@@ -475,7 +476,8 @@ BEGIN
                         'version', x -> 'version', 'layer', x -> 'layer',
                         'rule_kind', x -> 'rule_kind', 'effect', x -> 'effect', 'payload', x -> 'payload',
                         'basis', x -> 'basis', 'mapping_confidence', x -> 'mapping_confidence',
-                        'confirmed_valid', x -> 'confirmed_valid', 'not_stated', x -> 'not_stated'))
+                        'confirmed_valid', x -> 'confirmed_valid', 'not_stated', x -> 'not_stated',
+                        'review_exception', x -> 'review_exception'))
                       FROM jsonb_array_elements(v_win) x),
     'sources', (SELECT jsonb_agg(jsonb_build_object('citation', x -> 'citation', 'authority', x -> 'authority',
                   'version', x -> 'version', 'layer', x -> 'layer', 'snapshot_id', x -> 'snapshot_id',
