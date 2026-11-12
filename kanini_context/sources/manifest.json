@@ -261,5 +261,57 @@
     "edition": "As published with the demonstration",
     "checks": [],
     "open_question": "download and record with place --record; the screen finding (ESAs not on the list) is checked against it"
+  },
+  {
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
+    "license_class": "public",
+    "checks": [],
+    "source_id": "cms-pa-initiatives-index",
+    "file": "CMS-PA-and-pre-claim-review-initiatives.pdf",
+    "title": "CMS Prior Authorization and Pre-Claim Review Initiatives (index of programs)",
+    "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-and-pre-claim-review-initiatives",
+    "edition": "Page as saved",
+    "open_question": "found 2026-11-12: the program set in cms-pa-programs.json must be checked against this index, the CMS list of every prior authorization and pre-claim review initiative. Save it as PDF (print to PDF) under this file name and record it with place --record."
+  },
+  {
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
+    "license_class": "public",
+    "checks": [],
+    "source_id": "cms-dmepos-ppa",
+    "file": "CMS-DMEPOS-probationary-PA.pdf",
+    "title": "CMS Probationary Prior Authorization Process for Newly Enrolled Suppliers of Certain DMEPOS Items",
+    "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/probationary-prior-authorization-process-newly-enrolled-suppliers-certain-durable-medical-equipment",
+    "edition": "Effective 2026-10-15",
+    "open_question": "found 2026-11-12: nationwide from 2026-10-15, so bound to Tennessee and Ohio. Save the page (print to PDF) and its DMEPOS Probationary Prior Authorization Code List under these names and record them with place --record."
+  },
+  {
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
+    "license_class": "public",
+    "checks": [],
+    "source_id": "cms-dmepos-ppa-codes",
+    "file": "CMS-DMEPOS-probationary-PA-code-list.pdf",
+    "title": "CMS DMEPOS Probationary Prior Authorization Code List",
+    "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/probationary-prior-authorization-process-newly-enrolled-suppliers-certain-durable-medical-equipment",
+    "edition": "As linked from the program page",
+    "open_question": "download the code list linked from the program page; the screen finding is checked against it"
+  },
+  {
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
+    "license_class": "public",
+    "checks": [],
+    "source_id": "cms-irf-rcd",
+    "file": "CMS-IRF-review-choice-demonstration.pdf",
+    "title": "CMS Review Choice Demonstration for Inpatient Rehabilitation Facility Services",
+    "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/review-choice-demonstration-inpatient-rehabilitation-facility-services",
+    "edition": "Page as saved (expansion to Texas 2026-03-02, California 2026-05-01, Jurisdiction J 2027-01-01)",
+    "open_question": "found 2026-11-12: the demonstration expanded beyond the fiscal year 2024 statistics. Save the page (print to PDF) and record it with place --record; once saved, it should become the source of the whole IRF program entry."
   }
 ]

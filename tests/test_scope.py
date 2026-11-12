@@ -79,11 +79,11 @@ def test_05b_tennessee_egfr_52(kc):
     assert out["next_step_detail"].startswith("Coverage criteria not met")
 
 
-def test_05c_ohio_egfr_52(kc, asc_screened):
+def test_05c_ohio_egfr_52(kc, screened):
     out = ev(kc, state="OH", egfr=52, diagnosis_codes=["D63.1", "N18.31"])
     assert "eGFR (CKD-EPI 2021) 52 is < 60" in out["reasons"]
     assert out["coverage_criteria"]["status"] == "met"
-    if not asc_screened:
+    if not screened("OH"):
         assert_held_for_unscreened_program(out)
         return
     assert out["outcome"] == "no_pa"
@@ -275,3 +275,10 @@ def test_23_staff_rejects_the_decision(kc_http, decision_log, asc_screened):
     _agent(_logged_case(asc_screened)[0], "reject")
     [e] = read_log(decision_log)
     assert e["decision"] == "rejected" and e["reviewer"] == "demo-staff" and "approved_by" not in e
+
+
+def test_22b_decision_card_cannot_contradict_the_rules(kc_http, decision_log):
+    # A model that writes "Outcome: No PA" for an order the rules say needs PA: the card is set from rules_evaluate.
+    out = _agent("maria-uhc", "approve", wrong_card=True)
+    assert "Outcome: PA required · safe to act" in out["text"] and "Outcome: No PA" not in out["text"]
+    assert "(Outcome line set from rules_evaluate.)" in out["text"]

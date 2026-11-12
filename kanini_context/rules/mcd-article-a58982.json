@@ -114,7 +114,10 @@
       ],
       "payload": {
         "logic": "all",
-        "indication": "Diagnoses that must be billed for CKD not on dialysis"
+        "indication": "Diagnoses that must be billed for CKD not on dialysis",
+        "not_modelled": [
+          "Iron stores evaluated before and during ESA therapy: transferrin saturation at least 20% and ferritin at least 100 ng/mL, checked again before dose increases (page 10)"
+        ]
       },
       "basis": "stated",
       "locator": {

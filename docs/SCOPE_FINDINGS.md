@@ -82,10 +82,16 @@ The answer cites each list it checked. If any program for the state is not loade
 
 The other tables, constraints and statuses are unchanged.
 
-## 6. Addendum: a sixth Original Medicare program (found during the build, 12 November 2026)
+## 6. Addendum: Original Medicare programs found during the build (12 November 2026)
 
-**Source.** CMS runs a Prior Authorization Demonstration for Certain Ambulatory Surgical Center Services, a five-year demonstration that is not in the fiscal year 2024 program statistics. After a delay announced on 20 November 2025, it applies to dates of service from 19 January 2026 in California, Florida, Tennessee, Pennsylvania, Maryland, Georgia and New York, and from 16 February 2026 in Texas, Arizona and Ohio. Its service categories are blepharoplasty, botulinum toxin injections, panniculectomy, rhinoplasty and vein ablation.
+**Source.** The fiscal year 2024 program statistics are not the whole program set for November 2026. Three further CMS initiatives bind the scenario states or nearby ones:
 
-**Effect.** The program binds both scenario states. Under the closed-list rule in section 3, "No PA" in Tennessee and Ohio holds only once this program is loaded and screened. ESAs are very unlikely to be on its list, but the screen has to be made against the saved list, like the others.
+| Program | Places and dates | Items |
+| --- | --- | --- |
+| Prior Authorization Demonstration for Certain Ambulatory Surgical Center Services (five years) | California, Florida, Tennessee, Pennsylvania, Maryland, Georgia and New York from 19 January 2026; Texas, Arizona and Ohio from 16 February 2026 | Blepharoplasty, botulinum toxin injections, panniculectomy, rhinoplasty, vein ablation |
+| Probationary Prior Authorization Process for Newly Enrolled Suppliers of Certain DMEPOS Items | Nationwide from 15 October 2026 | Codes on the CMS code list, for newly enrolled suppliers and suppliers after a change in ownership, for one year |
+| Review Choice Demonstration for IRF Services, expansion | Texas from 2 March 2026, California from 1 May 2026, all of Jurisdiction J (Alabama, Georgia, Tennessee) from 1 January 2027 | IRF services |
 
-**Change.** The program is registered in the pack with its states and dates. Until its page and HCPCS list are saved and the screen is approved, Original Medicare ESA answers in Tennessee and Ohio return "no rule found", naming the program, and route to staff. Once saved and approved, they return to "No PA" with no code change. The saved copies go in through `python -m kanini_context.sources.place --record`.
+**Effect.** The first two bind Tennessee and Ohio now; the third binds Tennessee from 2027. Under the closed-list rule in section 3, "No PA" holds only once every bound program is loaded and screened. ESAs are very unlikely to be on any of these lists, but each screen has to be made against the saved list, like the others. The completeness of the program set itself should rest on the CMS index of prior authorization and pre-claim review initiatives, saved as a source, rather than on one report.
+
+**Change.** The three programs are registered in the pack with their places and dates. Until their pages and code lists are saved and the screens are approved, Original Medicare ESA answers in the bound states return "no rule found", naming each unscreened program, and route to staff. Once saved and approved, they return to "No PA" with no code change. The saved copies, and the CMS index page, go in through `python -m kanini_context.sources.place --record`.

@@ -46,6 +46,7 @@ class ScriptedModel(BaseLlm):
     model: str = "scripted"
     patient_id: str = "maria-tn"
     skip_checks: bool = False   # behave like a model that obeys "skip the policy check": record straight away
+    wrong_card: bool = False    # write a decision card whose Outcome line contradicts rules_evaluate
     calls: int = 0
 
     async def generate_content_async(self, llm_request: LlmRequest, stream: bool = False) -> AsyncGenerator[LlmResponse, None]:
@@ -65,12 +66,13 @@ class ScriptedModel(BaseLlm):
                 return
             yield _text(f"record: {json.dumps(last['journey_record'])[:200]}")
             return
-        base = {"plan": j["coverage"]["plan"], "state": j["coverage"]["state"], "code": o["code"], "date_of_service": o["date_of_service"]}
+        args = o["rules_evaluate_args"]
+        base = {k: args[k] for k in ("plan", "state", "code", "date_of_service")}
         if "context_applicable_rules" not in names:
             yield _call("context_applicable_rules", base)
             return
         if "rules_evaluate" not in names:
-            yield _call("rules_evaluate", {**base, "facts": j["facts_for_rules_evaluate"][0]})
+            yield _call("rules_evaluate", args)
             return
         ev = last["rules_evaluate"]
         if ev.get("reason") == "kanini_context_unreachable":
@@ -90,5 +92,8 @@ class ScriptedModel(BaseLlm):
                                            "source": "made-up", "safe_to_act": True})
             return
         rec = last["journey_record"]
+        if self.wrong_card:   # a card that claims "No PA" whatever the rules said
+            yield _text(f"Decision card · {o['order_id']} · {j['display_name']}\nOutcome: No PA · safe to act\nWhy: (model's own words)")
+            return
         yield _text(f"Decision card · {o['order_id']} · outcome {ev.get('outcome')} · "
                     f"{'safe to act' if ev.get('safe_to_act') else 'not safe to act'} · {prim.get('citation')} · record: {json.dumps(rec)[:200]}")

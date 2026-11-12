@@ -5,11 +5,11 @@
 -- The MCP server (Python) writes one kc_client.tool_audit row per call; these functions only read.
 --
 -- Changes from SQL v0.9 (spec v1.5 resolver), all additions; the spec's 61 tests keep their verdicts:
---   check_facts           number facts are range-checked; date facts must be real dates
+--   check_facts           number facts are range-checked; integer facts must be whole numbers; date facts must be real dates
 --   eval_conditions       adds the operator prefix_overlaps (a code list against code prefixes, e.g. C, D0)
 --   candidate_rules       steps 2 to 4 as their own function, also asked "on any date" to tell a missing
 --                         edition from a missing rule
---   bound_pa_programs     the prior authorization programs bound to a coverage, place and date
+--   bound_pa_programs     the prior authorization programs bound to a coverage, plan, payer position, place and date
 --   resolve_rules         step 6b: a "not required" stated by exhaustion holds only if every bound program was
 --                         screened (scope findings, section 3); the coverage aspect answers 'criteria_apply';
 --                         winning rules carry rule_key, version, citation, authority_kind and review_exception
@@ -33,6 +33,8 @@ CREATE FUNCTION kc_api.check_facts(p_facts jsonb) RETURNS text LANGUAGE sql STAB
       OR EXISTS (SELECT 1 FROM kc_meta.fact_type f WHERE f.fact = k AND (
              (f.value_type = 'enum'      AND NOT (f.allowed @> jsonb_build_array(p_facts -> k)))
           OR (f.value_type IN ('integer','number') AND jsonb_typeof(p_facts -> k) <> 'number')
+          OR (f.value_type = 'integer' AND jsonb_typeof(p_facts -> k) = 'number'
+              AND (p_facts ->> k)::numeric <> trunc((p_facts ->> k)::numeric))
           OR (f.value_type IN ('integer','number') AND jsonb_typeof(p_facts -> k) = 'number' AND f.allowed IS NOT NULL
               AND (CASE WHEN jsonb_typeof(p_facts -> k) = 'number'
                         THEN (f.allowed ? 'min' AND (p_facts ->> k)::numeric < (f.allowed ->> 'min')::numeric)
@@ -262,6 +264,8 @@ LANGUAGE sql STABLE AS $$
     FROM kc_api.all_authority a JOIN kc_api.all_binding b ON b.authority_id = a.entity_id
    WHERE a.kind = 'pa_program' AND b.recorded @> p_recorded_as_of AND b.valid @> p_as_of
      AND (b.program_id IS NULL OR b.program_id = (SELECT entity_id FROM kc_core.program WHERE kind = p_coverage ->> 'program'))
+     AND (b.plan_id IS NULL OR b.plan_id = (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'plan' AND natural_key = p_coverage ->> 'plan'))
+     AND (coalesce((p_coverage ->> 'payer_position')::int, 1) = 1 OR b.applies_when_secondary)
      AND (b.jurisdiction_id IS NULL OR b.jurisdiction_id IN (SELECT j FROM up))
      AND (b.item_scope = 'all' OR b.item_scope = CASE WHEN p_item_type = 'drug' THEN 'drugs' ELSE 'items_and_services' END)
 $$;

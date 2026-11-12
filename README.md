@@ -52,8 +52,8 @@ cp .env.example .env                                    # then add OPENAI_API_KE
 
 # 3. Source copies: finds the PDFs in a folder by hash and puts them in kanini_context/sources/raw/
 python -m kanini_context.sources.place ~/Downloads
-#    Two CMS copies are not saved yet (the ASC prior authorization demonstration page, printed to PDF, and its
-#    HCPCS list); save them under the names `place` prints, then record them:
+#    Five CMS copies are not saved yet (program pages printed to PDF, and their code lists); save them under
+#    the names `place` prints, then record them:
 python -m kanini_context.sources.place --record ~/Downloads
 python -m kanini_context.curation.checks                # fix any page numbers it reports for the new quotes
 
@@ -76,9 +76,9 @@ On the day of the demo, `python -m kanini_context.release.sync` records a sync, 
 
 As the scope sets it, one engineer checks each rule against its source, and formal review comes later. `curation/approve.py` shows every rule with its page and quote and records the approval with a standing exception to the spec's two-approver rule; every answer shows that exception. The rule files are drafted and pass the automated checks; they are not approved yet. Until they are, the build refuses them, and `--test-review` (used by the tests) builds a release labelled `TEST-`. Details in `docs/PROTOTYPE_NOTES.md`, section 2.
 
-## The ASC demonstration
+## CMS programs found during the build
 
-CMS started a prior authorization demonstration for certain ambulatory surgical center services in 2026, bound to Tennessee and Ohio among other states (scope findings, section 6). It is registered in the pack, but its copies are not saved yet, so until they are recorded and approved, Original Medicare ESA answers in Tennessee and Ohio are "no rule found: not screened against the CMS ASC prior authorization demonstration", routed to staff. That is the design working: "No PA" holds only when every bound program has been screened. The tests describe both states.
+Three CMS prior authorization programs bind Original Medicare beyond the fiscal year 2024 statistics the first program list came from: the ASC demonstration (Tennessee and Ohio from early 2026), the DMEPOS probationary process (nationwide from 15 October 2026) and the IRF demonstration expansion (Tennessee from 2027) (scope findings, section 6). They are registered in the pack, but their copies are not saved yet, so until they are recorded and approved, Original Medicare ESA answers in Tennessee, Ohio and every other bound state are "no rule found", naming each unscreened program, and route to staff. That is the design working: "No PA" holds only when every bound program has been screened. `python -m kanini_context.sources.place` lists the five CMS copies to save (including the CMS index of initiatives, which is the check that the program set is complete). The tests work out from the pack which programs are screened, and expect the matching answer.
 
 ## Freshness
 

@@ -135,6 +135,8 @@ CREATE FUNCTION kc_api.pack_date_check(p_as_of date) RETURNS text LANGUAGE sql S
 CREATE FUNCTION kc_api.fact_errors(p_facts jsonb) RETURNS text LANGUAGE sql STABLE AS $$
   SELECT string_agg(CASE
            WHEN f.fact IS NULL THEN 'unexpected fact: ' || k
+           WHEN f.value_type = 'integer' AND jsonb_typeof(p_facts -> k) = 'number'
+                AND (p_facts ->> k)::numeric <> trunc((p_facts ->> k)::numeric) THEN k || ' must be a whole number'
            WHEN f.value_type IN ('integer','number') AND jsonb_typeof(p_facts -> k) = 'number' THEN k || ' out of range'
            WHEN f.value_type = 'enum' THEN k || ' must be one of ' || (SELECT string_agg(x, ', ') FROM jsonb_array_elements_text(f.allowed) x)
            WHEN f.value_type = 'date' THEN k || ' must be YYYY-MM-DD'
@@ -148,18 +150,21 @@ CREATE FUNCTION kc_api.fact_errors(p_facts jsonb) RETURNS text LANGUAGE sql STAB
 -- The codes an order item stands for: a HCPCS code ('HCPCS|J0885' or 'J0885'), or a service concept key
 -- ('esa-ckd-nd'), which stands for every code mapped to it on the date.
 -------------------------------------------------------------------------------
-CREATE FUNCTION kc_api.item_codes(p_item text, p_as_of date) RETURNS text[] LANGUAGE sql STABLE AS $$
+CREATE FUNCTION kc_api.item_codes(p_item text, p_as_of date, p_recorded_as_of timestamptz DEFAULT now())
+RETURNS text[] LANGUAGE sql STABLE AS $$
+  WITH n AS (SELECT CASE WHEN upper(btrim(p_item)) ~ '^[A-Z][0-9]{4}$' THEN 'HCPCS|' || upper(btrim(p_item))
+                         ELSE btrim(p_item) END AS item)
   SELECT CASE
-    WHEN p_item ~ '^[A-Z]+\|' THEN
+    WHEN n.item ~ '^[A-Z0-9]+\|' THEN
       (SELECT array_agg(DISTINCT c.code_system_id || '|' || c.code) FROM kc_core.code c
-        WHERE c.code_system_id = split_part(p_item, '|', 1) AND c.code = split_part(p_item, '|', 2) AND upper_inf(c.recorded))
+        WHERE c.code_system_id = split_part(n.item, '|', 1) AND c.code = split_part(n.item, '|', 2) AND c.recorded @> p_recorded_as_of)
     ELSE
       (SELECT array_agg(DISTINCT cm.code_system_id || '|' || cm.code ORDER BY cm.code_system_id || '|' || cm.code)
          FROM kc_core.concept_map cm JOIN kc_core.entity e ON e.entity_id = cm.concept_id
-        WHERE e.entity_type = 'concept' AND e.natural_key = p_item AND upper_inf(cm.recorded)
+        WHERE e.entity_type = 'concept' AND e.natural_key = n.item AND cm.recorded @> p_recorded_as_of
           AND (cm.valid @> p_as_of OR NOT EXISTS (SELECT 1 FROM kc_core.concept_map c2 WHERE c2.concept_id = cm.concept_id
-                                                    AND c2.valid @> p_as_of)))
-  END $$;
+                                                    AND c2.valid @> p_as_of AND c2.recorded @> p_recorded_as_of)))
+  END FROM n $$;
 
 -------------------------------------------------------------------------------
 -- coverage_gap: silence about coverage criteria is never read as "no criteria". When the pack holds
@@ -180,10 +185,15 @@ BEGIN
   END IF;
   IF v_dated IS NULL THEN
     SELECT * INTO c FROM kc_core.code WHERE code_system_id = split_part(p_code,'|',1) AND code = split_part(p_code,'|',2)
-       AND upper_inf(recorded) LIMIT 1;
-    IF EXISTS (SELECT 1 FROM kc_core.rule r WHERE r.rule_kind = 'coverage_criteria' AND r.status = 'active' AND upper_inf(r.recorded)
-                  AND (r.subject_id = c.entity_id OR r.subject_id IN (SELECT cm.concept_id FROM kc_core.concept_map cm
-                        WHERE cm.code_system_id = c.code_system_id AND cm.code = c.code))) THEN
+       AND recorded @> p_recorded_as_of LIMIT 1;
+    IF EXISTS (SELECT 1 FROM kc_core.rule r WHERE r.rule_kind = 'coverage_criteria' AND r.status = 'active' AND r.recorded @> p_recorded_as_of
+                  AND (r.subject_id = c.entity_id
+                       OR r.subject_id IN (SELECT cm.concept_id FROM kc_core.concept_map cm
+                                            WHERE cm.code_system_id = c.code_system_id AND cm.code = c.code AND cm.recorded @> p_recorded_as_of)
+                       OR r.subject_id IN (SELECT m.value_set_id FROM kc_core.value_set_member m
+                                            WHERE m.code_system_id = c.code_system_id AND m.code = c.code AND m.recorded @> p_recorded_as_of)
+                       OR r.subject_id IN (SELECT vs.entity_id FROM kc_core.value_set vs WHERE vs.definition = 'intensional'
+                                            AND (vs.filter ->> 'item_type' = c.item_type OR vs.filter ? 'any')))) THEN
       RETURN 'no_coverage_policy_loaded_for_region';
     END IF;
   END IF;
@@ -217,7 +227,7 @@ DECLARE v_cov jsonb; v_codes text[]; v_code text; v_rules jsonb := '[]'; v_kind 
 BEGIN
   v_cov := kc_api.coverage_for(p_plan, p_state);
   IF v_cov IS NULL THEN v_gap := 'plan_or_state_not_in_pack'; END IF;
-  v_codes := kc_api.item_codes(p_item, p_as_of);
+  v_codes := kc_api.item_codes(p_item, p_as_of, p_recorded_as_of);
   IF v_gap IS NULL AND v_codes IS NULL THEN v_gap := 'item_not_in_pack'; END IF;
   IF v_gap IS NOT NULL THEN
     RETURN jsonb_build_object('status','no_rule_found','reason',v_gap,'reason_text',kc_api.gap_text(v_gap, v_cov, p_as_of),
@@ -285,7 +295,7 @@ LANGUAGE plpgsql STABLE AS $$
 DECLARE
   v_cov jsonb; v_gap text; v_bad text; v_appr jsonb; v_crit jsonb; v_doc jsonb; v_time jsonb; v_codes text[];
   v_pa text; v_outcome text; v_status text; v_cstatus text := 'none_found'; v_ceval jsonb := '[]'; v_e jsonb; r jsonb;
-  v_missing jsonb := '[]'; v_obtain text[] := '{}'; v_repeat text[] := '{}'; v_notmet text[] := '{}'; v_met text[] := '{}';
+  v_missing jsonb := '[]'; v_obtain text[] := '{}'; v_repeat text[] := '{}'; v_notmet text[] := '{}'; v_met text[] := '{}'; v_unchecked text[];
   v_hold text[] := '{}'; v_safe boolean; v_next text; v_detail text; v_route jsonb; v_clock jsonb; v_explain text[] := '{}';
   v_all jsonb; v_refs jsonb; v_sources jsonb; v_fresh text; v_any jsonb; v_primary jsonb;
   v_payer uuid; v_item text; v_rel text := current_setting('kc.release', true); v_appr_win jsonb; v_aging text[];
@@ -295,7 +305,7 @@ BEGIN
     RETURN jsonb_build_object('status','invalid_input','outcome','unknown','error',v_bad,'safe_to_act',false,'next_step','fix_input');
   END IF;
   v_cov := kc_api.coverage_for(p_plan, p_state);
-  v_codes := kc_api.item_codes(p_code, p_as_of);
+  v_codes := kc_api.item_codes(p_code, p_as_of, p_recorded_as_of);
   v_gap := CASE WHEN v_cov IS NULL THEN 'plan_or_state_not_in_pack'
                 WHEN v_codes IS NULL OR cardinality(v_codes) <> 1 THEN 'item_not_in_pack' END;
   IF v_gap IS NULL THEN v_gap := kc_api.pack_date_check(p_as_of); END IF;
@@ -405,7 +415,7 @@ BEGIN
   -- 5. Route: the insurer's live channels, and what the rule says to use
   v_payer := (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'payer' AND natural_key = v_cov ->> 'payer');
   v_item  := (SELECT item_type FROM kc_core.code WHERE code_system_id = split_part(p_code,'|',1) AND code = split_part(p_code,'|',2)
-                AND upper_inf(recorded) LIMIT 1);
+                AND recorded @> p_recorded_as_of LIMIT 1);
   IF v_pa IN ('pa_required','unknown') THEN
     SELECT jsonb_build_object('channels', jsonb_agg(jsonb_build_object('interface', e.interface, 'address', e.base_url,
                                 'preference', e.preference) ORDER BY e.preference),
@@ -415,6 +425,11 @@ BEGIN
      WHERE e.payer_id = v_payer AND e.live AND e.valid @> p_as_of AND NOT (v_item = 'drug' AND e.excludes_drugs)
     HAVING count(*) > 0;
   END IF;
+
+  -- What the applicable policies require that the pack does not test (payload not_modelled): shown, never assumed met
+  SELECT array_agg(DISTINCT x ORDER BY x) INTO v_unchecked
+    FROM jsonb_array_elements(coalesce(nullif(v_crit -> 'winning_rules', 'null'), '[]')) w,
+         jsonb_array_elements_text(coalesce(w -> 'payload' -> 'not_modelled', '[]')) x;
 
   -- 6. Next step, as a code and in words
   v_next := CASE
@@ -435,6 +450,9 @@ BEGIN
          || coalesce(' (' || (v_route -> 'channels' -> 0 ->> 'interface') || ')', '')
          || coalesce('; decision due within ' || (v_clock ->> 'hours') || ' hours of receipt', '')
     ELSE 'Proceed: no prior authorization needed' || CASE WHEN v_cstatus = 'met' THEN ' and coverage criteria met' ELSE '' END END;
+  IF v_outcome IN ('no_pa','pa_required','exempt') AND v_unchecked IS NOT NULL THEN
+    v_detail := v_detail || '. Not checked here, confirm: ' || array_to_string(v_unchecked, '; ');
+  END IF;
 
   -- 7. Evidence: every rule the answer rests on, and the one that decides it
   v_all := v_appr_win || coalesce(nullif(v_crit -> 'winning_rules', 'null'), '[]')
@@ -468,14 +486,14 @@ BEGIN
                                                                 WHERE kc_api.rule_ref(w ->> 'rule_key', w ->> 'confirmed_valid') = v_primary ->> 'rule_ref'));
   END IF;
   SELECT array_agg(DISTINCT (x ->> 'citation') || ', last confirmed '
-                   || (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok)::date
+                   || (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok AND sc.checked_at <= p_recorded_as_of)::date
                    || ', limit ' || justify_interval(src.aging_after)::text
          ORDER BY (x ->> 'citation') || ', last confirmed '
-                   || (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok)::date
+                   || (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok AND sc.checked_at <= p_recorded_as_of)::date
                    || ', limit ' || justify_interval(src.aging_after)::text) INTO v_aging
     FROM jsonb_array_elements(v_sources) x JOIN kc_core.snapshot sn ON sn.content_sha256 = x ->> 'sha256'
     JOIN kc_core.source src ON src.source_id = sn.source_id
-   WHERE p_recorded_as_of - (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok) > src.aging_after;
+   WHERE p_recorded_as_of - (SELECT max(checked_at) FROM kc_core.source_check sc WHERE sc.source_id = src.source_id AND sc.ok AND sc.checked_at <= p_recorded_as_of) > src.aging_after;
   v_fresh := CASE WHEN 'stale' IN (v_appr ->> 'freshness', v_crit ->> 'freshness', v_doc ->> 'freshness', v_time ->> 'freshness') THEN 'stale'
                   WHEN 'out_of_sync' IN (v_appr ->> 'freshness', v_crit ->> 'freshness', v_doc ->> 'freshness', v_time ->> 'freshness') THEN 'out_of_sync'
                   WHEN 'aging' IN (v_appr ->> 'freshness', v_crit ->> 'freshness', v_doc ->> 'freshness', v_time ->> 'freshness') THEN 'aging'
@@ -498,7 +516,8 @@ BEGIN
         'notes', v_appr -> 'notes',
         'rule_refs', (SELECT coalesce(jsonb_agg(kc_api.rule_ref(w ->> 'rule_key', w ->> 'confirmed_valid')), '[]') FROM jsonb_array_elements(v_appr_win) w),
         'basis', (SELECT jsonb_agg(DISTINCT w ->> 'basis') FROM jsonb_array_elements(v_appr_win) w)),
-    'coverage_criteria', jsonb_build_object('status', v_cstatus, 'gap', v_gap, 'policies', v_ceval),
+    'coverage_criteria', jsonb_build_object('status', v_cstatus, 'gap', v_gap, 'policies', v_ceval,
+                                            'not_checked', coalesce(to_jsonb(v_unchecked), '[]'::jsonb)),
     'evidence', CASE WHEN v_doc ->> 'status' = 'resolved' THEN
         (SELECT jsonb_agg(jsonb_build_object('citation', rq ->> 'citation', 'logic', rq -> 'logic',
                    'documents', (SELECT jsonb_agg(i ->> 'element') FROM jsonb_array_elements(rq -> 'groups') gg, jsonb_array_elements(gg -> 'items') i)))
@@ -552,7 +571,7 @@ CREATE FUNCTION kc_api.policy_search(p_text text, p_recorded_as_of timestamptz D
       FROM kc_api.all_rule r
       JOIN kc_api.all_authority a ON a.entity_id = r.authority_id
       JOIN kc_core.entity e ON e.entity_id = r.subject_id
-     WHERE r.status = 'active' AND r.recorded @> p_recorded_as_of AND upper_inf(r.valid))
+     WHERE r.status = 'active' AND r.recorded @> p_recorded_as_of AND (upper_inf(r.valid) OR upper(r.valid) > p_recorded_as_of::date))
   SELECT jsonb_build_object('query', p_text, 'results', coalesce(jsonb_agg(jsonb_build_object(
            'rule_ref', kc_api.rule_ref(d.rule_key, d.valid::text), 'rule_kind', d.rule_kind, 'citation', d.citation,
            'page', d.source_locator -> 'page', 'quote', left(d.source_quote, 300)) ORDER BY d.citation, d.rule_key), '[]'))

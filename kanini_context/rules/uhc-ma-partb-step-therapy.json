@@ -22,7 +22,8 @@
     {
       "plan": "uhc-ma",
       "program": "medicare_advantage",
-      "item_scope": "drugs"
+      "item_scope": "drugs",
+      "note": "uhc-ma stands for the UnitedHealthcare Medicare Advantage plans this policy applies to; it excludes the plans listed under Plan Exceptions on page 1 (PFFS H5435-001 and -024, certain Dual Complete and Dual Choice plans by state, and employer group plans as listed)"
     }
   ],
   "codes": [

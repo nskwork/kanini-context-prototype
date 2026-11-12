@@ -99,15 +99,34 @@ def facts(**over):
     return {k: v for k, v in base.items() if v is not None}
 
 
+def unscreened_programs(db, state: str, dos: str = DOS) -> list[str]:
+    """The prior authorization programs bound to Original Medicare in a state on a date that have no ESA screen yet.
+    Programs known from CMS but not yet saved (scope findings, section 6) stay here until their copies are recorded
+    and approved; until then Original Medicare ESA answers in that state are "no rule found", naming them."""
+    bound = db.execute("SELECT kc_api.bound_pa_programs(%s::jsonb, 'drug', %s::date)",
+                       (json.dumps({"program": "medicare_ffs", "plan": "original-medicare", "state": state}), dos)).fetchone()[0]
+    screened = {r[0] for r in db.execute("""SELECT authority_id::text FROM kc_core.rule
+                                             WHERE rule_key LIKE 'kc:rule/esa-ckd-nd/no-pa/%' AND status = 'active'
+                                               AND upper_inf(recorded)""").fetchall()}
+    return sorted(b["citation"] for b in bound if b["authority_id"] not in screened)
+
+
 @pytest.fixture(scope="session")
-def asc_screened(db) -> bool:
-    """Whether the CMS ASC prior authorization demonstration (bound to Tennessee and Ohio from 2026) has been
-    screened for the ESA service. Until its source copy is recorded and approved, Original Medicare answers in those
-    states are "no rule found", naming it, instead of "No PA" (scope findings, section 3)."""
-    return db.execute("SELECT EXISTS (SELECT 1 FROM kc_core.rule WHERE rule_key = 'kc:rule/esa-ckd-nd/no-pa/cms-pa-asc')").fetchone()[0]
+def screened(db):
+    """screened("TN") is true when every program bound to Original Medicare in that state has an ESA screen."""
+    return lambda state: not unscreened_programs(db, state)
 
 
-def assert_held_for_unscreened_program(out: dict):
-    assert out["outcome"] == "unknown" and out["safe_to_act"] is False and out["next_step"] == "human_review"
+@pytest.fixture(scope="session")
+def asc_screened(screened) -> bool:
+    """Whether Tennessee's programs are all screened (scenario 1 and the decision-log tests run on Tennessee)."""
+    return screened("TN")
+
+
+def assert_held_for_unscreened_program(out: dict, db=None, state: str = "TN"):
+    assert out["outcome"] in ("unknown", "other_gate") and out["safe_to_act"] is False
     assert out["prior_authorization"]["reason"] == "pa_program_not_screened"
-    assert "CMS ASC prior authorization demonstration" in out["next_step_detail"]
+    if out["outcome"] == "unknown":
+        assert out["next_step"] == "human_review" and "not screened against" in out["next_step_detail"]
+    if db is not None:
+        assert out["prior_authorization"]["notes"] == ["not screened against: " + "; ".join(unscreened_programs(db, state))]

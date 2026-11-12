@@ -5,25 +5,26 @@ import json
 
 import pytest
 
-from conftest import DOS, ROOT, facts
+from conftest import DOS, ROOT, assert_held_for_unscreened_program, facts
 
 
 def ev(kc, plan="original-medicare", state="TN", code="J0885", **f):
     return kc("rules_evaluate", plan=plan, state=state, code=code, date_of_service=DOS, facts=facts(**f))
 
 
-def test_no_pa_rests_on_every_bound_program(kc, asc_screened):
-    tn, oh, ky = (ev(kc), ev(kc, state="OH", diagnosis_codes=["D63.1", "N18.31"], egfr=52),
-                  ev(kc, state="KY", diagnosis_codes=["D63.1", "N18.31"], egfr=52))
-    # Kentucky (J15, like Ohio) has only the national programs: HOPD, RSNAT, DMEPOS, each screened
-    assert ky["prior_authorization"]["basis"] == ["stated_by_exhaustion"] and len(ky["prior_authorization"]["rule_refs"]) == 3
-    if asc_screened:
-        assert len(tn["prior_authorization"]["rule_refs"]) == 4      # plus the ASC demonstration
-        assert len(oh["prior_authorization"]["rule_refs"]) == 6      # plus home health RCD, WISeR and the ASC demonstration
-    else:
-        for out in (tn, oh):
-            assert out["prior_authorization"]["reason"] == "pa_program_not_screened"
-            assert out["prior_authorization"]["notes"] == ["not screened against: CMS ASC prior authorization demonstration"]
+def test_no_pa_rests_on_every_bound_program(kc, db):
+    from conftest import unscreened_programs
+    for state, f in (("TN", {}), ("OH", {"diagnosis_codes": ["D63.1", "N18.31"], "egfr": 52}),
+                     ("KY", {"diagnosis_codes": ["D63.1", "N18.31"], "egfr": 52})):
+        out = ev(kc, state=state, **f)
+        bound = db.execute("SELECT jsonb_array_length(kc_api.bound_pa_programs(%s::jsonb, 'drug', %s::date))",
+                           (json.dumps({"program": "medicare_ffs", "plan": "original-medicare", "state": state}), DOS)).fetchone()[0]
+        if unscreened_programs(db, state):
+            assert out["prior_authorization"]["status"] == "no_rule_found", state
+            assert_held_for_unscreened_program(out, db, state)
+        else:   # "not required" stands only on a screen of every bound program
+            assert out["prior_authorization"]["outcome"] == "no_pa" and out["prior_authorization"]["basis"] == ["stated_by_exhaustion"]
+            assert len(out["prior_authorization"]["rule_refs"]) == bound, state
 
 
 def test_unscreened_program_turns_no_into_unknown(db):

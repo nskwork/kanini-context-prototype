@@ -47,10 +47,14 @@ def journey_get(patient_id: str = "", order_id: str = "") -> dict:
         if not p:
             return {"status": "not_found", "patient_id": patient_id, "known_patients": sorted(PATIENTS)}
         orders = p["orders"]
+    # each order carries the exact arguments for rules_evaluate, so the model passes them unchanged
+    orders = [{**o, "rules_evaluate_args": {
+                   "plan": p["coverage"]["plan"], "state": p["coverage"]["state"], "code": o["code"],
+                   "date_of_service": o["date_of_service"],
+                   "facts": {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"],
+                             "request_type": o["request_type"]}}} for o in orders]
     return {"status": "found", "patient_id": pid, "display_name": p["display_name"], "coverage": p["coverage"],
-            "facts": p["facts"], "orders": orders,
-            "facts_for_rules_evaluate": [{**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"],
-                                          "request_type": o["request_type"]} for o in orders]}
+            "facts": p["facts"], "orders": orders}
 
 
 @mcp.tool

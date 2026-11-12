@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,9 +40,9 @@ prior authorization, under this plan, in this state, on this date? Kanini Contex
 Medicare rules. You never decide from your own knowledge of payer policy.
 
 For every request, in this order:
-1. journey_get for the patient or order named. Use its coverage, order and facts_for_rules_evaluate.
-2. context_applicable_rules with plan, state, date_of_service and code from the order.
-3. rules_evaluate with plan, state, code, date_of_service and facts = facts_for_rules_evaluate for that order, unchanged.
+1. journey_get for the patient or order named.
+2. context_applicable_rules with plan, state, date_of_service and code from the order's rules_evaluate_args.
+3. rules_evaluate with the order's rules_evaluate_args exactly as journey_get returned them (facts is one object).
 4. policy_search with rule_ref = primary_rule.rule_ref from the rules_evaluate result, to quote the deciding passage.
 5. Reply with the decision card below, built only from the tool results.
 6. If safe_to_act is true, or the outcome is other_gate or needs_facts, call journey_record for the order with outcome,
@@ -134,8 +135,8 @@ def _payload(resp: Any) -> dict:
 
 
 def _order_key(plan: str, state: str, code: str, dos: str) -> str:
-    code = code.upper()
-    return f"{plan}|{state.upper()}|{code if '|' in code else 'HCPCS|' + code}|{dos}"
+    code = code.strip().upper()
+    return f"{plan.strip().lower()}|{state.strip().upper()}|{code if '|' in code else 'HCPCS|' + code}|{dos.strip()}"
 
 
 def _write(entry: dict):
@@ -192,6 +193,41 @@ def on_tool_error(tool, args: dict, tool_context, error: Exception):
     return {"status": "error", "error": str(error)[:300]}
 
 
+# --- The decision card says what rules_evaluate returned, whatever the model wrote ---------------------------------
+
+OUTCOME_LABEL = {"no_pa": "No PA", "pa_required": "PA required", "exempt": "Exempt",
+                 "other_gate": "Other gate (coverage criteria not met)", "needs_facts": "Not yet known (facts needed)",
+                 "unknown": "Not known (route to staff)"}
+_CARD = re.compile(r"Decision card\W+(ord-[\w-]+)", re.I)
+_OUTCOME_LINE = re.compile(r"^(\W*)Outcome:.*$", re.M | re.I)
+
+
+def card_outcome_line(ev: dict | None) -> str:
+    if not ev:
+        return "Outcome: Not known (route to staff) · not safe to act (no rules_evaluate result for this order)"
+    return f"Outcome: {OUTCOME_LABEL.get(ev['outcome'], ev['outcome'])} · {'safe to act' if ev['safe_to_act'] else 'not safe to act'}"
+
+
+def after_model(callback_context, llm_response):
+    """If the reply holds a decision card, its Outcome line is set from the rules_evaluate result for that order,
+    so neither the log nor the reply can state an outcome the rules did not return."""
+    parts = (llm_response.content.parts if llm_response and llm_response.content else None) or []
+    state = callback_context.state
+    for part in parts:
+        text = getattr(part, "text", None)
+        if not text or "Outcome:" not in text:
+            continue
+        m = _CARD.search(text)
+        order = state.get("propel:orders", {}).get(m.group(1)) if m else None
+        ev = state.get("propel:evals", {}).get(_order_key(*order)) if order else None
+        want = card_outcome_line(ev)
+        line = _OUTCOME_LINE.search(text)
+        if line and line.group(0).strip().lstrip("*-• ").strip() != want:
+            part.text = text[:line.start()] + line.group(1) + want + text[line.end():] \
+                + "\n(Outcome line set from rules_evaluate.)"
+    return None
+
+
 def build_agent(model=None) -> LlmAgent:
     return LlmAgent(
         name="authorization_agent",
@@ -202,6 +238,7 @@ def build_agent(model=None) -> LlmAgent:
         before_tool_callback=before_tool,
         after_tool_callback=after_tool,
         on_tool_error_callback=on_tool_error,
+        after_model_callback=after_model,
     )
 
 

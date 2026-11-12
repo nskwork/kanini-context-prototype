@@ -148,7 +148,12 @@ async def run_b_async(pid: str) -> dict:
         return None
 
     agent = build_agent(model=LiteLlm(model=MODEL))
-    agent.after_model_callback = count
+    guard = agent.after_model_callback   # keep the agent's own decision-card guard, and count usage after it
+
+    def guarded(callback_context, llm_response):
+        guard(callback_context, llm_response)
+        return count(callback_context, llm_response)
+    agent.after_model_callback = guarded
     svc = InMemorySessionService()
     runner = Runner(app_name="compare", agent=agent, session_service=svc)
     s = await svc.create_session(app_name="compare", user_id="staff")

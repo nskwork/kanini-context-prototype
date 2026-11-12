@@ -140,7 +140,7 @@
         }
       },
       "quote": "Intravenous Iron Replacement J1437 - Monoferric J1439 - Injectafer",
-      "extracted_by": "parser"
+      "extracted_by": "llm_assisted"
     },
     {
       "rule_key": "kc:rule/J0885/uhc-ma-pa-cancer",
@@ -170,7 +170,8 @@
       "mapping_confidence": 0.85,
       "interpretation": "J0885 is listed under 'Cancer supportive Care', whose requirement is stated for drugs 'administered in an outpatient setting for a cancer diagnosis'. Kanini reads 'cancer diagnosis' as ICD-10-CM C00-C96 (malignant neoplasms) and D00-D09 (in situ). For other diagnoses the list states nothing about J0885.",
       "not_stated": [
-        "applies_to"
+        "applies_to",
+        "plan exclusions on page 7 (UHC Nursing Home Plan, UHC Care Advantage I-SNP, Massachusetts DSNP) are not modelled as plans"
       ],
       "locator": {
         "page": 7,
@@ -249,7 +250,7 @@
     ]
   },
   "review": {
-    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12; the J1439 row by the table parser",
+    "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
     "reviewed_by": [],
     "review_exception": null
   }

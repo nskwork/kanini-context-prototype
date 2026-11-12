@@ -179,7 +179,7 @@ def context_applicable_rules(plan: str, state: str, date_of_service: str, servic
     if err:
         return invalid(err)
     return call("context_applicable_rules", "SELECT kc_api.applicable_rules(%s, %s, %s, %s::date, %s::timestamptz)",
-                (plan, state, item, d, rec))
+                (plan.strip().lower(), state.strip().upper(), item, d, rec))
 
 
 @mcp.tool(description="""The decision for one order. outcome: pa_required, no_pa, exempt, other_gate (coverage criteria not met),
@@ -201,7 +201,7 @@ def rules_evaluate(plan: str, state: str, code: str, date_of_service: str, facts
     if err:
         return invalid(err)
     return call("rules_evaluate", "SELECT kc_api.evaluate_order(%s, %s, %s, %s::date, %s::jsonb, %s::timestamptz)",
-                (plan, state, c, d, json.dumps(facts or {}), rec))
+                (plan.strip().lower(), state.strip().upper(), c, d, json.dumps(facts or {}), rec))
 
 
 @mcp.tool

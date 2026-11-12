@@ -38,7 +38,7 @@ Every answer lists the exceptions of the rules it rests on (`review_exceptions`)
 | 6.1 and 6.2 Ontology file | `release/owl.py` writes `kanini-context.ttl` from the registry and the tables at each build: 53 classes, 17 relations, 93 attributes (the spec's 51, 17 and 89, plus `coverage_criteria`, `pa_program` and four columns). |
 | 6.5 What the database refuses | As specified. Overlapping uncertain editions are listed for a reviewer, not refused (T12); confirmed overlaps are refused (scope test 20). |
 | 6.6 Client copy and freshness | Release named `YYYY.MM.0`, a sync log, and both clocks. Differences: the client copy is a second database (`kc_client`), not a signed read-only schema per release; insurer list source limits are 14 and 45 days from proposal appendix B.3, where the spec's sample data used 2 and 7. The release also records the last date of service it answers for (`covers_through`), the day before the first change the pack knows is coming. |
-| 7.1 Curation steps | Watch: manual rechecks recorded in the manifest. Draft and Map: AI-assisted drafts in rule files (the holding area is the rule files in Git, in place of `kc_stage`). Check: quote at page or column, numbers and codes in the quote, negation, schema, registered facts, and completeness against a reviewed `not_drafted` list. Compare: not built. Approve: one engineer, section 2. Release: `release/build.py`. Two independent extraction passes for L39237: not run. |
+| 7.1 Curation steps | Watch: manual rechecks recorded in the manifest, with the CMS index of initiatives as the check that the program set is complete. Draft and Map: AI-assisted drafts in rule files (the holding area is the rule files in Git, in place of `kc_stage`). Check: quote at page or column, numbers and codes in the quote, negation, schema, registered facts, and completeness against a reviewed `not_drafted` list. Compare: not built. Approve: one engineer, section 2. Release: `release/build.py`. Two independent extraction passes for L39237: not run. |
 | 7.2 Tools and resolver | The seven tools and the ten resolver steps as specified, over MCP (the REST form is not built); every tool that reads rules takes the optional "as recorded" moment. The scope's three tools are built on them (section 4). |
 | 7.3 Answer | `resolve_rules` returns the spec's answer. `rules_evaluate` returns the decision packet in section 4. |
 | 7.4 Documentation form | As specified; for J0885 the form lists the L39237 and A58982 items, since those criteria are a `coverage_criteria` rule. |
@@ -59,7 +59,7 @@ The full list of schema and resolver changes is at the top of `schema.sql` and `
 | `next_step`, `next_step_detail` | a code (proceed, submit_prior_authorization, supply_facts, human_review, fix_input) and the same in words |
 | `missing_facts` | registered facts still needed |
 | `primary_rule` | the deciding rule as `rule_key@edition` with its citation: the approval rule when approval is required or exempt, otherwise the coverage policy that drove the outcome (a coverage policy before a billing article). This is the `ruleRef` in the decision log |
-| `coverage_criteria` | each policy's groups and items, checked against the facts |
+| `coverage_criteria` | each policy's groups and items, checked against the facts, and `not_checked`: what the policies require that the pack does not test (such as iron stores under A58982), also named in `next_step_detail` whenever the answer says to proceed or submit |
 | `evidence`, `decision_clock`, `route` | what to send, the decision deadline (standard and expedited), how to submit |
 | `rule_refs`, `sources` | every rule the answer rests on; page, quote, URL and file hash of each source |
 | `review_exceptions`, `freshness`, `aging_sources`, `pack_release`, `recorded_as_of` | how the rules were approved, how current the sources are, which release answered and when; with `as_recorded` the same answer is returned later |
@@ -70,7 +70,7 @@ A rule reference is `rule_key@edition`, the edition being the date the rule's ed
 
 1. **Tool names use underscores.** Model function names cannot contain dots.
 2. **Two MCP servers.** Kanini Context holds rules and never receives a patient name or identifier; Propel's journey server holds the patient and the decision log.
-3. **The outcome cannot be rewritten.** Before `journey_record` runs, its fields are replaced from the `rules_evaluate` result for that order; with no evaluation, nothing is recorded (scope test 22).
+3. **The outcome cannot be rewritten.** Before `journey_record` runs, its fields are replaced from the `rules_evaluate` result for that order; with no evaluation, nothing is recorded (scope test 22). The decision card's Outcome line in the reply is also set from that result, so the reply cannot contradict the rules either (test 22b).
 4. **Silence is never "no".** When the pack holds coverage criteria for a service but none apply to the plan, place or date, the answer is "no coverage policy loaded for CA" or "no edition loaded for 2026-09-01", never a pass (scope tests 4 and 14).
 5. **Criteria are tested as written.** L39237 group 1 is "Hb < 10 or HCT < 30%", so either result settles it (scope tests 5 and 17).
 6. **Answers come from the pack, not from code.** Wording, the deciding rule, freshness limits, the last covered date, the plans and facts in the tool descriptions, and the comparison's documents all come from the loaded data. A new drug was added by editing rule files only, and answered with no code change.
@@ -79,7 +79,9 @@ A rule reference is `rule_key@edition`, the edition being the date the rule's ed
 ## 6. Not covered by the prototype
 
 - The HCPCS, ICD-10-CM and LOINC files; codes come from the policies that list them.
+- The drafting step itself: the rule files were drafted with a model from the saved copies outside the repository; the repository holds the steps after it (quote and completeness checks, approval, loading, release). Column bands for the two-column UHC pages were set by hand.
 - Automated source watching, the change summary agent, two-pass extraction, signed releases and the REST form of the tools.
+- Freshness limits are set per source class in `curation/load.py` (proposal appendix B.3), not yet stored in the registry.
 - J0888 is listed in A58982 (Tennessee) but not in A56462 (Ohio); the shared service concept still applies L34356 to a J0888 order in Ohio.
 - The Docker image (`docker/Dockerfile`) builds Apache AGE from the commit tested here; the image itself was not built in the build workspace, which has no Docker daemon.
 - Medicare Advantage deference to Medicare criteria (spec 4.2) as an override effect: no insurer coverage criteria are loaded, so nothing competes with the LCDs yet.

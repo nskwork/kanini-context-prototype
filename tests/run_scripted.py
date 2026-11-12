@@ -22,9 +22,9 @@ from scripted_model import ScriptedModel
 
 
 async def run(patient_id: str, decision: str = "approve", prompt: str | None = None, skip_checks: bool = False,
-              model=None) -> dict:
+              model=None, wrong_card: bool = False) -> dict:
     """model: None for the scripted model, or a real model (tests/test_agent_live.py passes GPT-5 mini)."""
-    agent = build_agent(model=model or ScriptedModel(patient_id=patient_id, skip_checks=skip_checks))
+    agent = build_agent(model=model or ScriptedModel(patient_id=patient_id, skip_checks=skip_checks, wrong_card=wrong_card))
     svc = InMemorySessionService()
     runner = Runner(app_name="propel", agent=agent, session_service=svc)
     session = await svc.create_session(app_name="propel", user_id="staff")

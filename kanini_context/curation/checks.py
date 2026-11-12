@@ -61,6 +61,10 @@ KINDS = _registry_kinds()
 STATES = _state_names()
 FACTS = _registry_names("fact")
 ELEMENTS = _registry_names("element")
+# The registry is read as text so the checks need no database; if its layout changes, stop rather than pass on nothing.
+if not (len(KINDS) >= 7 and "coverage_criteria" in KINDS and len(FACTS) >= 7 and len(ELEMENTS) >= 5 and len(STATES) >= 10):
+    raise SystemExit("checks.py could not read the registry from db/registry.sql (layout changed?): "
+                     f"{len(KINDS)} rule kinds, {len(FACTS)} facts, {len(ELEMENTS)} data elements, {len(STATES)} states")
 
 
 class Report:

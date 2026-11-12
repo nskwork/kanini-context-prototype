@@ -74,7 +74,8 @@
       ],
       "payload": {
         "logic": "all",
-        "indication": "Diagnoses that support medical necessity for CKD not yet on dialysis (ICD-10-CM Group 2)"
+        "indication": "Diagnoses that support medical necessity for CKD not yet on dialysis (ICD-10-CM Group 2)",
+        "wording_note": "Group 2 marks I12.9* and I13.0*: patients with CKD stage I and II do not meet the creatinine clearance or GFR requirements of L34356 coverage criteria B (page 9). The LCD's lab tests apply that."
       },
       "basis": "stated",
       "locator": {

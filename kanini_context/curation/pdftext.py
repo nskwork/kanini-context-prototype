@@ -1,7 +1,7 @@
-"""Page text for source documents, used by the quote checks and the table parser.
+"""Page text for source documents, used by the quote checks and the approval view.
 
 Each PDF in sources/raw/ is read page by page with pdfplumber. The text is kept as extracted
-(for the parser) and in a normalised form (for quote matching): whitespace collapsed, dashes and
+(for reading) and in a normalised form (for quote matching): whitespace collapsed, dashes and
 quotes unified, so a quote copied from the PDF matches regardless of line breaks.
 """
 from __future__ import annotations
