@@ -287,7 +287,7 @@
         "valid_from_basis": "stated",
         "valid_from": "2026-01-19",
         "locator": {
-          "page": 1
+          "page": 2
         },
         "quote": "for dates of service on or after January 19, 2026"
       },
@@ -354,16 +354,16 @@
         }
       ],
       "bindings_locator": {
-        "page": 1,
+        "page": 3,
         "quote": "California, Florida, Texas, Arizona, Ohio, Tennessee, Pennsylvania, Maryland, Georgia, and New York"
       },
       "list_quote": {
         "locator": {
-          "page": 1
+          "page": 3
         },
         "quote": "blepharoplasty, botulinum toxin injections, panniculectomy, rhinoplasty, and vein ablation"
       },
-      "list_note": "The HCPCS codes are in the CMS services list (source cms-asc-pa-demo-codes), checked automatically for the screened concept's codes. Quotes checked against the live page on 2026-11-12; confirmed by the checks once the saved copy is recorded.",
+      "list_note": "The HCPCS codes are in the CMS services list (source cms-asc-pa-demo-codes), checked automatically for the screened concept's codes.",
       "codes_source_id": "cms-asc-pa-demo-codes"
     },
     {
@@ -384,7 +384,7 @@
         "locator": {
           "page": 1
         },
-        "quote": "Starting October 15, 2026, CMS will require probationary prior authorization for certain DMEPOS items."
+        "quote": "Starting October 15, 2026, CMS will require probationary prior authorization for certain DMEPOS items billed by newly enrolled suppliers"
       },
       "bindings": [
         {
@@ -399,7 +399,7 @@
         },
         "quote": "Probationary Prior Authorization List"
       },
-      "list_note": "Applies to newly enrolled DMEPOS suppliers and suppliers after a change in ownership, for one year, for the codes on the CMS list. The page states no state limit: the process applies to every newly enrolled supplier wherever enrolled, so it is bound to the whole country (US); the approver confirms this reading. Quotes checked against the live page on 2026-11-12; confirmed by the checks once the saved copy is recorded.",
+      "list_note": "Applies to newly enrolled DMEPOS suppliers and suppliers after a change in ownership, for one year, for the codes on the CMS list. The page states no state limit: the process applies to every newly enrolled supplier wherever enrolled, so it is bound to the whole country (US); the approver confirms this reading.",
       "codes_source_id": "cms-dmepos-ppa-codes"
     },
     {
@@ -418,7 +418,7 @@
         "valid_from_basis": "stated",
         "valid_from": "2026-03-02",
         "locator": {
-          "page": 1
+          "page": 3
         },
         "quote": "in Texas and California, effective March 2, 2026 and May 1, 2026"
       },
@@ -455,16 +455,16 @@
         }
       ],
       "bindings_locator": {
-        "page": 1,
+        "page": 2,
         "quote": "This includes IRFs in Alabama, Georgia, and Tennessee"
       },
       "list_quote": {
         "locator": {
           "page": 1
         },
-        "quote": "Review Choice Demonstration for IRF Services"
+        "quote": "The Review Choice Demonstration (RCD) for Inpatient Rehabilitation Facility (IRF) Services provides flexibility and choice for IRFs"
       },
-      "list_note": "Quotes checked against the live CMS page on 2026-11-12. Once the page is saved, this entry and CMS-RCD-IRF should become one program entry sourced from it, with the quotes confirmed by the checks."
+      "list_note": "The demonstration covers inpatient rehabilitation facility services only. This entry and CMS-RCD-IRF (Alabama and Pennsylvania, from the fiscal year 2024 statistics) could later become one program entry sourced from this page."
     }
   ],
   "screens": [
