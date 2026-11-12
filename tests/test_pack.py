@@ -64,15 +64,29 @@ def test_expedited_clock(kc):
 
 
 def test_freshness_names_source(db):
-    # As if asked on 2026-11-18: A56462 (last confirmed 2026-10-15) is past 14 days, the others are not.
-    out = db.execute("SELECT kc_api.evaluate_order('original-medicare','OH','HCPCS|J0885',%s::date,%s::jsonb,'2026-11-18 12:00-06')",
-                     (DOS, json.dumps(facts(egfr=52, diagnosis_codes=["D63.1", "N18.31"])))).fetchone()[0]
-    assert out["aging_sources"] == ["Article A56462, last confirmed 2026-10-15, limit 14 days"] and out["safe_to_act"] is False
-    assert out["next_step_detail"].endswith("(Article A56462, last confirmed 2026-10-15, limit 14 days)")
+    # Asked at least 15 days after Article A56462 was last confirmed (and after the test release was loaded, since
+    # the question reads the pack as recorded at that moment): past its 14-day limit, so the answer is held and names it.
+    from datetime import datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
+    m = json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())
+    last = max(datetime.fromisoformat(c["at"]) for x in m if x["source_id"] == "mcd-article-a56462" for c in x["checks"] if c.get("ok"))
+    shown = last.astimezone(ZoneInfo("America/Chicago")).date()
+    asked = max(last + timedelta(days=15), datetime.now(timezone.utc)).isoformat()
+    out = db.execute("SELECT kc_api.evaluate_order('original-medicare','OH','HCPCS|J0885',%s::date,%s::jsonb,%s::timestamptz)",
+                     (DOS, json.dumps(facts(egfr=52, diagnosis_codes=["D63.1", "N18.31"])), asked)).fetchone()[0]
+    expected = f"Article A56462, last confirmed {shown}, limit 14 days"
+    assert expected in out["aging_sources"] and out["safe_to_act"] is False
+    assert expected in out["next_step_detail"]
 
 
 def test_every_answer_shows_the_review_exception(kc):
-    assert ev(kc)["review_exceptions"] == ["TEST build: not reviewed; for local tests only, never released"]
+    # Approved files carry the engineer's scope exception; files not yet approved load as TEST in the test build.
+    from kanini_context.curation.approve import SCOPE_EXCEPTION
+    from kanini_context.curation.load import TEST_EXCEPTION
+    reviews = [json.loads(p.read_text()).get("review", {}) for p in (ROOT / "kanini_context/rules").glob("*.json")]
+    expected = {SCOPE_EXCEPTION if any(r.get("reviewed_by") or []) else TEST_EXCEPTION for r in reviews}
+    got = ev(kc)["review_exceptions"]
+    assert got and set(got) <= expected
 
 
 def test_policy_cite_returns_page_quote_and_hash(kc):
@@ -152,8 +166,13 @@ def _load(files, db_name, *flags):
 
 
 def test_unapproved_rules_are_refused_outside_test_mode(release, tmp_path):
+    # A copy of the rule files with every approval removed must be refused by a real (non-TEST) load.
+    for p in (ROOT / "kanini_context/rules").glob("*.json"):
+        d = json.loads(p.read_text())
+        d.setdefault("review", {})["reviewed_by"] = []
+        (tmp_path / p.name).write_text(json.dumps(d))
     _fresh("kct_approval")
-    r = _load(sorted((ROOT / "kanini_context/rules").glob("*.json")), "kct_approval")
+    r = _load(sorted(tmp_path.glob("*.json")), "kct_approval")
     assert r.returncode == 1 and "not approved" in r.stdout
 
 
@@ -255,11 +274,13 @@ def test_card_guard_without_an_evaluation_says_not_known():
     assert "Outcome: Not known (route to staff) · not safe to act" in out and "No PA" not in out
 
 
-def test_code_list_screen_fails_when_a_screened_code_is_listed(monkeypatch):
+def test_code_list_screen_fails_when_a_screened_code_is_listed(monkeypatch, tmp_path):
     from kanini_context.curation import checks
     manifest = {k: dict(v) for k, v in checks.MANIFEST.items()}
     for sid in ("cms-asc-pa-demo", "cms-asc-pa-demo-codes"):
         manifest[sid]["sha256"] = "0" * 64                           # as if saved
+        (tmp_path / manifest[sid]["file"]).write_bytes(b"")
+    monkeypatch.setattr(checks, "RAW", tmp_path)
     monkeypatch.setattr(checks, "MANIFEST", manifest)
     real_pages, real_locate = checks.pages, checks.locate_text
     asc = manifest["cms-asc-pa-demo"]["file"]

@@ -37,7 +37,8 @@ def test_01_rules_loaded_with_sources(db):
     assert got["kc:rule/esa-ckd-nd/L39237"] == ("LCD L39237", "2026-09-17")
     assert got["kc:rule/esa-ckd-nd/L34356"] == ("LCD L34356", "2026-10-04")
     assert got["kc:rule/J1439/uhc-ma-pa"][1] == "2026-10-01"
-    assert len(got) == 16
+    # Every rule in the release is in the graph with its source (19 once every program copy is saved and screened).
+    assert len(got) == db.execute("SELECT count(DISTINCT rule_key) FROM kc_core.rule").fetchone()[0]
 
 
 def test_02_region_tennessee(kc):

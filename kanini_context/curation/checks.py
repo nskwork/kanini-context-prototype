@@ -25,7 +25,7 @@ from pathlib import Path
 
 import jsonschema
 
-from .pdftext import locate_text, normalise, pages
+from .pdftext import RAW, locate_text, normalise, pages
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
@@ -187,11 +187,16 @@ def check_file(path: Path) -> Report:
         if not src.get("sha256"):
             rep.note(f"{e['authority']['key']}: source copy not saved yet; registered as unscreened until it is recorded")
             continue
+        if not (RAW / f).exists():
+            rep.err(f"{e['authority']['key']}: {f} is recorded but not in sources/raw; put it there with sources.place FOLDER")
+            continue
         if e.get("codes_source_id"):
             # a closed-list screen is checked against the program's own code list: no code of a screened concept may be on it
             cl = MANIFEST[e["codes_source_id"]]
             if not cl.get("sha256"):
                 rep.note(f"{e['authority']['key']}: code list {cl['file']} not saved yet; the program stays unscreened until it is recorded")
+            elif not (RAW / cl["file"]).exists():
+                rep.err(f"{e['authority']['key']}: code list {cl['file']} is recorded but not in sources/raw; put it there with sources.place FOLDER")
             else:
                 listed = normalise(" ".join(pages(cl["file"])))
                 for sc in d.get("screens", []):
