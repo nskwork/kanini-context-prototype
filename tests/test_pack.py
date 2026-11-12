@@ -120,6 +120,6 @@ def test_checks_catch_a_negation_read_as_required():
     rep = checks.Report("t")
     rule = {"rule_key": "t", "rule_kind": "approval_required", "payload": {"required": True}, "basis": "stated",
             "locator": {"page": 1}, "quote": "Prior authorization is not required for emergency or urgent care."}
-    src = {"file": "2739ae5c-72c5ea26-220f-4d1d-b45d-aa8be0e80f08.pdf"}
+    src = {"file": "UHC-MA-PA-requirements-2026-10-01.pdf"}
     checks.check_rule(rep, src, rule, set())
     assert any("negation" in e for e in rep.errors)

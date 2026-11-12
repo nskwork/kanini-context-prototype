@@ -206,9 +206,8 @@ def test_20_overlapping_rule_version(release, tmp_path, db):
     with psycopg.connect("dbname=postgres", autocommit=True) as c:
         c.execute("DROP DATABASE IF EXISTS kc_t20 WITH (FORCE)")
         c.execute("CREATE DATABASE kc_t20")
-    for f in ("schema", "registry", "resolver", "api"):
-        subprocess.run(["psql", "-q", "-X", "-v", "ON_ERROR_STOP=1", "-d", "kc_t20", "-f", str(ROOT / f"kanini_context/db/{f}.sql")],
-                       check=True, capture_output=True)
+    from kanini_context.release.build import SQL_FILES, run_sql
+    run_sql("kc_t20", SQL_FILES)
     r = subprocess.run([sys.executable, "-m", "kanini_context.curation.load", "--test-review", *map(str, sorted(tmp_path.glob("*.json")))],
                        cwd=ROOT, capture_output=True, text=True, env={**__import__("os").environ, "KC_DSN": "dbname=kc_t20"})
     assert r.returncode == 1 and "overlapping active versions" in r.stdout

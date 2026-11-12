@@ -15,9 +15,9 @@ import psycopg
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-for k, v in {"PGHOST": "/var/lib/postgresql/kctest", "PGPORT": "5544", "PGUSER": "postgres"}.items():
-    os.environ.setdefault(k, v)
-os.environ.setdefault("KC_MCP_URL", "http://127.0.0.1:8799/mcp")
+sys.path.insert(0, str(ROOT))
+from kanini_context import env  # noqa: F401,E402
+os.environ["KC_MCP_URL"] = "http://127.0.0.1:8799/mcp"   # the tests start their own server on this port
 DOS = "2026-11-15"
 
 

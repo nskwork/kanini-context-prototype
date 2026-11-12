@@ -33,7 +33,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
 RAW = ROOT / "sources" / "raw"
 MANIFEST = json.loads((ROOT / "sources" / "manifest.json").read_text())
-DSN = os.environ.get("KC_DSN", "host=/var/lib/postgresql/kctest port=5544 user=postgres dbname=kc_build")
+from kanini_context import env  # noqa: F401,E402  (.env and PostgreSQL defaults)
+
+DSN = os.environ.get("KC_DSN", "dbname=kc_build")
 
 # Proposal appendix B.3, proposed starting values: how often each source is checked, and when an
 # answer that rests on it becomes aging (still answered, with a warning) or stale (withheld).

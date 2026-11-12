@@ -1,0 +1,17 @@
+services:
+  db:
+    build: ./docker
+    image: kanini-context-db:pg16-age1.6.0
+    environment:
+      POSTGRES_PASSWORD: ${PGPASSWORD:-kanini}
+    ports:
+      - "${PGPORT:-5432}:5432"
+    volumes:
+      - kc-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      retries: 30
+
+volumes:
+  kc-data:

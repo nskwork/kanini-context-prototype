@@ -30,8 +30,7 @@ from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.tools import ToolResult
 
-for k, v in {"PGHOST": "/var/lib/postgresql/kctest", "PGPORT": "5544", "PGUSER": "postgres"}.items():
-    os.environ.setdefault(k, v)
+from kanini_context import env  # noqa: F401  (.env and PostgreSQL defaults)
 DSN = os.environ.get("KC_CLIENT_DSN", "dbname=kc_client")
 
 PLANS = "original-medicare (Original Medicare), uhc-ma (UnitedHealthcare Medicare Advantage)"

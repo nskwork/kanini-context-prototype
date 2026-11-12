@@ -1,7 +1,7 @@
 [
   {
     "source_id": "mcd-lcd-l39237",
-    "file": "c86e457c-LCD-L39237-v13.pdf",
+    "file": "LCD-L39237-v13.pdf",
     "title": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA, A/B Jurisdictions J and M)",
     "publisher": "Palmetto GBA (Medicare Coverage Database)",
     "source_class": "medicare_policy",
@@ -27,7 +27,7 @@
   },
   {
     "source_id": "mcd-article-a58982",
-    "file": "d4b23b2c-Article-A58982-v21.pdf",
+    "file": "Article-A58982-v21.pdf",
     "title": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237)",
     "publisher": "Palmetto GBA (Medicare Coverage Database)",
     "source_class": "medicare_policy",
@@ -54,7 +54,7 @@
   },
   {
     "source_id": "mcd-lcd-l34356",
-    "file": "2dd69ba4-LCD-L34356-v35.pdf",
+    "file": "LCD-L34356-v35.pdf",
     "title": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (CGS, A/B Jurisdiction 15)",
     "publisher": "CGS Administrators (Medicare Coverage Database)",
     "source_class": "medicare_policy",
@@ -80,7 +80,7 @@
   },
   {
     "source_id": "mcd-article-a56462",
-    "file": "db77d55a-Article-A56462-v38.pdf",
+    "file": "Article-A56462-v38.pdf",
     "title": "Billing and Coding Article A56462, Erythropoiesis Stimulating Agents (ESA) (for L34356)",
     "publisher": "CGS Administrators (Medicare Coverage Database)",
     "source_class": "medicare_policy",
@@ -103,7 +103,7 @@
   },
   {
     "source_id": "uhc-ma-pa-list",
-    "file": "2739ae5c-72c5ea26-220f-4d1d-b45d-aa8be0e80f08.pdf",
+    "file": "UHC-MA-PA-requirements-2026-10-01.pdf",
     "title": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements",
     "publisher": "UnitedHealthcare",
     "source_class": "payer_list",
@@ -124,7 +124,7 @@
   },
   {
     "source_id": "uhc-ma-partb-step-therapy",
-    "file": "6c74f4dd-de5df8d2-fb7c-4521-8f2e-8b46952da46d.pdf",
+    "file": "UHC-MA-PartB-step-therapy-IAP.001.30-2026-07-01.pdf",
     "title": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs",
     "publisher": "UnitedHealthcare",
     "source_class": "payer_policy",
@@ -152,7 +152,7 @@
   },
   {
     "source_id": "ecfr-42-422-568",
-    "file": "0acc19a0-42_CFR_422.568_up_to_date_as_of_11-09-2026.pdf",
+    "file": "eCFR-42-422.568-2026-11-09.pdf",
     "title": "42 CFR 422.568, Standard timeframes and notice requirements for organization determinations",
     "publisher": "Office of the Federal Register (eCFR)",
     "source_class": "federal",
@@ -173,7 +173,7 @@
   },
   {
     "source_id": "cfr-42-422-572",
-    "file": "7c361845-279f70af-68ec-4fc8-b8a2-9bf8de7396fb.pdf",
+    "file": "CFR-42-422.572-printed.pdf",
     "title": "42 CFR 422.572, Timeframes and notice requirements for expedited organization determinations",
     "publisher": "Office of the Federal Register",
     "source_class": "federal",
@@ -196,7 +196,7 @@
   },
   {
     "source_id": "cms-wiser-factsheet",
-    "file": "70d0109f-2ebbe841-bc5d-4b9e-a580-d00fd1dd5d45.pdf",
+    "file": "CMS-WISeR-provider-fact-sheet.pdf",
     "title": "CMS Wasteful and Inappropriate Service Reduction (WISeR) Model provider fact sheet",
     "publisher": "CMS Innovation Center",
     "source_class": "federal",
@@ -217,7 +217,7 @@
   },
   {
     "source_id": "cms-pa-program-stats",
-    "file": "c623928b-1a07e055-cf73-47a0-ac60-0101562bc1d5.pdf",
+    "file": "CMS-PA-program-stats-FY2024.pdf",
     "title": "CMS Prior Authorization and Pre-Claim Review Program Stats for Fiscal Year 2024",
     "publisher": "CMS",
     "source_class": "federal",

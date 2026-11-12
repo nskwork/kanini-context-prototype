@@ -26,6 +26,8 @@ from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams,
 from mcp import StdioServerParameters
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))   # adk web loads this file directly
+from kanini_context import env  # noqa: F401,E402  (.env: OPENAI_API_KEY, KC_MCP_URL, PROPEL_*)
 LOG = Path(os.environ.get("PROPEL_DECISION_LOG", ROOT / "propel" / "journey" / "decisions.jsonl"))
 REVIEWER = os.environ.get("PROPEL_REVIEWER", "demo-staff")
 KC_URL = os.environ.get("KC_MCP_URL", "http://127.0.0.1:8765/mcp")

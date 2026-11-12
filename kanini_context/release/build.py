@@ -29,9 +29,7 @@ import psycopg
 
 ROOT = Path(__file__).resolve().parents[2]
 DB = ROOT / "kanini_context" / "db"
-ENV = {"PGHOST": "/var/lib/postgresql/kctest", "PGPORT": "5544", "PGUSER": "postgres"}
-for k, v in ENV.items():
-    os.environ.setdefault(k, v)
+from kanini_context import env  # noqa: F401,E402  (.env and PostgreSQL defaults)
 
 COVERS_THROUGH = "2026-12-31"   # the next known changes start 2027-01-01 (UHC step therapy edition, WISeR year 2)
 GRAPH = "ref"
@@ -47,6 +45,16 @@ def run(cmd: list[str]):
     if r.returncode != 0:
         raise SystemExit(f"{' '.join(cmd)} failed:\n{r.stderr or r.stdout}")
     return r.stdout
+
+
+def run_sql(db: str, files: list[str]):
+    """Each file runs as one script (no psql needed); the first error stops the build."""
+    with psycopg.connect(dsn(db), autocommit=True) as c:
+        for f in files:
+            try:
+                c.execute((DB / f).read_text())
+            except psycopg.Error as ex:
+                raise SystemExit(f"{f}: {ex}")
 
 
 def fresh_db(name: str):
@@ -131,8 +139,7 @@ def main(argv: list[str]) -> int:
 
     # 1. build database
     fresh_db("kc_build")
-    for f in SQL_FILES:
-        run(["psql", "-q", "-X", "-v", "ON_ERROR_STOP=1", "-d", "kc_build", "-f", str(DB / f)])
+    run_sql("kc_build", SQL_FILES)
     os.environ["KC_DSN"] = dsn("kc_build")
     load = [sys.executable, "-m", "kanini_context.curation.load"] + (["--test-review"] if args.test_review else [])
     r = subprocess.run(load, cwd=ROOT, capture_output=True, text=True)
