@@ -287,7 +287,7 @@
         "valid_from_basis": "stated",
         "valid_from": "2026-01-19",
         "locator": {
-          "page": 1
+          "page": 2
         },
         "quote": "for dates of service on or after January 19, 2026"
       },
@@ -354,16 +354,16 @@
         }
       ],
       "bindings_locator": {
-        "page": 1,
+        "page": 3,
         "quote": "California, Florida, Texas, Arizona, Ohio, Tennessee, Pennsylvania, Maryland, Georgia, and New York"
       },
       "list_quote": {
         "locator": {
-          "page": 1
+          "page": 3
         },
         "quote": "blepharoplasty, botulinum toxin injections, panniculectomy, rhinoplasty, and vein ablation"
       },
-      "list_note": "The HCPCS codes are in the CMS services list (source cms-asc-pa-demo-codes), checked automatically for the screened concept's codes. Quotes checked against the live page on 2026-11-12; confirmed by the checks once the saved copy is recorded.",
+      "list_note": "The HCPCS codes are in the CMS services list (source cms-asc-pa-demo-codes), checked automatically for the screened concept's codes.",
       "codes_source_id": "cms-asc-pa-demo-codes"
     },
     {
@@ -418,7 +418,7 @@
         "valid_from_basis": "stated",
         "valid_from": "2026-03-02",
         "locator": {
-          "page": 1
+          "page": 3
         },
         "quote": "in Texas and California, effective March 2, 2026 and May 1, 2026"
       },
@@ -455,7 +455,7 @@
         }
       ],
       "bindings_locator": {
-        "page": 1,
+        "page": 2,
         "quote": "This includes IRFs in Alabama, Georgia, and Tennessee"
       },
       "list_quote": {
@@ -464,7 +464,7 @@
         },
         "quote": "Review Choice Demonstration for IRF Services"
       },
-      "list_note": "Quotes checked against the live CMS page on 2026-11-12. Once the page is saved, this entry and CMS-RCD-IRF should become one program entry sourced from it, with the quotes confirmed by the checks."
+      "list_note": "Once the page is saved, this entry and CMS-RCD-IRF should become one program entry sourced from it, with the quotes confirmed by the checks."
     }
   ],
   "screens": [
