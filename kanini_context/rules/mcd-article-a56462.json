@@ -128,7 +128,10 @@
   ],
   "review": {
     "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
-    "reviewed_by": [],
-    "review_exception": null
+    "reviewed_by": [
+      "NANDHU S K"
+    ],
+    "review_exception": "Prototype scope: one engineer checked each rule against its source; formal two-person review at a later stage",
+    "reviewed_at": "2026-11-12"
   }
 }

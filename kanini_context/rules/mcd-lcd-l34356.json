@@ -1,47 +1,130 @@
 {
   "source_id": "mcd-lcd-l34356",
   "authority": {
-    "key": "LCD-L34356", "kind": "lcd", "issuer": "cms", "layer": "T1",
-    "citation": "LCD L34356", "title": "Erythropoiesis Stimulating Agents (ESA) (CGS, A/B Jurisdiction 15)"
+    "key": "LCD-L34356",
+    "kind": "lcd",
+    "issuer": "cms",
+    "layer": "T1",
+    "citation": "LCD L34356",
+    "title": "Erythropoiesis Stimulating Agents (ESA) (CGS, A/B Jurisdiction 15)"
   },
   "edition": {
     "label": "Revision effective 2026-10-04 (version 35, R22)",
-    "valid_from_basis": "stated", "valid_from": "2026-10-04",
-    "locator": {"page": 2, "section": "Revision Effective Date"},
+    "valid_from_basis": "stated",
+    "valid_from": "2026-10-04",
+    "locator": {
+      "page": 2,
+      "section": "Revision Effective Date"
+    },
     "quote": "For services performed on or after 10/04/2026"
   },
   "bindings": [
-    {"program": "medicare_ffs", "jurisdiction": "J15", "item_scope": "drugs"},
-    {"program": "medicare_advantage", "jurisdiction": "J15", "item_scope": "drugs",
-     "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"}
+    {
+      "program": "medicare_ffs",
+      "jurisdiction": "J15",
+      "item_scope": "drugs"
+    },
+    {
+      "program": "medicare_advantage",
+      "jurisdiction": "J15",
+      "item_scope": "drugs",
+      "note": "Medicare Advantage plans follow Medicare coverage determinations where they exist (42 CFR 422.101(b))"
+    }
   ],
   "rules": [
     {
       "rule_key": "kc:rule/esa-ckd-nd/L34356",
       "rule_kind": "coverage_criteria",
-      "subject": {"concept": "esa-ckd-nd"},
-      "conditions": [{"fact": "dialysis_status", "op": "in", "value": ["none"]}],
+      "subject": {
+        "concept": "esa-ckd-nd"
+      },
+      "conditions": [
+        {
+          "fact": "dialysis_status",
+          "op": "in",
+          "value": [
+            "none"
+          ]
+        }
+      ],
       "payload": {
         "logic": "all",
         "indication": "Chronic kidney disease, patient not on dialysis (Coverage Criteria B)",
         "wording_note": "The source labels the CKD hemoglobin criterion 'Anemia of ESRD' under the heading for patients NOT on dialysis. Recorded as written; flagged for the reviewer."
       },
       "basis": "stated",
-      "locator": {"page": 8, "section": "Coverage Indications, Limitations, and/or Medical Necessity", "item": "Coverage Criteria B"},
+      "locator": {
+        "page": 8,
+        "section": "Coverage Indications, Limitations, and/or Medical Necessity",
+        "item": "Coverage Criteria B"
+      },
       "quote": "B. For chronic kidney disease patients NOT on dialysis 1. Anemia of ESRD with a Hgb less than 10 g/dL or a Hct of less than 30% at initiation of therapy 2. Serum creatinine equal to or greater than 3, creatinine clearance less than 60 ml/min, or glomerular filtration rate (GFR) less than 60 mL/min/1.73 m2",
       "extracted_by": "llm_assisted",
       "requirements": [
-        {"group": 1, "logic": "any", "element": "LOINC|718-7", "test": {"op": "lt", "value": 10, "unit": "g/dL"}, "when": "initial"},
-        {"group": 1, "logic": "any", "element": "LOINC|4544-3", "test": {"op": "lt", "value": 30, "unit": "%"}, "when": "initial"},
-        {"group": 2, "logic": "any", "element": "LOINC|2160-0", "test": {"op": "gte", "value": 3, "unit": "mg/dL"}, "when": "initial"},
-        {"group": 2, "logic": "any", "element": "LOINC|2164-2", "test": {"op": "lt", "value": 60, "unit": "mL/min"}, "when": "initial"},
-        {"group": 2, "logic": "any", "element": "LOINC|98979-8", "test": {"op": "lt", "value": 60, "unit": "mL/min/{1.73_m2}"}, "when": "initial"}
+        {
+          "group": 1,
+          "logic": "any",
+          "element": "LOINC|718-7",
+          "test": {
+            "op": "lt",
+            "value": 10,
+            "unit": "g/dL"
+          },
+          "when": "initial"
+        },
+        {
+          "group": 1,
+          "logic": "any",
+          "element": "LOINC|4544-3",
+          "test": {
+            "op": "lt",
+            "value": 30,
+            "unit": "%"
+          },
+          "when": "initial"
+        },
+        {
+          "group": 2,
+          "logic": "any",
+          "element": "LOINC|2160-0",
+          "test": {
+            "op": "gte",
+            "value": 3,
+            "unit": "mg/dL"
+          },
+          "when": "initial"
+        },
+        {
+          "group": 2,
+          "logic": "any",
+          "element": "LOINC|2164-2",
+          "test": {
+            "op": "lt",
+            "value": 60,
+            "unit": "mL/min"
+          },
+          "when": "initial"
+        },
+        {
+          "group": 2,
+          "logic": "any",
+          "element": "LOINC|98979-8",
+          "test": {
+            "op": "lt",
+            "value": 60,
+            "unit": "mL/min/{1.73_m2}"
+          },
+          "when": "initial"
+        }
       ]
     }
   ],
   "review": {
     "drafted_by": "AI-assisted draft from the saved copy, 2026-11-12",
-    "reviewed_by": [],
-    "review_exception": null
+    "reviewed_by": [
+      "NANDHU S K"
+    ],
+    "review_exception": "Prototype scope: one engineer checked each rule against its source; formal two-person review at a later stage",
+    "reviewed_at": "2026-11-12"
   }
 }
