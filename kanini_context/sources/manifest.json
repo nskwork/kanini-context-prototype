@@ -246,8 +246,16 @@
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-and-pre-claim-review-initiatives/prior-authorization-demonstration-certain-ambulatory-surgical-center-services",
     "license_class": "public",
     "edition": "Page as updated 2025-11-20 (revised phase dates)",
-    "checks": [],
-    "open_question": "found 2026-11-12: a CMS prior authorization program bound to Tennessee (from 2026-01-19) and Ohio (from 2026-02-16), not in the FY2024 program statistics. Save this page as PDF (print to PDF) under this file name and record it: python -m kanini_context.sources.place --record FOLDER"
+    "checks": [
+      {
+        "at": "2026-11-12T15:46:31-06:00",
+        "ok": true,
+        "note": "saved copy recorded"
+      }
+    ],
+    "sha256": "953bde8e10ef86344b4438325c7e6d71683c83c4f109a29d2724d0d6ab87b0cc",
+    "bytes": 135144,
+    "retrieved_at": "2026-11-12T15:46:31-06:00"
   },
   {
     "source_id": "cms-asc-pa-demo-codes",
@@ -259,59 +267,99 @@
     "url": "https://www.cms.gov/files/document/services-list-asc-pa-demonstration.pdf",
     "license_class": "public",
     "edition": "As published with the demonstration",
-    "checks": [],
-    "open_question": "download and record with place --record; checks.py then fails if any code of a screened concept (such as J0885) appears in it, and the program stays unscreened until it is saved"
+    "checks": [
+      {
+        "at": "2026-11-12T15:49:15-06:00",
+        "ok": true,
+        "note": "saved copy recorded"
+      }
+    ],
+    "sha256": "6e637a51e16dfe6ff24b592d2c18264b59515be9bf6c3ac3613c6c7b50352046",
+    "bytes": 127927,
+    "retrieved_at": "2026-11-12T15:49:15-06:00"
   },
   {
     "publisher": "CMS",
     "source_class": "federal",
     "access_method": "manual_upload",
     "license_class": "public",
-    "checks": [],
+    "checks": [
+      {
+        "at": "2026-11-12T15:46:31-06:00",
+        "ok": true,
+        "note": "saved copy recorded"
+      }
+    ],
     "source_id": "cms-pa-initiatives-index",
     "file": "CMS-PA-and-pre-claim-review-initiatives.pdf",
     "title": "CMS Prior Authorization and Pre-Claim Review Initiatives (index of programs)",
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-and-pre-claim-review-initiatives",
     "edition": "Page as saved",
-    "open_question": "found 2026-11-12: the CMS list of every prior authorization and pre-claim review initiative. Save it as PDF (print to PDF) under this file name and record it with place --record; the approver of cms-pa-programs.json compares its list with the programs there (not checked automatically)."
+    "sha256": "95c3e053258fb37e552e8d0816ce09ed5cead04869c0c9d190ed6e976ecad887",
+    "bytes": 123072,
+    "retrieved_at": "2026-11-12T15:46:31-06:00"
   },
   {
     "publisher": "CMS",
     "source_class": "federal",
     "access_method": "manual_upload",
     "license_class": "public",
-    "checks": [],
+    "checks": [
+      {
+        "at": "2026-11-12T15:46:31-06:00",
+        "ok": true,
+        "note": "saved copy recorded"
+      }
+    ],
     "source_id": "cms-dmepos-ppa",
     "file": "CMS-DMEPOS-probationary-PA.pdf",
     "title": "CMS Probationary Prior Authorization Process for Newly Enrolled Suppliers of Certain DMEPOS Items",
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/probationary-prior-authorization-process-newly-enrolled-suppliers-certain-durable-medical-equipment",
     "edition": "Effective 2026-10-15",
-    "open_question": "found 2026-11-12: nationwide from 2026-10-15, so bound to Tennessee and Ohio. Save the page (print to PDF) and its DMEPOS Probationary Prior Authorization Code List under these names and record them with place --record."
+    "sha256": "7dc32a5aa3e250db851f93ddfb5d6e87cbd29c9298a4a69632e633d7e235faad",
+    "bytes": 136427,
+    "retrieved_at": "2026-11-12T15:46:31-06:00"
   },
   {
     "publisher": "CMS",
     "source_class": "federal",
     "access_method": "manual_upload",
     "license_class": "public",
-    "checks": [],
+    "checks": [
+      {
+        "at": "2026-11-12T15:49:15-06:00",
+        "ok": true,
+        "note": "saved copy recorded"
+      }
+    ],
     "source_id": "cms-dmepos-ppa-codes",
     "file": "CMS-DMEPOS-probationary-PA-code-list.pdf",
     "title": "CMS DMEPOS Probationary Prior Authorization List",
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/probationary-prior-authorization-process-newly-enrolled-suppliers-certain-durable-medical-equipment",
     "edition": "As linked from the program page",
-    "open_question": "download and record with place --record; checks.py then fails if any code of a screened concept (such as J0885) appears in it, and the program stays unscreened until it is saved"
+    "sha256": "721ef2df417c31e73af5e9ce525aaf32c5267ab30582de9b322e6d30649bb79e",
+    "bytes": 113312,
+    "retrieved_at": "2026-11-12T15:49:15-06:00"
   },
   {
     "publisher": "CMS",
     "source_class": "federal",
     "access_method": "manual_upload",
     "license_class": "public",
-    "checks": [],
+    "checks": [
+      {
+        "at": "2026-11-12T15:46:31-06:00",
+        "ok": true,
+        "note": "saved copy recorded"
+      }
+    ],
     "source_id": "cms-irf-rcd",
     "file": "CMS-IRF-review-choice-demonstration.pdf",
     "title": "CMS Review Choice Demonstration for Inpatient Rehabilitation Facility Services",
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/review-choice-demonstration-inpatient-rehabilitation-facility-services",
     "edition": "Page as saved (expansion to Texas 2026-03-02, California 2026-05-01, Jurisdiction J 2027-01-01)",
-    "open_question": "found 2026-11-12: the demonstration expanded beyond the fiscal year 2024 statistics. Save the page (print to PDF) and record it with place --record; once saved, it should become the source of the whole IRF program entry."
+    "sha256": "b3f3b041adf4cfebf3934131fb135fad7eabd13c06c0ae6aa3c9cea1971133a7",
+    "bytes": 173417,
+    "retrieved_at": "2026-11-12T15:46:31-06:00"
   }
 ]
