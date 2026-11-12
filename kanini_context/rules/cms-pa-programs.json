@@ -384,7 +384,7 @@
         "locator": {
           "page": 1
         },
-        "quote": "Starting October 15, 2026, CMS will require probationary prior authorization for certain DMEPOS items."
+        "quote": "Starting October 15, 2026, CMS will require probationary prior authorization for certain DMEPOS items billed by newly enrolled suppliers"
       },
       "bindings": [
         {
@@ -399,7 +399,7 @@
         },
         "quote": "Probationary Prior Authorization List"
       },
-      "list_note": "Applies to newly enrolled DMEPOS suppliers and suppliers after a change in ownership, for one year, for the codes on the CMS list. The page states no state limit: the process applies to every newly enrolled supplier wherever enrolled, so it is bound to the whole country (US); the approver confirms this reading. Quotes checked against the live page on 2026-11-12; confirmed by the checks once the saved copy is recorded.",
+      "list_note": "Applies to newly enrolled DMEPOS suppliers and suppliers after a change in ownership, for one year, for the codes on the CMS list. The page states no state limit: the process applies to every newly enrolled supplier wherever enrolled, so it is bound to the whole country (US); the approver confirms this reading.",
       "codes_source_id": "cms-dmepos-ppa-codes"
     },
     {
@@ -462,9 +462,9 @@
         "locator": {
           "page": 1
         },
-        "quote": "Review Choice Demonstration for IRF Services"
+        "quote": "The Review Choice Demonstration (RCD) for Inpatient Rehabilitation Facility (IRF) Services provides flexibility and choice for IRFs"
       },
-      "list_note": "Once the page is saved, this entry and CMS-RCD-IRF should become one program entry sourced from it, with the quotes confirmed by the checks."
+      "list_note": "The demonstration covers inpatient rehabilitation facility services only. This entry and CMS-RCD-IRF (Alabama and Pennsylvania, from the fiscal year 2024 statistics) could later become one program entry sourced from this page."
     }
   ],
   "screens": [
