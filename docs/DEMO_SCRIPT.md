@@ -4,7 +4,7 @@ Prepared by NANDHU S K. Follows section 7 of the prototype scope, with scenario 
 
 **Before the demo**
 
-1. Save the five CMS copies that `python -m kanini_context.sources.place` lists (the ASC demonstration, the DMEPOS probationary process, the IRF demonstration page, two code lists, and the CMS index of initiatives) and record them (`place --record ~/Downloads`), then run the checks and fix any page numbers they report. Until this is done, scenarios 1, 2b and 4 route to staff, naming the unscreened programs.
+1. Save the six CMS copies that `python -m kanini_context.sources.place` lists (the ASC demonstration page and code list, the DMEPOS probationary process page and code list, the IRF demonstration page, and the CMS index of initiatives) and record them (`place --record ~/Downloads`), then run the checks and fix any page numbers they report. Until this is done, scenarios 1, 2b and 4 route to staff, naming the unscreened programs.
 2. Recheck each source on its URL and add a dated `checks` entry in `kanini_context/sources/manifest.json` (Article A56462 especially; until it is rechecked, Ohio answers are held as "source aging").
 3. Approve the rule files (`python -m kanini_context.curation.approve --by "NANDHU S K"`), commit them, then `python -m kanini_context.release.build`.
 4. On the day: `python -m kanini_context.release.sync`, `pytest` (all must pass), then start the Kanini Context server and `adk web propel/agent`.
