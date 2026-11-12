@@ -2,6 +2,8 @@
 
     python -m kanini_context.sources.place ~/Downloads            # finds each manifest file among the PDFs there
     python -m kanini_context.sources.place --record ~/Downloads   # also records a newly saved source (no hash yet)
+    python -m kanini_context.sources.place --checked mcd-article-a56462 "live MCD page: version 38 still current"
+                                                                  # records today's recheck of a source on its URL
 
 Each copy is checked against the SHA-256 recorded in the manifest, so the pack is built from the same copies
 that were reviewed. Missing files are listed with the URL to download them from.
@@ -48,8 +50,28 @@ def record(folders: list[Path]) -> None:
         (ROOT / "manifest.json").write_text(json.dumps(MANIFEST, indent=2, ensure_ascii=False) + "\n")
 
 
+def checked(source_id: str, note: str) -> int:
+    """Record that a person rechecked a source on its URL today and found the saved edition still current."""
+    m = next((x for x in MANIFEST if x["source_id"] == source_id), None)
+    if not m:
+        print(f"unknown source {source_id}; known: {', '.join(x['source_id'] for x in MANIFEST)}")
+        return 1
+    now = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    m.setdefault("checks", []).append({"at": now, "ok": True, "note": note})
+    if m.get("open_question", "").startswith("the live page could not be confirmed"):
+        m.pop("open_question")
+    (ROOT / "manifest.json").write_text(json.dumps(MANIFEST, indent=2, ensure_ascii=False) + "\n")
+    print(f"recorded check of {source_id} at {now}: {note}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     RAW.mkdir(exist_ok=True)
+    if argv[:1] == ["--checked"]:
+        if len(argv) != 3:
+            print('usage: place --checked SOURCE_ID "what you saw"')
+            return 1
+        return checked(argv[1], argv[2])
     if "--record" in argv:
         argv = [a for a in argv if a != "--record"]
         record(list(map(Path, argv)))
