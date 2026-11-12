@@ -1,0 +1,17 @@
+# secrets
+.env
+
+# source copies: re-download from the URLs in kanini_context/sources/manifest.json
+# (the billing and coding articles carry AMA CPT content under license)
+kanini_context/sources/raw/
+kanini_context/sources/text/
+
+# runtime output
+propel/journey/decisions.jsonl
+*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

@@ -1,0 +1,92 @@
+[
+  {
+    "file": "c86e457c-LCD-L39237-v13.pdf",
+    "title": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA, J-J/J-M)",
+    "url": "https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=39237&ver=13",
+    "revision": "revision effective 2026-09-17",
+    "sha256": "134d2e595b0957cadb1cb5c51784bb6574f717334f053823e7db453701c01474",
+    "bytes": 250265,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "d4b23b2c-Article-A58982-v21.pdf",
+    "title": "Billing and Coding Article A58982 (for L39237)",
+    "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleid=58982",
+    "revision": "v21",
+    "sha256": "9b731c084a05cfe73a2b8be5657ea0a072feab431371b0e8ee766569d9191970",
+    "bytes": 4180381,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "2dd69ba4-LCD-L34356-v35.pdf",
+    "title": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (CGS, J15)",
+    "url": "https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=34356&ver=35",
+    "revision": "revision effective 2026-10-04",
+    "sha256": "ffed028a8ca1f12e0092de264b5d8f944d031880eac3e81a630e192e3ef3f1a7",
+    "bytes": 259650,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "db77d55a-Article-A56462-v38.pdf",
+    "title": "Billing and Coding Article A56462 (for L34356)",
+    "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleId=56462",
+    "revision": "v38",
+    "sha256": "e2c62cae95a41c6c2baa8b440d74f57c907282ddade1ff8d686801567ac4d61a",
+    "bytes": 3260669,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "2739ae5c-72c5ea26-220f-4d1d-b45d-aa8be0e80f08.pdf",
+    "title": "UnitedHealthcare Medicare Advantage/Peoples Health prior authorization requirements",
+    "url": "https://www.uhcprovider.com/content/dam/provider/docs/public/prior-auth/pa-requirements/medicare/Med-Adv-Dual-Eff-10-1-26.pdf",
+    "revision": "effective 2026-10-01",
+    "sha256": "2b92044dfbe3eb4240ba7d591925a4aa0f93c13c9dfdac7456ce61f07997c03f",
+    "bytes": 813293,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "6c74f4dd-de5df8d2-fb7c-4521-8f2e-8b46952da46d.pdf",
+    "title": "UHC MA Medicare Part B Step Therapy Programs IAP.001.30",
+    "url": "https://www.uhcprovider.com/content/dam/provider/docs/public/policies/index/mamp/medicare-part-b-step-therapy-programs-07012026.pdf",
+    "revision": "effective 2026-07-01",
+    "sha256": "48b53dcb169c375972e4083b2e27115aada24302c906d567e55e87cb43a6f4c2",
+    "bytes": 721884,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "0acc19a0-42_CFR_422.568_up_to_date_as_of_11-09-2026.pdf",
+    "title": "42 CFR 422.568",
+    "url": "https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-B/part-422/subpart-M/section-422.568",
+    "revision": "eCFR as of 2026-11-09",
+    "sha256": "6023ce79ec41befabd83022617bc9af402485f568f90743e649369334798d3db",
+    "bytes": 62210,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "7c361845-279f70af-68ec-4fc8-b8a2-9bf8de7396fb.pdf",
+    "title": "42 CFR 422.572 (printed CFR page)",
+    "url": "https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-B/part-422/subpart-M/section-422.572",
+    "revision": "print edition, date to confirm",
+    "sha256": "163e839e8da8ab938c7d78fade6910743a7b886f27f139130af25e73e4ca2182",
+    "bytes": 199533,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "70d0109f-2ebbe841-bc5d-4b9e-a580-d00fd1dd5d45.pdf",
+    "title": "CMS WISeR Model provider fact sheet",
+    "url": "https://www.cms.gov/priorities/innovation/files/wiser-provider-fact-sheet.pdf",
+    "revision": "PY1 2026",
+    "sha256": "bd17fae93d160dba126b11c71483814e1d833857313636e80398f072a0638189",
+    "bytes": 248874,
+    "retrieved": "2026-11-12"
+  },
+  {
+    "file": "c623928b-1a07e055-cf73-47a0-ac60-0101562bc1d5.pdf",
+    "title": "CMS Prior Authorization and Pre-Claim Review Program Stats FY2024",
+    "url": "https://www.cms.gov/files/document/prior-authorization-and-pre-claim-review-program-statistics.pdf",
+    "revision": "published 2025-09-16",
+    "sha256": "eeddfd4c7ef35bb718423b4268a74c7601db0f3783a3693004c8320af4508441",
+    "bytes": 596793,
+    "retrieved": "2026-11-12"
+  }
+]
