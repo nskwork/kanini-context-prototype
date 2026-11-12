@@ -224,3 +224,50 @@ def test_ontology_file(release):
     classes = {str(s).rsplit("#", 1)[1] for s in g.subjects(RDF.type, OWL.Class)}
     assert {"Rule", "CoverageCriteria", "PaProgram", "Lcd"} <= classes
     assert len(set(g.subjects(RDF.type, OWL.ObjectProperty))) == 17
+
+
+# --- decision-card guard and code-list screen ------------------------------------------------------------------
+
+def _card(text, evals, orders):
+    from types import SimpleNamespace
+    from google.adk.models.llm_response import LlmResponse
+    from google.genai import types
+    from propel.agent.authorization_agent.agent import after_model
+    resp = LlmResponse(content=types.Content(role="model", parts=[types.Part(text=text)]))
+    after_model(SimpleNamespace(state={"propel:evals": evals, "propel:orders": orders}), resp)
+    return resp.content.parts[0].text
+
+
+def test_card_guard_keeps_a_right_card_in_any_layout():
+    ev = {"uhc-ma|TN|HCPCS|J1439|2026-11-15": {"outcome": "pa_required", "safe_to_act": True}}
+    orders = {"ord-004": ["uhc-ma", "TN", "J1439", "2026-11-15"]}
+    right = "Decision card · Maria (synthetic) · ord-004\n**Outcome:** PA required · safe to act\nWhy: listed"
+    assert _card(right, ev, orders) == right                         # order id not first, markdown bold
+    no_id = "Decision card\nOutcome: PA required · safe to act"
+    assert _card(no_id, ev, orders) == no_id                         # one evaluation in the session
+    wrong = "Decision card · ord-004\n- **Outcome:** No PA · safe to act"
+    fixed = _card(wrong, ev, orders)
+    assert "Outcome: PA required · safe to act" in fixed and "No PA" not in fixed
+
+
+def test_card_guard_without_an_evaluation_says_not_known():
+    out = _card("Decision card · ord-001\nOutcome: No PA · safe to act", {}, {})
+    assert "Outcome: Not known (route to staff) · not safe to act" in out and "No PA" not in out
+
+
+def test_code_list_screen_fails_when_a_screened_code_is_listed(monkeypatch):
+    from kanini_context.curation import checks
+    manifest = {k: dict(v) for k, v in checks.MANIFEST.items()}
+    for sid in ("cms-asc-pa-demo", "cms-asc-pa-demo-codes"):
+        manifest[sid]["sha256"] = "0" * 64                           # as if saved
+    monkeypatch.setattr(checks, "MANIFEST", manifest)
+    real_pages, real_locate = checks.pages, checks.locate_text
+    asc = manifest["cms-asc-pa-demo"]["file"]
+    asc_text = ("for dates of service on or after January 19, 2026 California, Florida, Texas, Arizona, Ohio, Tennessee, "
+                "Pennsylvania, Maryland, Georgia, and New York blepharoplasty, botulinum toxin injections, panniculectomy, "
+                "rhinoplasty, and vein ablation")
+    monkeypatch.setattr(checks, "pages", lambda f: ["J0585 J0586 J0885 64612"] if f == manifest["cms-asc-pa-demo-codes"]["file"]
+                        else [asc_text] if f == asc else real_pages(f))
+    monkeypatch.setattr(checks, "locate_text", lambda f, loc: asc_text if f == asc else real_locate(f, loc))
+    rep = checks.check_file(ROOT / "kanini_context/rules/cms-pa-programs.json")
+    assert any("J0885 (esa-ckd-nd) is on the program's code list" in e for e in rep.errors)

@@ -363,7 +363,8 @@
         },
         "quote": "blepharoplasty, botulinum toxin injections, panniculectomy, rhinoplasty, and vein ablation"
       },
-      "list_note": "The HCPCS codes are in the CMS services list (source cms-asc-pa-demo-codes). Quotes drafted from the live page on 2026-11-12; their pages are confirmed by the checks once the saved copy is recorded."
+      "list_note": "The HCPCS codes are in the CMS services list (source cms-asc-pa-demo-codes), checked automatically for the screened concept's codes. Quotes checked against the live page on 2026-11-12; confirmed by the checks once the saved copy is recorded.",
+      "codes_source_id": "cms-asc-pa-demo-codes"
     },
     {
       "source_id": "cms-dmepos-ppa",
@@ -383,7 +384,7 @@
         "locator": {
           "page": 1
         },
-        "quote": "October 15, 2026"
+        "quote": "Starting October 15, 2026, CMS will require probationary prior authorization for certain DMEPOS items."
       },
       "bindings": [
         {
@@ -396,9 +397,10 @@
         "locator": {
           "page": 1
         },
-        "quote": "DMEPOS Probationary Prior Authorization Code List"
+        "quote": "Probationary Prior Authorization List"
       },
-      "list_note": "Applies to newly enrolled DMEPOS suppliers and suppliers after a change in ownership, for one year, for the codes on the CMS code list. Quotes drafted from contractor and CMS pages on 2026-11-12; confirmed by the checks once the saved copy is recorded."
+      "list_note": "Applies to newly enrolled DMEPOS suppliers and suppliers after a change in ownership, for one year, for the codes on the CMS list. The page states no state limit: the process applies to every newly enrolled supplier wherever enrolled, so it is bound to the whole country (US); the approver confirms this reading. Quotes checked against the live page on 2026-11-12; confirmed by the checks once the saved copy is recorded.",
+      "codes_source_id": "cms-dmepos-ppa-codes"
     },
     {
       "source_id": "cms-irf-rcd",
@@ -418,7 +420,7 @@
         "locator": {
           "page": 1
         },
-        "quote": "March 2, 2026"
+        "quote": "in Texas and California, effective March 2, 2026 and May 1, 2026"
       },
       "bindings": [
         {
@@ -454,7 +456,7 @@
       ],
       "bindings_locator": {
         "page": 1,
-        "quote": "Texas California Alabama Georgia Tennessee"
+        "quote": "This includes IRFs in Alabama, Georgia, and Tennessee"
       },
       "list_quote": {
         "locator": {
@@ -462,7 +464,7 @@
         },
         "quote": "Review Choice Demonstration for IRF Services"
       },
-      "list_note": "Drafted from the CMS page on 2026-11-12. Once the page is saved, this entry and CMS-RCD-IRF should become one program entry sourced from it, with the quotes confirmed by the checks."
+      "list_note": "Quotes checked against the live CMS page on 2026-11-12. Once the page is saved, this entry and CMS-RCD-IRF should become one program entry sourced from it, with the quotes confirmed by the checks."
     }
   ],
   "screens": [

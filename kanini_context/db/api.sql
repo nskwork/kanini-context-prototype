@@ -428,7 +428,8 @@ BEGIN
 
   -- What the applicable policies require that the pack does not test (payload not_modelled): shown, never assumed met
   SELECT array_agg(DISTINCT x ORDER BY x) INTO v_unchecked
-    FROM jsonb_array_elements(coalesce(nullif(v_crit -> 'winning_rules', 'null'), '[]')) w,
+    FROM jsonb_array_elements(coalesce(nullif(v_crit -> 'winning_rules', 'null'), '[]')
+                              || coalesce(nullif(v_doc -> 'winning_rules', 'null'), '[]')) w,
          jsonb_array_elements_text(coalesce(w -> 'payload' -> 'not_modelled', '[]')) x;
 
   -- 6. Next step, as a code and in words
@@ -546,7 +547,7 @@ CREATE FUNCTION kc_api.policy_cite(p_rule_ref text, p_recorded_as_of timestamptz
         'source', jsonb_build_object('title', src.name, 'publisher', src.publisher, 'url', src.url,
                                      'retrieved_at', sn.retrieved_at, 'sha256', sn.content_sha256,
                                      'last_checked', (SELECT max(checked_at) FROM kc_core.source_check sc
-                                                       WHERE sc.source_id = src.source_id AND sc.ok)),
+                                                       WHERE sc.source_id = src.source_id AND sc.ok AND sc.checked_at <= p_recorded_as_of)),
         'reviewed_by', to_jsonb(r.reviewed_by), 'review_exception', r.review_exception)
        FROM kc_api.all_rule r
        JOIN kc_api.all_authority a ON a.entity_id = r.authority_id
@@ -567,7 +568,7 @@ CREATE FUNCTION kc_api.policy_search(p_text text, p_recorded_as_of timestamptz D
   docs AS (
     SELECT r.rule_key, r.valid, r.rule_kind, a.citation, a.title, r.source_quote, r.source_locator,
            lower(concat_ws(' ', r.rule_key, a.citation, a.title, r.source_quote, r.payload::text, e.natural_key,
-                           (SELECT string_agg(cm.code, ' ') FROM kc_core.concept_map cm WHERE cm.concept_id = r.subject_id))) AS body
+                           (SELECT string_agg(cm.code, ' ') FROM kc_core.concept_map cm WHERE cm.concept_id = r.subject_id AND cm.recorded @> p_recorded_as_of))) AS body
       FROM kc_api.all_rule r
       JOIN kc_api.all_authority a ON a.entity_id = r.authority_id
       JOIN kc_core.entity e ON e.entity_id = r.subject_id

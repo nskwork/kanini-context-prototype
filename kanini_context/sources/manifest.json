@@ -260,7 +260,7 @@
     "license_class": "public",
     "edition": "As published with the demonstration",
     "checks": [],
-    "open_question": "download and record with place --record; the screen finding (ESAs not on the list) is checked against it"
+    "open_question": "download and record with place --record; checks.py then fails if any code of a screened concept (such as J0885) appears in it, and the program stays unscreened until it is saved"
   },
   {
     "publisher": "CMS",
@@ -273,7 +273,7 @@
     "title": "CMS Prior Authorization and Pre-Claim Review Initiatives (index of programs)",
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-and-pre-claim-review-initiatives",
     "edition": "Page as saved",
-    "open_question": "found 2026-11-12: the program set in cms-pa-programs.json must be checked against this index, the CMS list of every prior authorization and pre-claim review initiative. Save it as PDF (print to PDF) under this file name and record it with place --record."
+    "open_question": "found 2026-11-12: the CMS list of every prior authorization and pre-claim review initiative. Save it as PDF (print to PDF) under this file name and record it with place --record; the approver of cms-pa-programs.json compares its list with the programs there (not checked automatically)."
   },
   {
     "publisher": "CMS",
@@ -296,10 +296,10 @@
     "checks": [],
     "source_id": "cms-dmepos-ppa-codes",
     "file": "CMS-DMEPOS-probationary-PA-code-list.pdf",
-    "title": "CMS DMEPOS Probationary Prior Authorization Code List",
+    "title": "CMS DMEPOS Probationary Prior Authorization List",
     "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-pre-claim-review-initiatives/probationary-prior-authorization-process-newly-enrolled-suppliers-certain-durable-medical-equipment",
     "edition": "As linked from the program page",
-    "open_question": "download the code list linked from the program page; the screen finding is checked against it"
+    "open_question": "download and record with place --record; checks.py then fails if any code of a screened concept (such as J0885) appears in it, and the program stays unscreened until it is saved"
   },
   {
     "publisher": "CMS",

@@ -67,6 +67,18 @@ if not (len(KINDS) >= 7 and "coverage_criteria" in KINDS and len(FACTS) >= 7 and
                      f"{len(KINDS)} rule kinds, {len(FACTS)} facts, {len(ELEMENTS)} data elements, {len(STATES)} states")
 
 
+def concept_codes(concept: str) -> set[str]:
+    """Every code a concept maps to, across the rule files (e.g. esa-ckd-nd: J0881, J0885, J0888, Q5106)."""
+    out = set()
+    for p in RULES.glob("*.json"):
+        d = json.loads(p.read_text())
+        for e in d.get("programs", [d]):
+            for c in e.get("concepts", []):
+                if c["key"] == concept:
+                    out |= {m["code"].split("|", 1)[1] for m in c["maps"]}
+    return out
+
+
 class Report:
     def __init__(self, name: str):
         self.name, self.errors, self.notes = name, [], []
@@ -175,6 +187,17 @@ def check_file(path: Path) -> Report:
         if not src.get("sha256"):
             rep.note(f"{e['authority']['key']}: source copy not saved yet; registered as unscreened until it is recorded")
             continue
+        if e.get("codes_source_id"):
+            # a closed-list screen is checked against the program's own code list: no code of a screened concept may be on it
+            cl = MANIFEST[e["codes_source_id"]]
+            if not cl.get("sha256"):
+                rep.note(f"{e['authority']['key']}: code list {cl['file']} not saved yet; the program stays unscreened until it is recorded")
+            else:
+                listed = normalise(" ".join(pages(cl["file"])))
+                for sc in d.get("screens", []):
+                    for code in concept_codes(sc["concept"]):
+                        if re.search(rf"\b{re.escape(code)}\b", listed):
+                            rep.err(f"{e['authority']['key']}: {code} ({sc['concept']}) is on the program's code list {cl['file']}; the screen finding does not hold")
         if e["authority"]["kind"] == "pa_program":
             # a closed-list program's places must be stated in its quoted text, since "not required" rests on them
             text = " ".join(x for x in (ed["quote"], e.get("list_quote", {}).get("quote", ""),

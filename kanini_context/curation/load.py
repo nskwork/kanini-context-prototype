@@ -184,7 +184,7 @@ def register_unscreened(cur, e: dict, approvers, exception):
     cur.execute("INSERT INTO kc_core.authority VALUES (%s,%s,%s,%s,%s,%s,%s)",
                 (aid, a["kind"], issuer, a["citation"], a["layer"], a["title"], a.get("closed_list", False)))
     load_bindings(cur, aid, e, e["edition"], None, approvers, exception)
-    print(f"registered unscreened: {a['citation']} (source copy not saved)")
+    print(f"registered unscreened: {a['citation']} (source copy or code list not saved)")
 
 
 def load_codes(cur, e: dict, snap, approvers, exception):
@@ -260,7 +260,8 @@ def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
     entries = d["programs"] if "programs" in d else [d]
     n = 0
     for e in entries:
-        if e["source_id"] not in snaps:
+        if e["source_id"] not in snaps or (e.get("codes_source_id") and e["codes_source_id"] not in snaps):
+            # source or code list not saved: the program is known, but its screen cannot be checked yet
             register_unscreened(cur, e, approvers, exception)
             continue
         snap = snaps[e["source_id"]]

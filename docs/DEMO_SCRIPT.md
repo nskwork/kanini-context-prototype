@@ -7,12 +7,13 @@ Prepared by NANDHU S K. Follows section 7 of the prototype scope, with scenario 
 1. Save the six CMS copies that `python -m kanini_context.sources.place` lists (the ASC demonstration page and code list, the DMEPOS probationary process page and code list, the IRF demonstration page, and the CMS index of initiatives) and record them (`place --record ~/Downloads`), then run the checks and fix any page numbers they report. Until this is done, scenarios 1, 2b and 4 route to staff, naming the unscreened programs.
 2. Recheck each source on its URL and add a dated `checks` entry in `kanini_context/sources/manifest.json` (Article A56462 especially; until it is rechecked, Ohio answers are held as "source aging").
 3. Approve the rule files (`python -m kanini_context.curation.approve --by "NANDHU S K"`), commit them, then `python -m kanini_context.release.build`.
-4. On the day: `python -m kanini_context.release.sync`, `pytest` (all must pass), then start the Kanini Context server and `adk web propel/agent`.
-5. Clear the log: delete `propel/journey/decisions.jsonl`.
+4. Build the Docker image once ahead of time (`docker compose up -d --build db`; it compiles Apache AGE and needs internet), so on the day only `docker compose up -d db` is needed.
+5. On the day: `python -m kanini_context.release.sync`, `pytest` (all must pass), then start the Kanini Context server and `adk web propel/agent`.
+6. Clear the log: delete `propel/journey/decisions.jsonl`.
 
 **1. Source to rule (2 min).** Open LCD L39237 page 7 beside `kanini_context/rules/mcd-lcd-l39237.json`. The rule's quote is the passage word for word; its tests (Hb < 10 or HCT < 30, creatinine within a month, GFR < 45) carry the page they came from. Run `python -m kanini_context.curation.checks` to show every quote is checked against its page. Rules come from source documents, not AI search.
 
-**2. Scenario 1 (3 min).** In `adk web`: *"Check prior authorization for an ESA order for patient maria-tn on 15 Nov 2026."* Show the trace (journey_get, context_applicable_rules, rules_evaluate, policy_search) and the decision card: No PA, safe to act, LCD L39237. Point out that "No PA" rests on every CMS program list bound to Tennessee (the three national programs, the DMEPOS probationary process and the ASC demonstration), each screened.
+**2. Scenario 1 (3 min).** In `adk web`: *"Check prior authorization for an ESA order for patient maria-tn on 15 Nov 2026."* Show the trace (journey_get, context_applicable_rules, rules_evaluate, policy_search) and the decision card: No PA, safe to act, LCD L39237. Point out the line "Not checked here, confirm: iron stores …": the pack separates the criteria it tested (Hb, eGFR, creatinine date, diagnoses) from policy requirements it does not test, and names them rather than assuming them met. Point out that "No PA" rests on every CMS program list bound to Tennessee (the three national programs, the DMEPOS probationary process and the ASC demonstration), each screened.
 
 **3. Scenarios 2 and 2b (3 min).** *"... for patient maria-tn-egfr52"*: Other gate, "eGFR 52 is not < 45", and the stage 3a diagnosis is not on the Tennessee article's list. *"... for patient maria-oh"*: No PA, "eGFR 52 is < 60" under L34356. Same order; the region's rule decides.
 

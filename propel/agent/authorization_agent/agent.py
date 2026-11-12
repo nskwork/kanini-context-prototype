@@ -198,8 +198,8 @@ def on_tool_error(tool, args: dict, tool_context, error: Exception):
 OUTCOME_LABEL = {"no_pa": "No PA", "pa_required": "PA required", "exempt": "Exempt",
                  "other_gate": "Other gate (coverage criteria not met)", "needs_facts": "Not yet known (facts needed)",
                  "unknown": "Not known (route to staff)"}
-_CARD = re.compile(r"Decision card\W+(ord-[\w-]+)", re.I)
-_OUTCOME_LINE = re.compile(r"^(\W*)Outcome:.*$", re.M | re.I)
+_ORDER_ID = re.compile(r"\b(ord-[\w-]+)\b", re.I)
+_OUTCOME_LINE = re.compile(r"^([ \t>*-]*)\**Outcome:\**[ \t]*.*$", re.M | re.I)   # also **Outcome:** in markdown
 
 
 def card_outcome_line(ev: dict | None) -> str:
@@ -217,12 +217,15 @@ def after_model(callback_context, llm_response):
         text = getattr(part, "text", None)
         if not text or "Outcome:" not in text:
             continue
-        m = _CARD.search(text)
-        order = state.get("propel:orders", {}).get(m.group(1)) if m else None
-        ev = state.get("propel:evals", {}).get(_order_key(*order)) if order else None
+        # the order the card is about: its id anywhere in the card, or the session's only evaluation
+        m = _ORDER_ID.search(text)
+        evals = state.get("propel:evals", {})
+        order = state.get("propel:orders", {}).get(m.group(1).lower()) if m else None
+        ev = evals.get(_order_key(*order)) if order else (next(iter(evals.values())) if len(evals) == 1 else None)
         want = card_outcome_line(ev)
         line = _OUTCOME_LINE.search(text)
-        if line and line.group(0).strip().lstrip("*-• ").strip() != want:
+        got = re.sub(r"\*+", "", line.group(0)).strip().lstrip("-•> ").strip() if line else ""
+        if line and got != want:
             part.text = text[:line.start()] + line.group(1) + want + text[line.end():] \
                 + "\n(Outcome line set from rules_evaluate.)"
     return None
