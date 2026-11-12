@@ -12,17 +12,16 @@ release, status, rule ids and duration; never the question's content.
     python -m kanini_context.server.mcp_server                 # stdio (how the agent starts it)
     python -m kanini_context.server.mcp_server --http 8765     # streamable HTTP, for inspection
 
-Connection: KC_CLIENT_DSN (default dbname=kc_client) with the usual PG* variables.
+Connection: the client copy named by KC_CLIENT_DB (default kc_client), with the usual PG* variables.
 """
 from __future__ import annotations
 
 import json
-import os
 import re
 import sys
 import threading
 import time
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import psycopg
@@ -30,8 +29,8 @@ from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.tools import ToolResult
 
-from kanini_context import env  # noqa: F401  (.env and PostgreSQL defaults)
-DSN = os.environ.get("KC_CLIENT_DSN", "dbname=kc_client")
+from kanini_context import env  # noqa: F401,E402  (loads .env)
+DSN = f"dbname={env.CLIENT_DB}"
 
 
 
@@ -105,17 +104,47 @@ def norm_date(d: str) -> str | None:
         return None
 
 
+def norm_recorded(t: str) -> tuple[str | None, str | None]:
+    """The optional 'as recorded' moment (spec 7.2): what the pack knew then. Empty means now."""
+    if not t.strip():
+        return "now", None
+    try:
+        return datetime.fromisoformat(t.strip().replace("Z", "+00:00")).isoformat(), None
+    except ValueError:
+        return None, "as_recorded must be an ISO date-time such as 2026-11-15T10:42:00Z"
+
+
+COVERAGE_FIELDS = {"program", "payer", "plan", "state", "payer_position", "dsnp_integration"}
+
+
+def norm_coverage(cov: dict) -> str | None:
+    """A coverage object may hold only coverage fields (spec 7.2), so nothing about the patient can ride along."""
+    extra = sorted(set(cov) - COVERAGE_FIELDS)
+    return f"unexpected field: coverage.{extra[0]}" if extra else None
+
+
+def _rule_keys(out) -> list[str]:
+    refs = []
+    if isinstance(out, dict):
+        refs += out.get("rule_refs") or []
+        refs += [r["rule_ref"] for r in (out.get("rules") or []) + (out.get("results") or []) if isinstance(r, dict) and "rule_ref" in r]
+        refs += [w["rule_key"] for w in (out.get("winning_rules") or []) if isinstance(w, dict) and w.get("rule_key")]
+        if isinstance(out.get("rule_ref"), str):
+            refs.append(out["rule_ref"])
+    return [r.split("@", 1)[0] for r in refs if r]
+
+
 def call(tool: str, sql: str, args: tuple) -> dict:
     t0 = time.perf_counter()
     with _lock:
         c = conn()
         out = c.execute(sql, args).fetchone()[0]
         ms = (time.perf_counter() - t0) * 1000
+        if isinstance(out, list) or out is None:
+            out = {"status": "resolved", "results": out or []}
         if out.get("status") == "invalid_input":   # refused input is not logged
             return out
-        refs = out.get("rule_refs") or [r["rule_ref"] for r in out.get("rules", []) + out.get("results", []) if "rule_ref" in r] \
-            or ([out["rule_ref"]] if isinstance(out.get("rule_ref"), str) else [])
-        keys = [r.split("@", 1)[0] for r in refs if r]
+        keys = _rule_keys(out)
         c.execute("""INSERT INTO kc_client.tool_audit (tool, release_id, status, rule_ids, duration_ms)
                      SELECT %s, coalesce(current_setting('kc.release', true), 'none'), %s,
                             coalesce((SELECT array_agg(DISTINCT rule_id) FROM kc_core.rule WHERE rule_key = ANY (%s)), '{}'), %s""",
@@ -135,15 +164,21 @@ mcp = FastMCP(
 
     plan: one of """ + PLANS + """. state: two-letter US state of the patient. date_of_service: YYYY-MM-DD.
     service: a service key, one of """ + SERVICES + """; or code: a HCPCS code (one letter and four digits) or SYSTEM|code.
+    as_recorded (optional): an ISO date-time, to replay what the pack knew at that moment.
     """)
-def context_applicable_rules(plan: str, state: str, date_of_service: str, service: str = "", code: str = "") -> dict:
+def context_applicable_rules(plan: str, state: str, date_of_service: str, service: str = "", code: str = "",
+                             as_recorded: str = "") -> dict:
     item, err = norm_item(service, code)
     if err:
         return invalid(err)
     d = norm_date(date_of_service)
     if not d:
         return invalid("date_of_service must be YYYY-MM-DD")
-    return call("context_applicable_rules", "SELECT kc_api.applicable_rules(%s, %s, %s, %s::date)", (plan, state, item, d))
+    rec, err = norm_recorded(as_recorded)
+    if err:
+        return invalid(err)
+    return call("context_applicable_rules", "SELECT kc_api.applicable_rules(%s, %s, %s, %s::date, %s::timestamptz)",
+                (plan, state, item, d, rec))
 
 
 @mcp.tool(description="""The decision for one order. outcome: pa_required, no_pa, exempt, other_gate (coverage criteria not met),
@@ -152,15 +187,20 @@ def context_applicable_rules(plan: str, state: str, date_of_service: str, servic
     The outcome always comes from this tool; never state one it did not return.
 
     plan: one of """ + PLANS + """. state: two-letter US state. code: HCPCS code. date_of_service: YYYY-MM-DD.
-    facts: """ + FACTS_HELP)
-def rules_evaluate(plan: str, state: str, code: str, date_of_service: str, facts: dict[str, Any] | None = None) -> dict:
+    facts: """ + FACTS_HELP + """
+    as_recorded (optional): an ISO date-time, to replay what the pack answered at that moment.""")
+def rules_evaluate(plan: str, state: str, code: str, date_of_service: str, facts: dict[str, Any] | None = None,
+                   as_recorded: str = "") -> dict:
     c, d = norm_code(code), norm_date(date_of_service)
     if not c:
         return invalid(CODE_ERROR)
     if not d:
         return invalid("date_of_service must be YYYY-MM-DD")
-    return call("rules_evaluate", "SELECT kc_api.evaluate_order(%s, %s, %s, %s::date, %s::jsonb)",
-                (plan, state, c, d, json.dumps(facts or {})))
+    rec, err = norm_recorded(as_recorded)
+    if err:
+        return invalid(err)
+    return call("rules_evaluate", "SELECT kc_api.evaluate_order(%s, %s, %s, %s::date, %s::jsonb, %s::timestamptz)",
+                (plan, state, c, d, json.dumps(facts or {}), rec))
 
 
 @mcp.tool
@@ -172,6 +212,91 @@ def policy_search(query: str = "", rule_ref: str = "") -> dict:
     if not query.strip():
         return invalid("give rule_ref or query")
     return call("policy_search", "SELECT kc_api.policy_search(%s)", (query.strip(),))
+
+
+# --- The seven tools of spec section 7.2, over the same SQL functions -------------------------------------------
+# The authorization agent uses the three tools above; these serve any other agent or workflow (spec 7.6).
+
+COVERAGE_HELP = ('coverage: {"program": "medicare_ffs" or "medicare_advantage", "payer": payer key, "plan": plan key, '
+                 '"state": two-letter state, "payer_position": 1}. Plans: ' + PLANS + ". ")
+
+
+def _spec(tool: str, sql: str, args: tuple, coverage: dict | None = None, d: str | None = "", rec: str = "") -> dict:
+    if coverage is not None and (err := norm_coverage(coverage)):
+        return invalid(err)
+    if d is not None and not norm_date(d):
+        return invalid("date must be YYYY-MM-DD")
+    r, err = norm_recorded(rec)
+    if err:
+        return invalid(err)
+    return call(tool, sql, tuple(r if a is _REC else a for a in args))
+
+
+_REC = object()   # placeholder for the as-recorded moment
+
+
+@mcp.tool(description="Spec 7.2. Are these codes valid on this date? codes: list of SYSTEM|code. date: YYYY-MM-DD.")
+def validate_codes(codes: list[str], date: str, as_recorded: str = "") -> dict:
+    cs = [norm_code(c) for c in codes]
+    if None in cs:
+        return invalid(CODE_ERROR)
+    return _spec("validate_codes", "SELECT kc_api.validate_codes(%s, %s::date, %s::timestamptz)", (cs, date, _REC), d=date, rec=as_recorded)
+
+
+@mcp.tool(description="Spec 7.2. Which coverage pays first? coverages: list of coverage objects. facts: registered facts.")
+def resolve_coverage_stack(coverages: list[dict[str, Any]], facts: dict[str, Any] | None = None) -> dict:
+    for cov in coverages:
+        if err := norm_coverage(cov):
+            return invalid(err)
+    return _spec("resolve_coverage_stack", "SELECT kc_api.resolve_coverage_stack(%s::jsonb, %s::jsonb)",
+                 (json.dumps(coverages), json.dumps(facts or {})), d=None)
+
+
+@mcp.tool(description="Spec 7.2. What does this coverage say about this code on this date? " + COVERAGE_HELP
+          + "rule_kind: approval_required, coverage_criteria, documentation_requirement, decision_timeframe, appeal_window, ... "
+          "code: SYSTEM|code. date: YYYY-MM-DD. facts: registered facts. as_recorded (optional): ISO date-time.")
+def resolve_rules(coverage: dict[str, Any], rule_kind: str, code: str, date: str, facts: dict[str, Any] | None = None,
+                  as_recorded: str = "") -> dict:
+    if not norm_code(code):
+        return invalid(CODE_ERROR)
+    return _spec("resolve_rules", "SELECT kc_api.resolve_rules(%s::jsonb, %s, %s, %s::jsonb, %s::date, %s::timestamptz)",
+                 (json.dumps(coverage), rule_kind, norm_code(code), json.dumps(facts or {}), date, _REC),
+                 coverage=coverage, d=date, rec=as_recorded)
+
+
+@mcp.tool(description="Spec 7.2. How fast must the insurer decide, or how long is there to appeal? " + COVERAGE_HELP
+          + "rule_kind: decision_timeframe (default) or appeal_window.")
+def get_obligations(coverage: dict[str, Any], code: str, date: str, facts: dict[str, Any] | None = None,
+                    rule_kind: str = "decision_timeframe", as_recorded: str = "") -> dict:
+    if not norm_code(code):
+        return invalid(CODE_ERROR)
+    return _spec("get_obligations", "SELECT kc_api.get_obligations(%s::jsonb, %s, %s::date, %s::jsonb, %s::timestamptz, %s)",
+                 (json.dumps(coverage), norm_code(code), date, json.dumps(facts or {}), _REC, rule_kind),
+                 coverage=coverage, d=date, rec=as_recorded)
+
+
+@mcp.tool(description="Spec 7.2. How can a request reach this insurer today? payer: payer key. date: YYYY-MM-DD. "
+                      "item_type (optional): drug, service, supply, lab or diagnosis.")
+def get_payer_capabilities(payer: str, date: str, item_type: str = "") -> dict:
+    return _spec("get_payer_capabilities", "SELECT kc_api.get_payer_capabilities(%s, %s::date, %s)",
+                 (payer, date, item_type or None), d=date)
+
+
+@mcp.tool(description="Spec 7.2. What does this denial code mean? code_set: CARC or RARC. code. date: YYYY-MM-DD.")
+def map_reason_code(code_set: str, code: str, date: str) -> dict:
+    return _spec("map_reason_code", "SELECT kc_api.map_reason_code(%s, %s, %s::date)", (code_set, code, date), d=date)
+
+
+@mcp.tool(description="Spec 7.2. What must be sent, now or because the insurer asked for more? " + COVERAGE_HELP
+          + "code: SYSTEM|code. date: YYYY-MM-DD. facts: registered facts. requested: codes the insurer asked for (optional).")
+def get_documentation_form(coverage: dict[str, Any], code: str, date: str, facts: dict[str, Any] | None = None,
+                           requested: list[str] | None = None, as_recorded: str = "") -> dict:
+    if not norm_code(code):
+        return invalid(CODE_ERROR)
+    return _spec("get_documentation_form",
+                 "SELECT kc_api.get_documentation_form(%s::jsonb, %s, %s::date, %s::jsonb, %s, %s::timestamptz)",
+                 (json.dumps(coverage), norm_code(code), date, json.dumps(facts or {}), requested, _REC),
+                 coverage=coverage, d=date, rec=as_recorded)
 
 
 class InvalidInputAsAnswer(Middleware):

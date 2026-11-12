@@ -341,8 +341,8 @@ BEGIN
            || concat_ws('; ',
                 (SELECT 'not on any of the ' || count(*) || ' closed prior authorization lists bound to this coverage ('
                         || string_agg(w ->> 'citation', ', ' ORDER BY w ->> 'citation') || ')'
-                   FROM jsonb_array_elements(v_appr_win) w WHERE w ->> 'basis' = 'closed_list' HAVING count(*) > 0),
-                (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr_win) w WHERE w ->> 'basis' <> 'closed_list')) END);
+                   FROM jsonb_array_elements(v_appr_win) w WHERE w ->> 'basis' = 'stated_by_exhaustion' HAVING count(*) > 0),
+                (SELECT string_agg(DISTINCT w ->> 'citation', '; ') FROM jsonb_array_elements(v_appr_win) w WHERE w ->> 'basis' <> 'stated_by_exhaustion')) END);
   END IF;
 
   -- 2. Coverage criteria, checked against the facts; every applicable policy's criteria must be met

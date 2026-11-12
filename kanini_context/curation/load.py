@@ -8,10 +8,10 @@ flags, authorities and editions, bindings, codes, concepts and their maps, endpo
 requirement items, closed-list screen rules, and one review row per approver. If any file fails the
 automated checks (checks.py), or a rule has no approver, nothing is loaded.
 
-Approval. Two different approvers are the rule. One named approver is accepted only with a recorded
-review_exception, which every answer shows. --test-review fills an empty review with a test approver
-and the exception 'TEST build: not reviewed', so the scenarios can run before review; a database built
-that way is labelled TEST and must never be released.
+Approval. Two different approvers are the rule (spec 7.1). One named approver is accepted only with a recorded
+review_exception, which every answer shows; curation/approve.py records the prototype scope's one-engineer check
+that way. --test-review fills an empty review with a test approver and the exception 'TEST build: not reviewed',
+so the tests can run before approval; a database built that way is labelled TEST and must never be released.
 
 Connection: KC_DSN, default the local test server.
 """
@@ -21,6 +21,7 @@ import argparse
 import hashlib
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -33,9 +34,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
 RAW = ROOT / "sources" / "raw"
 MANIFEST = json.loads((ROOT / "sources" / "manifest.json").read_text())
-from kanini_context import env  # noqa: F401,E402  (.env and PostgreSQL defaults)
+from kanini_context import env  # noqa: F401,E402  (loads .env)
 
-DSN = os.environ.get("KC_DSN", "dbname=kc_build")
+DSN = os.environ.get("KC_DSN", f"dbname={env.BUILD_DB}")
 
 # Proposal appendix B.3, proposed starting values: how often each source is checked, and when an
 # answer that rests on it becomes aging (still answered, with a warning) or stale (withheld).
@@ -45,6 +46,18 @@ FRESHNESS = {
     "payer_list":      ("7 days", "14 days", "45 days"),
     "payer_policy":    ("7 days", "14 days", "45 days"),
 }
+def _git_commit() -> str | None:
+    """The commit that holds the approved rule files (spec 7.1: Git is where approval happens). None outside Git,
+    and marked +changes when the rule files differ from the commit."""
+    try:
+        head = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain", "--", "rules"], capture_output=True, text=True).stdout.strip()
+        return head + ("+changes" if dirty else "")
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+GIT_COMMIT = _git_commit()
 TEST_APPROVER = "test-approver"
 TEST_EXCEPTION = "TEST build: not reviewed; for local tests only, never released"
 
@@ -96,17 +109,19 @@ def load_sources(cur) -> dict[str, object]:
     return snaps
 
 
-def review_of(d: dict, test_review: bool) -> tuple[list[str], str | None]:
+def review_of(d: dict, test_review: bool) -> tuple[list[str], str | None, str | None]:
+    """(approvers, exception, approval date). Two different approvers are the rule; one approver needs a recorded
+    exception (curation/approve.py records the prototype scope's one-engineer check)."""
     rv = d["review"]
     approvers = [x for x in rv.get("reviewed_by", []) if x]
     exception = rv.get("review_exception")
     if not approvers:
         if not test_review:
-            raise LoadError("not reviewed: reviewed_by is empty (use --test-review only for a local TEST build)")
-        return [TEST_APPROVER], TEST_EXCEPTION
+            raise LoadError("not approved: reviewed_by is empty (run curation/approve.py; --test-review only for a local TEST build)")
+        return [TEST_APPROVER], TEST_EXCEPTION, None
     if len(set(approvers)) == 1 and not exception:
         raise LoadError("one approver needs a recorded review_exception")
-    return approvers, exception
+    return approvers, exception, rv.get("reviewed_at")
 
 
 def scope_ids(cur, scope: dict) -> dict:
@@ -183,7 +198,8 @@ def load_endpoints(cur, e: dict):
                ep["verified_at"], ep["valid_from"]))
 
 
-def insert_rule(cur, *, r: dict, aid, avid, ed: dict, snap, approvers, exception, license_class: str) -> object:
+def insert_rule(cur, *, r: dict, aid, avid, ed: dict, snap, approvers, exception, license_class: str,
+                reviewed_at: str | None = None) -> object:
     kind = cur.execute("SELECT aspect, default_effect FROM kc_meta.rule_kind WHERE rule_kind=%s", (r["rule_kind"],)).fetchone()
     if kind is None:
         raise LoadError(f"{r['rule_key']}: unknown rule kind {r['rule_kind']}")
@@ -199,28 +215,28 @@ def insert_rule(cur, *, r: dict, aid, avid, ed: dict, snap, approvers, exception
            jurisdiction_id, effect, conditions, payload, basis, mapping_confidence, not_stated,
            valid_from_basis, valid_from_lo, valid_from_hi, valid_to_lo, valid_to_hi,
            status, snapshot_id, source_locator, source_quote, extracted_by, reviewed_by, review_exception, reviewed_at, license_class)
-          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active',%s,%s,%s,%s,%s,%s,now(),%s)
+          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active',%s,%s,%s,%s,%s,%s,coalesce(%s::timestamptz, now()),%s)
           RETURNING rule_id""",
           (r["rule_key"], r["rule_kind"], kind[0], subject_id(cur, r["subject"]), aid, avid,
            s["program"], s["payer"], s["plan"], s["jurisdiction"], r.get("effect", kind[1]),
            Jsonb(r.get("conditions", [])), Jsonb(r["payload"]), r["basis"], r.get("mapping_confidence"),
            r.get("not_stated", []), "stated" if "valid_from" in r else ed["valid_from_basis"],
            r.get("valid_from", ed["valid_from"]), r.get("valid_from", ed["valid_from"]), ed.get("valid_to"), ed.get("valid_to"),
-           snap, Jsonb(locator), quote, r["extracted_by"], approvers, exception, license_class))
+           snap, Jsonb(locator), quote, r["extracted_by"], approvers, exception, reviewed_at, license_class))
     for rq in r.get("requirements", []):
         de = one(cur, "SELECT entity_id FROM kc_core.entity WHERE entity_type='data_element' AND natural_key=%s", (rq["element"],))
         cur.execute("""INSERT INTO kc_core.rule_requirement (rule_id, group_no, group_logic, data_element_id, test, lookback, when_needed)
                        VALUES (%s,%s,%s,%s,%s,%s::interval,%s)""",
                     (rid, rq["group"], rq["logic"], de, Jsonb(rq["test"]), rq.get("lookback"), rq["when"]))
     for who in dict.fromkeys(approvers):
-        cur.execute("INSERT INTO kc_gov.review (target_table, target_id, reviewer, decision) VALUES ('kc_core.rule',%s,%s,'approve')",
-                    (rid, who))
+        cur.execute("""INSERT INTO kc_gov.review (target_table, target_id, reviewer, decision, git_commit)
+                       VALUES ('kc_core.rule',%s,%s,'approve',%s)""", (rid, who, GIT_COMMIT))
     return rid
 
 
 def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
     d = json.loads(path.read_text())
-    approvers, exception = review_of(d, test_review)
+    approvers, exception, reviewed_at = review_of(d, test_review)
     entries = d["programs"] if "programs" in d else [d]
     n = 0
     for e in entries:
@@ -230,7 +246,7 @@ def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
         load_bindings(cur, aid, e, ed, snap, approvers, exception)
         load_endpoints(cur, e)
         for r in e.get("rules", []):
-            insert_rule(cur, r=r, aid=aid, avid=avid, ed=ed, snap=snap, approvers=approvers, exception=exception, license_class=lic)
+            insert_rule(cur, r=r, aid=aid, avid=avid, ed=ed, snap=snap, approvers=approvers, exception=exception, license_class=lic, reviewed_at=reviewed_at)
             n += 1
         # Closed-list screens: the program's list was checked and the concept is not on it, so the program
         # states "not required" for it by not listing it (proposal section 10.4).
@@ -241,10 +257,10 @@ def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
                 "rule_key": f"{sc['rule_key_prefix']}/{e['authority']['key'].lower()}",
                 "rule_kind": "approval_required", "subject": {"concept": sc["concept"]},
                 "scope": {"program": e["bindings"][0]["program"]},
-                "payload": {"required": False}, "basis": "closed_list",
+                "payload": {"required": False}, "basis": "stated_by_exhaustion",
                 "locator": {**e["list_quote"]["locator"], "screen_finding": sc["finding"]},
                 "quote": e["list_quote"]["quote"], "extracted_by": "manual"},
-                aid=aid, avid=avid, ed=ed, snap=snap, approvers=approvers, exception=exception, license_class=lic)
+                aid=aid, avid=avid, ed=ed, snap=snap, approvers=approvers, exception=exception, license_class=lic, reviewed_at=reviewed_at)
             n += 1
     return n
 
@@ -273,7 +289,7 @@ def main(argv: list[str]) -> int:
             snaps = load_sources(cur)
             for p in paths:   # codes and concepts first
                 d = json.loads(p.read_text())
-                approvers, exception = review_of(d, args.test_review)
+                approvers, exception, _ = review_of(d, args.test_review)
                 for e in (d["programs"] if "programs" in d else [d]):
                     load_codes(cur, e, snaps[e["source_id"]], approvers, exception)
             total = 0
@@ -281,9 +297,11 @@ def main(argv: list[str]) -> int:
                 n = load_file(cur, p, snaps, args.test_review)
                 total += n
                 print(f"loaded {p.name}: {n} rules")
-            cur.execute("SELECT count(*) FROM kc_gov.possible_overlap")
-            if cur.fetchone()[0]:
-                raise LoadError("rules that may overlap once uncertain dates are known: see kc_gov.possible_overlap")
+            # Editions whose uncertain dates might overlap are allowed (the source really is vague) and listed for
+            # a reviewer to settle (spec 6.5, test T12). Confirmed overlaps are refused by the database itself.
+            for a, b in cur.execute("""SELECT ra.rule_key, rb.rule_key FROM kc_gov.possible_overlap o
+                                         JOIN kc_core.rule ra ON ra.rule_id = o.rule_a JOIN kc_core.rule rb ON rb.rule_id = o.rule_b""").fetchall():
+                print(f"for review: {a} and {b} may overlap once their uncertain dates are known (kc_gov.possible_overlap)")
             print(f"{total} rules loaded{' (TEST build)' if args.test_review else ''}")
     except psycopg.errors.ExclusionViolation as ex:
         # two current active versions of one rule (same authority, subject, kind and scope) valid on the same dates

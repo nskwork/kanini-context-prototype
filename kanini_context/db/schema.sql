@@ -6,7 +6,7 @@
 --   fact_type.allowed      may hold {"min":..,"max":..} for number facts (lab values are range-checked)
 --   authority.kind         adds 'pa_program' (a Medicare FFS prior authorization program)
 --   authority.closed_list  the source lists everything it covers, so absence from it is meaningful
---   rule.basis             adds 'closed_list' (stated by a complete list: proposal section 10.4)
+--   rule.basis             adds 'stated_by_exhaustion' (a closed list states it by not listing the item: proposal 10.4)
 --   rule.rule_key          a readable rule id such as kc:rule/esa-ckd-nd/L39237, shared by its versions
 --   data_element.fact      the registered fact that carries the element's value
 --   kc_gov.release.covers_through   last date of service the release answers for
@@ -389,8 +389,8 @@ CREATE TABLE kc_core.rule (
   effect               text NOT NULL CHECK (effect IN ('override','ceiling','floor','additive')),
   conditions           jsonb NOT NULL DEFAULT '[]',  -- [{"fact":"encounter_type","op":"in","value":["emergency"]}]
   payload              jsonb NOT NULL DEFAULT '{}',
-  basis                text NOT NULL CHECK (basis IN ('stated','interpreted','closed_list')),
-                         -- closed_list: a complete list states it by not listing the item (authority.closed_list)
+  basis                text NOT NULL CHECK (basis IN ('stated','interpreted','stated_by_exhaustion')),
+                         -- stated_by_exhaustion: a closed list states it by not listing the item (authority.closed_list)
   mapping_confidence   numeric(3,2),                 -- set when basis = 'interpreted'
   not_stated           text[] NOT NULL DEFAULT '{}',
   date_basis           text NOT NULL DEFAULT 'date_of_service'

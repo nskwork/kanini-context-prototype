@@ -16,7 +16,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from kanini_context import env  # noqa: F401,E402
+# The tests build their own databases, so they never touch the demo release in kc_build / kc_client.
+os.environ["KC_BUILD_DB"], os.environ["KC_CLIENT_DB"] = "kct_build", "kct_client"
+from kanini_context import env  # noqa: F401,E402  (loads .env)
 os.environ["KC_MCP_URL"] = "http://127.0.0.1:8799/mcp"   # the tests start their own server on this port
 DOS = "2026-11-15"
 
@@ -41,7 +43,7 @@ def release():
 
 @pytest.fixture(scope="session")
 def db(release):
-    with psycopg.connect("dbname=kc_client", autocommit=True) as c:
+    with psycopg.connect("dbname=kct_client", autocommit=True) as c:
         yield c
 
 

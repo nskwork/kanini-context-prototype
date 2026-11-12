@@ -27,7 +27,7 @@ from mcp import StdioServerParameters
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))   # adk web loads this file directly
-from kanini_context import env  # noqa: F401,E402  (.env: OPENAI_API_KEY, KC_MCP_URL, PROPEL_*)
+from kanini_context import env  # noqa: F401,E402  (loads .env)
 LOG = Path(os.environ.get("PROPEL_DECISION_LOG", ROOT / "propel" / "journey" / "decisions.jsonl"))
 REVIEWER = os.environ.get("PROPEL_REVIEWER", "demo-staff")
 KC_URL = os.environ.get("KC_MCP_URL", "http://127.0.0.1:8765/mcp")
@@ -156,7 +156,8 @@ def before_tool(tool, args: dict, tool_context):
         return {"status": "blocked", "error": "Kanini Context was unreachable; nothing recorded"}
     # authoritative fields from the evaluation, whatever the model wrote
     args.update({"outcome": ev["outcome"], "rule_ref": ev["rule_ref"], "source": ev["source"],
-                 "safe_to_act": ev["safe_to_act"], "pack_release": ev["pack_release"], "next_step": ev["next_step"]})
+                 "safe_to_act": ev["safe_to_act"], "pack_release": ev["pack_release"], "next_step": ev["next_step"],
+                 "recorded_as_of": ev.get("recorded_as_of") or ""})
     return None
 
 
@@ -176,7 +177,7 @@ def after_tool(tool, args: dict, tool_context, tool_response):
         prim = p.get("primary_rule") or {}
         evals[key] = {"outcome": p.get("outcome", "unknown"), "rule_ref": prim.get("rule_ref"), "source": prim.get("citation"),
                       "safe_to_act": bool(p.get("safe_to_act")), "pack_release": p.get("pack_release"),
-                      "next_step": p.get("next_step"), "reason": p.get("reason")}
+                      "next_step": p.get("next_step"), "reason": p.get("reason"), "recorded_as_of": p.get("recorded_as_of")}
         tool_context.state["propel:evals"] = evals
     elif name == "journey_record" and isinstance(tool_response, dict) and tool_response.get("error") == "This tool call is rejected.":
         _write({"order": args.get("order_id"), "decision": "rejected", "outcome_proposed": args.get("outcome"),

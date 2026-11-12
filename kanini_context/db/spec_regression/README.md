@@ -13,7 +13,8 @@ All 61 tests give the same verdict, including the 9 expected refusals. The diffe
 
 | Difference | Why |
 | --- | --- |
-| Winning rules carry `rule_key` and `version` | Readable rule references (`rule_key@edition`) for the decision log |
+| Winning rules carry `rule_key`, `version`, `citation` and `authority_kind` | Readable rule references (`rule_key@edition`) for the decision log; the deciding rule is chosen by document type |
+| Where two rules are listed in a conflict, their order can differ between runs | They are ordered by rule id, which is random; the verdict is the same |
 | Requirement items carry `element_id`, `fact` and `unit` | Criteria are checked against registered facts; forms join items by element id |
 | Winning rules carry `review_exception` | An answer shows when a rule was approved by one named approver under a recorded exception |
 | Refusal messages show two more columns | `rule.rule_key` and `rule.review_exception` were added to the rule table |

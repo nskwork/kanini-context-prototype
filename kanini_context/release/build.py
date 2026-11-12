@@ -29,7 +29,7 @@ import psycopg
 
 ROOT = Path(__file__).resolve().parents[2]
 DB = ROOT / "kanini_context" / "db"
-from kanini_context import env  # noqa: F401,E402  (.env and PostgreSQL defaults)
+from kanini_context import env  # noqa: F401,E402  (loads .env)
 
 # The last date of service a release answers for: the day before the earliest change the pack already knows is
 # coming (an open change flag, or the end of a loaded edition). With none known, the end of the following month.
@@ -44,13 +44,6 @@ SQL_FILES = ["schema.sql", "registry.sql", "resolver.sql", "api.sql"]
 
 def dsn(db: str) -> str:
     return f"dbname={db}"
-
-
-def run(cmd: list[str]):
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0:
-        raise SystemExit(f"{' '.join(cmd)} failed:\n{r.stderr or r.stdout}")
-    return r.stdout
 
 
 def run_sql(db: str, files: list[str]):
@@ -133,21 +126,21 @@ def build_graph(cur, graph: str) -> tuple[int, int] | None:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--test-review", action="store_true")
-    ap.add_argument("--release", help="release id, default YYYY.MM.DD (TEST- prefix for a test build)")
+    ap.add_argument("--release", help="release id, default YYYY.MM.0 as in spec 6.6 (TEST- prefix for a test build)")
     ap.add_argument("--no-graph", action="store_true")
     ap.add_argument("--covers-through", help="override the last date of service the release answers for (YYYY-MM-DD)")
     args = ap.parse_args(argv)
     now = datetime.now(timezone.utc)
-    release = args.release or now.strftime("%Y.%m.%d")
+    release = args.release or now.strftime("%Y.%m.0")   # e.g. 2026.11.0
     if args.test_review and not release.startswith("TEST-"):
         release = "TEST-" + release
     global GRAPH
     GRAPH = now.strftime("ref_%Y_%m")   # one graph per monthly reference pack, e.g. ref_2026_11
 
     # 1. build database
-    fresh_db("kc_build")
-    run_sql("kc_build", SQL_FILES)
-    os.environ["KC_DSN"] = dsn("kc_build")
+    fresh_db(env.BUILD_DB)
+    run_sql(env.BUILD_DB, SQL_FILES)
+    os.environ["KC_DSN"] = dsn(env.BUILD_DB)
     load = [sys.executable, "-m", "kanini_context.curation.load"] + (["--test-review"] if args.test_review else [])
     r = subprocess.run(load, cwd=ROOT, capture_output=True, text=True)
     print(r.stdout.strip())
@@ -156,15 +149,15 @@ def main(argv: list[str]) -> int:
         return 1
 
     # 2. digest
-    with psycopg.connect(dsn("kc_build")) as c:
+    with psycopg.connect(dsn(env.BUILD_DB)) as c:
         digest = rule_digest(c.cursor())
 
     # 3. client copy
     with psycopg.connect(dsn("postgres"), autocommit=True) as c:
-        c.execute('DROP DATABASE IF EXISTS "kc_client" WITH (FORCE)')
-        c.execute('CREATE DATABASE "kc_client" TEMPLATE "kc_build"')
-        c.execute(f"ALTER DATABASE kc_client SET kc.release = '{release}'")
-    with psycopg.connect(dsn("kc_client")) as c, c.cursor() as cur:
+        c.execute(f'DROP DATABASE IF EXISTS "{env.CLIENT_DB}" WITH (FORCE)')
+        c.execute(f'CREATE DATABASE "{env.CLIENT_DB}" TEMPLATE "{env.BUILD_DB}"')
+        c.execute(f"ALTER DATABASE \"{env.CLIENT_DB}\" SET kc.release = '{release}'")
+    with psycopg.connect(dsn(env.CLIENT_DB)) as c, c.cursor() as cur:
         covers = args.covers_through or cur.execute(COVERS_THROUGH_SQL, {"d": now.date()}).fetchone()[0]
         cur.execute("INSERT INTO kc_gov.release VALUES (%s, %s, %s, %s, %s, 'built', %s)",
                     (release, now, git_commit(), now, digest, covers))
@@ -178,7 +171,7 @@ def main(argv: list[str]) -> int:
         print(f"graph: {graph[0]} vertices, {graph[1]} edges")
     elif not args.no_graph:
         print("graph: Apache AGE not installed; skipped (answers do not depend on it)")
-    print(f"client copy: database kc_client{f', graph {GRAPH}' if graph else ''}")
+    print(f"client copy: database {env.CLIENT_DB}{f', graph {GRAPH}' if graph else ''}")
     return 0
 
 

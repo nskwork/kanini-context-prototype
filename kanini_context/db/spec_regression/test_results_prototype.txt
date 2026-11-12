@@ -42,17 +42,19 @@ Q01 approval, J1439, UHC Medicare Advantage, TN, elective, 2026-11-20 (full answ
             },
             "rule_id": "00000000-0000-0000-0000-00000000c001",
             "version": "October 2026 edition",
+            "citation": "UHC MA prior authorization list",
             "rule_key": null,
             "rule_kind": "approval_required",
             "not_stated": [
             ],
+            "authority_kind": "payer_list",
             "confirmed_valid": "[2026-10-01,)",
             "review_exception": null,
             "mapping_confidence": null
         }
     ],
     "payer_position": 1,
-    "recorded_as_of": "2026-11-12T13:47:12.823734-06:00",
+    "recorded_as_of": "2026-11-12T14:22:11.587702-06:00",
     "actionable_reasons": [
     ],
     "candidates_considered": 2
@@ -93,7 +95,7 @@ Q05 documentation for J0885 in TN (full answer)
                                 "system": "LOINC",
                                 "element": "Hematocrit",
                                 "lookback": null,
-                                "element_id": "11788589-d7bb-42a0-826c-14c3b2384c8b"
+                                "element_id": "4b3be2cf-3fb6-45a8-b5bc-765b6a0e2e5c"
                             },
                             {
                                 "fact": null,
@@ -108,7 +110,7 @@ Q05 documentation for J0885 in TN (full answer)
                                 "system": "LOINC",
                                 "element": "Hemoglobin",
                                 "lookback": null,
-                                "element_id": "8cec87fc-8426-403b-9719-fcef01533942"
+                                "element_id": "502a08fd-b581-40b9-a32c-aa9eea9b859a"
                             }
                         ],
                         "logic": "any"
@@ -129,7 +131,7 @@ Q05 documentation for J0885 in TN (full answer)
                                 "system": "LOINC",
                                 "element": "eGFR (CKD-EPI 2021)",
                                 "lookback": null,
-                                "element_id": "d427086c-43e0-47e2-9fbd-eaf4b65033c7"
+                                "element_id": "ca55ec53-5fcb-4687-9348-3974f9e9e2f0"
                             }
                         ],
                         "logic": "all"
@@ -148,7 +150,7 @@ Q05 documentation for J0885 in TN (full answer)
                                 "system": "LOINC",
                                 "element": "Creatinine, serum",
                                 "lookback": "1 mon",
-                                "element_id": "de0ea693-3f7d-4d78-bc7f-0af2fcb81c8c"
+                                "element_id": "4c907f17-664c-4523-874e-d96d21ba4a77"
                             }
                         ],
                         "logic": "all"
@@ -188,17 +190,19 @@ Q05 documentation for J0885 in TN (full answer)
             },
             "rule_id": "00000000-0000-0000-0000-00000000c003",
             "version": "current revision",
+            "citation": "L39237",
             "rule_key": null,
             "rule_kind": "documentation_requirement",
             "not_stated": [
             ],
+            "authority_kind": "lcd",
             "confirmed_valid": "[2025-01-01,)",
             "review_exception": null,
             "mapping_confidence": null
         }
     ],
     "payer_position": 1,
-    "recorded_as_of": "2026-11-12T13:47:12.842595-06:00",
+    "recorded_as_of": "2026-11-12T14:22:11.611663-06:00",
     "actionable_reasons": [
     ],
     "candidates_considered": 1
@@ -218,7 +222,7 @@ status=no_rule_found | reason=no_reviewed_rule_in_scope | actionable=false | val
 Q12 Medicaid plan list on 2026-02-01, inside its uncertain start window
 status=unavailable | reason=uncertain_date | actionable=false | value=required | missing=- | next_step=payer_portal | reasons=["unavailable"]
 Q13 routes to UnitedHealthcare for a drug request on 2026-11-20
-[{"live": false, "version": null, "interface": "payer_pa_api", "preference": 1, "last_verified": null, "available_from": "2027-01-01", "usable_for_item": false}, {"live": true, "version": "005010X217", "interface": "x12_278", "preference": 2, "last_verified": "2026-11-12T13:47:12.78332-06:00", "available_from": "2020-01-01", "usable_for_item": true}, {"live": true, "version": null, "interface": "portal", "preference": 3, "last_verified": "2026-11-12T13:47:12.78332-06:00", "available_from": "2020-01-01", "usable_for_item": true}]
+[{"live": false, "version": null, "interface": "payer_pa_api", "preference": 1, "last_verified": null, "available_from": "2027-01-01", "usable_for_item": false}, {"live": true, "version": "005010X217", "interface": "x12_278", "preference": 2, "last_verified": "2026-11-12T14:22:11.535212-06:00", "available_from": "2020-01-01", "usable_for_item": true}, {"live": true, "version": null, "interface": "portal", "preference": 3, "last_verified": "2026-11-12T14:22:11.535212-06:00", "available_from": "2020-01-01", "usable_for_item": true}]
 Q14 meaning of denial reason CARC 197, and an unknown code
 authorization|unknown
 Q15 a new edition replaces an old one: J1439 on 2026-09-15 cites the August edition, on 2026-11-20 the October edition
@@ -230,16 +234,16 @@ service 2026-10-15: status=unavailable | reason=pending_review | actionable=fals
 same question asked now: status=resolved | reason=- | actionable=true | value=required | missing=- | next_step=- | reasons=[]
 T01 overlapping active version of the same rule (expect an error)
 psql:spec_regression/tests.sql:58: ERROR:  conflicting key value violates exclusion constraint "rule_authority_id_subject_id_rule_kind_aspect_scope_key_va_excl"
-DETAIL:  Key (authority_id, subject_id, rule_kind, aspect, scope_key, valid)=(e40d478b-3e64-42fb-96b0-17a52aeb1454, 2895c3cb-e921-441d-8847-2f6b91112fa3, approval_required, approval, 2820d472-837c-42b4-9039-019c3cfe1a1b|2c21b8d6-a5a1-437f-8f64-eba1047a1efe|*|*, [2026-10-01,)) conflicts with existing key (authority_id, subject_id, rule_kind, aspect, scope_key, valid)=(e40d478b-3e64-42fb-96b0-17a52aeb1454, 2895c3cb-e921-441d-8847-2f6b91112fa3, approval_required, approval, 2820d472-837c-42b4-9039-019c3cfe1a1b|2c21b8d6-a5a1-437f-8f64-eba1047a1efe|*|*, [2026-10-01,)).
+DETAIL:  Key (authority_id, subject_id, rule_kind, aspect, scope_key, valid)=(31c83d1e-6bfd-4063-82da-603bc4950576, 3a3bfd71-a717-47c4-a229-bbdbb0c9d214, approval_required, approval, 8713107d-d60f-4a5a-a57a-ad00bdf87ad6|1b38d151-27b6-4047-bab9-c9fb73f0d5d4|*|*, [2026-10-01,)) conflicts with existing key (authority_id, subject_id, rule_kind, aspect, scope_key, valid)=(31c83d1e-6bfd-4063-82da-603bc4950576, 3a3bfd71-a717-47c4-a229-bbdbb0c9d214, approval_required, approval, 8713107d-d60f-4a5a-a57a-ad00bdf87ad6|1b38d151-27b6-4047-bab9-c9fb73f0d5d4|*|*, [2026-10-01,)).
 T02 active rule with one approver (expect an error)
 psql:spec_regression/tests.sql:64: ERROR:  new row for relation "rule" violates check constraint "rule_check4"
-DETAIL:  Failing row contains (f6a48a8d-d5d9-4b59-9d6f-b3c1485fb8ef, null, decision_timeframe, timeframe, 22d5bd00-e58b-40de-bf72-d9f4585d57fb, d08967d6-b09f-4cbf-aa50-823a5998513c, 00000000-0000-0000-0000-00000000b001, null, null, null, null, ceiling, [], {"clock_starts": "receipt", "standard_hours": 72}, stated, null, {}, date_of_service, null, stated, 2027-01-01, 2027-01-01, null, null, [2027-01-01,), [2027-01-01,), ["2026-11-12 13:47:12.860399-06",), active, 00000000-0000-0000-0000-00000000a003, {"section": "422.568(b)(3)"}, but no later than 72 hours after receipt of the request, manual, {curator.a}, null, null, null, public, *|*|*|*).
+DETAIL:  Failing row contains (f42a516e-0568-4be2-85c8-0ab7b9985aa2, null, decision_timeframe, timeframe, 1f6d2503-9956-4809-bf7b-ec8e9f8f2e34, 93d1e091-6549-403f-9840-e8d99c0957ee, 00000000-0000-0000-0000-00000000b001, null, null, null, null, ceiling, [], {"clock_starts": "receipt", "standard_hours": 72}, stated, null, {}, date_of_service, null, stated, 2027-01-01, 2027-01-01, null, null, [2027-01-01,), [2027-01-01,), ["2026-11-12 14:22:11.630213-06",), active, 00000000-0000-0000-0000-00000000a003, {"section": "422.568(b)(3)"}, but no later than 72 hours after receipt of the request, manual, {curator.a}, null, null, null, public, *|*|*|*).
 T03 edge between the wrong kinds of entity (expect an error)
 psql:spec_regression/tests.sql:66: ERROR:  edge within expects jurisdiction -> jurisdiction, got payer -> jurisdiction
 CONTEXT:  PL/pgSQL function kc_core.check_edge_types() line 12 at RAISE
 T04 interpreted rule without a mapping confidence (expect an error)
 psql:spec_regression/tests.sql:72: ERROR:  new row for relation "rule" violates check constraint "rule_check5"
-DETAIL:  Failing row contains (898cd92a-630b-4b17-8fdb-ccd666ce36e2, null, approval_required, approval, 2895c3cb-e921-441d-8847-2f6b91112fa3, e40d478b-3e64-42fb-96b0-17a52aeb1454, 00000000-0000-0000-0000-00000000b006, null, null, null, null, additive, [], {"required": true, "applies_to": "both"}, interpreted, null, {}, date_of_service, null, stated, 2027-01-01, 2027-01-01, null, null, [2027-01-01,), [2027-01-01,), ["2026-11-12 13:47:12.861417-06",), draft, 00000000-0000-0000-0000-00000000a006, {"entry": "Intravenous Iron Replacement", "section": "Injectable..., J1439 – Injectafer, llm_assisted, {}, null, null, null, public, *|*|*|*).
+DETAIL:  Failing row contains (524323e9-8f8b-46a3-bbb4-f222577144b5, null, approval_required, approval, 3a3bfd71-a717-47c4-a229-bbdbb0c9d214, 31c83d1e-6bfd-4063-82da-603bc4950576, 00000000-0000-0000-0000-00000000b006, null, null, null, null, additive, [], {"required": true, "applies_to": "both"}, interpreted, null, {}, date_of_service, null, stated, 2027-01-01, 2027-01-01, null, null, [2027-01-01,), [2027-01-01,), ["2026-11-12 14:22:11.631372-06",), draft, 00000000-0000-0000-0000-00000000a006, {"entry": "Intravenous Iron Replacement", "section": "Injectable..., J1439 – Injectafer, llm_assisted, {}, null, null, null, public, *|*|*|*).
 T05 open change flag on the insurer list
 status=unavailable | reason=pending_review | actionable=false | value=required | missing=- | next_step=clearinghouse_278 | reasons=["unavailable"]
 T06 the insurer commits to 48 hours (faster than the federal 72)
@@ -295,7 +299,7 @@ N05 documentation for J0885 in TN keeps its groups: (Hb or Hct) and GFR and crea
                     "system": "LOINC",
                     "element": "Hematocrit",
                     "lookback": null,
-                    "element_id": "11788589-d7bb-42a0-826c-14c3b2384c8b"
+                    "element_id": "4b3be2cf-3fb6-45a8-b5bc-765b6a0e2e5c"
                 },
                 {
                     "fact": null,
@@ -310,7 +314,7 @@ N05 documentation for J0885 in TN keeps its groups: (Hb or Hct) and GFR and crea
                     "system": "LOINC",
                     "element": "Hemoglobin",
                     "lookback": null,
-                    "element_id": "8cec87fc-8426-403b-9719-fcef01533942"
+                    "element_id": "502a08fd-b581-40b9-a32c-aa9eea9b859a"
                 }
             ],
             "logic": "any"
@@ -331,7 +335,7 @@ N05 documentation for J0885 in TN keeps its groups: (Hb or Hct) and GFR and crea
                     "system": "LOINC",
                     "element": "eGFR (CKD-EPI 2021)",
                     "lookback": null,
-                    "element_id": "d427086c-43e0-47e2-9fbd-eaf4b65033c7"
+                    "element_id": "ca55ec53-5fcb-4687-9348-3974f9e9e2f0"
                 }
             ],
             "logic": "all"
@@ -350,7 +354,7 @@ N05 documentation for J0885 in TN keeps its groups: (Hb or Hct) and GFR and crea
                     "system": "LOINC",
                     "element": "Creatinine, serum",
                     "lookback": "1 mon",
-                    "element_id": "de0ea693-3f7d-4d78-bc7f-0af2fcb81c8c"
+                    "element_id": "4c907f17-664c-4523-874e-d96d21ba4a77"
                 }
             ],
             "logic": "all"
@@ -376,11 +380,11 @@ N11 a client gold-card exemption (T5) from the client overlay
 status=resolved | reason=- | actionable=true | value=exempt | missing=- | next_step=- | reasons=[]
 N12 constraint checks (expect three errors)
 psql:spec_regression/tests.sql:248: ERROR:  new row for relation "rule" violates check constraint "rule_check4"
-DETAIL:  Failing row contains (00000000-0000-0000-0000-00000000c001, null, approval_required, approval, 2895c3cb-e921-441d-8847-2f6b91112fa3, e40d478b-3e64-42fb-96b0-17a52aeb1454, 00000000-0000-0000-0000-00000000b006, 2820d472-837c-42b4-9039-019c3cfe1a1b, 2c21b8d6-a5a1-437f-8f64-eba1047a1efe, null, null, additive, [], {"required": true, "applies_to": "both"}, stated, null, {}, date_of_service, null, stated, 2026-10-01, 2026-10-01, null, null, [2026-10-01,), [2026-10-01,), ["2026-10-02 07:00:00-05",), active, 00000000-0000-0000-0000-00000000a006, {"entry": "Intravenous Iron Replacement", "section": "Injectable..., J1439 – Injectafer, llm_assisted, {curator.a,curator.a}, null, null, 2026.10.0, public, 2820d472-837c-42b4-9039-019c3cfe1a1b|2c21b8d6-a5a1-437f-8f64-eba...).
+DETAIL:  Failing row contains (00000000-0000-0000-0000-00000000c001, null, approval_required, approval, 3a3bfd71-a717-47c4-a229-bbdbb0c9d214, 31c83d1e-6bfd-4063-82da-603bc4950576, 00000000-0000-0000-0000-00000000b006, 8713107d-d60f-4a5a-a57a-ad00bdf87ad6, 1b38d151-27b6-4047-bab9-c9fb73f0d5d4, null, null, additive, [], {"required": true, "applies_to": "both"}, stated, null, {}, date_of_service, null, stated, 2026-10-01, 2026-10-01, null, null, [2026-10-01,), [2026-10-01,), ["2026-10-02 07:00:00-05",), active, 00000000-0000-0000-0000-00000000a006, {"entry": "Intravenous Iron Replacement", "section": "Injectable..., J1439 – Injectafer, llm_assisted, {curator.a,curator.a}, null, null, 2026.10.0, public, 8713107d-d60f-4a5a-a57a-ad00bdf87ad6|1b38d151-27b6-4047-bab9-c9f...).
 psql:spec_regression/tests.sql:253: ERROR:  new row for relation "rule" violates check constraint "rule_check3"
-DETAIL:  Failing row contains (fbdb4060-eafc-4ed5-a881-154b67ca34ea, null, approval_required, approval, 2895c3cb-e921-441d-8847-2f6b91112fa3, e40d478b-3e64-42fb-96b0-17a52aeb1454, 00000000-0000-0000-0000-00000000b006, null, null, null, null, additive, [], {"required": true, "applies_to": "both"}, stated, null, {}, date_of_service, null, stated, 2026-10-01, 2026-10-01, 2026-10-01, 2026-10-01, empty, empty, ["2026-11-12 13:47:13.008844-06",), draft, 00000000-0000-0000-0000-00000000a006, {"entry": "Intravenous Iron Replacement", "section": "Injectable..., J1439 – Injectafer, llm_assisted, {}, null, null, null, public, *|*|*|*).
+DETAIL:  Failing row contains (8c9fc999-5e00-47d8-acd6-1056ea7813ef, null, approval_required, approval, 3a3bfd71-a717-47c4-a229-bbdbb0c9d214, 31c83d1e-6bfd-4063-82da-603bc4950576, 00000000-0000-0000-0000-00000000b006, null, null, null, null, additive, [], {"required": true, "applies_to": "both"}, stated, null, {}, date_of_service, null, stated, 2026-10-01, 2026-10-01, 2026-10-01, 2026-10-01, empty, empty, ["2026-11-12 14:22:11.791731-06",), draft, 00000000-0000-0000-0000-00000000a006, {"entry": "Intravenous Iron Replacement", "section": "Injectable..., J1439 – Injectafer, llm_assisted, {}, null, null, null, public, *|*|*|*).
 psql:spec_regression/tests.sql:254: ERROR:  new row for relation "authority_binding" violates check constraint "authority_binding_check"
-DETAIL:  Failing row contains (efb49110-7427-4f5d-9d6d-fe26e9ed5c25, e40d478b-3e64-42fb-96b0-17a52aeb1454, null, null, null, all, f, [2026-01-01,), ["2026-11-12 13:47:13.009125-06",), null, {solo}, null).
+DETAIL:  Failing row contains (997a4118-9c8c-4926-8244-0c84e1f0e289, 31c83d1e-6bfd-4063-82da-603bc4950576, null, null, null, all, f, [2026-01-01,), ["2026-11-12 14:22:11.791988-06",), null, {solo}, null).
 N13 an edge to a subclass is accepted by the hierarchy-aware check
 edge to a Code (subclass of terminology item) accepted: 1
 N14 ESRD coordination period: employer plan pays first in month 12, Medicare first in month 34, and the month is asked for when missing
@@ -399,12 +403,12 @@ N18 an insurer states a 96-hour ceiling under the federal 72: the federal limit 
 N19 a client copy that has never synced is treated as out of date
 status=unavailable | reason=out_of_sync | actionable=false | value=required | missing=- | next_step=clearinghouse_278 | reasons=["unavailable"]
 N20 a workflow other than prior authorization added as data only: a TEST denial rule kind, a TEST fact, one rule
-status=resolved | reason=- | actionable=true | value=[{"layer": "T3", "payload": {"action": "TEST request retro authorization, then resubmit", "attach": ["authorization number"]}, "rule_id": "5bcccf62-98b0-498a-bc90-b057831b1087"}] | missing=- | next_step=- | reasons=[]
-[{"layer": "T3", "payload": {"action": "TEST request retro authorization, then resubmit", "attach": ["authorization number"]}, "rule_id": "5bcccf62-98b0-498a-bc90-b057831b1087"}]
+status=resolved | reason=- | actionable=true | value=[{"layer": "T3", "payload": {"action": "TEST request retro authorization, then resubmit", "attach": ["authorization number"]}, "rule_id": "ec183d01-edff-46fb-9a1f-03602f8e641c"}] | missing=- | next_step=- | reasons=[]
+[{"layer": "T3", "payload": {"action": "TEST request retro authorization, then resubmit", "attach": ["authorization number"]}, "rule_id": "ec183d01-edff-46fb-9a1f-03602f8e641c"}]
 status=no_rule_found | reason=no_reviewed_rule_in_scope | actionable=false | value=- | missing=- | next_step=human_review | reasons=["no_rule_found"]
 status=needs_facts | reason=rule_depends_on_missing_fact | actionable=false | value=- | missing=["carc_codes"] | next_step=supply_facts | reasons=-
 N21 additive conflict for a non-PA rule kind: two insurer-layer denial rules give different actions -> conflict
-status=conflict | reason=same_layer_disagreement | actionable=false | value=[{"layer": "T3", "payload": {"action": "TEST request retro authorization, then resubmit", "attach": ["authorization number"]}, "rule_id": "5bcccf62-98b0-498a-bc90-b057831b1087"}, {"layer": "T3", "payload": {"action": "TEST file a formal appeal"}, "rule_id": "eb8ceacb-7491-45a1-9913-fc48defa355a"}] | missing=- | next_step=human_review | reasons=["conflict"]
+status=conflict | reason=same_layer_disagreement | actionable=false | value=[{"layer": "T3", "payload": {"action": "TEST file a formal appeal"}, "rule_id": "4092907a-ed3e-4c62-87e4-11a7bdb5714d"}, {"layer": "T3", "payload": {"action": "TEST request retro authorization, then resubmit", "attach": ["authorization number"]}, "rule_id": "ec183d01-edff-46fb-9a1f-03602f8e641c"}] | missing=- | next_step=human_review | reasons=["conflict"]
 N22 a clinical guidance workflow: CG rules answer guidance questions, with number (lte) and date (lt) conditions and a requirement list
 eGFR 45, last Hb 2026-09-01: status=resolved | reason=- | actionable=true | value=[{"layer": "CG", "payload": {"recommendation": "TEST hemoglobin is overdue; order one"}, "rule_id": "00000000-0000-0000-0000-00000000c022"}] | missing=- | next_step=- | reasons=[]
 requirements returned: 1

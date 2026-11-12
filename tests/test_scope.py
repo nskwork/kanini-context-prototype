@@ -11,7 +11,6 @@ import subprocess
 import sys
 
 import psycopg
-import pytest
 
 from conftest import DOS, ROOT, facts, read_log
 
@@ -120,7 +119,7 @@ def test_08_input_guard_patient_name(kc, db):
 
 
 def _agent(patient, decision="approve", **kw):
-    from propel.agent.run_scripted import run
+    from run_scripted import run
     return asyncio.run(run(patient, decision, **kw))
 
 
@@ -137,6 +136,14 @@ def test_10_decision_log(kc_http, decision_log):
         "order": "ord-001", "decision": "approved", "outcome": "no_pa",
         "ruleRef": "kc:rule/esa-ckd-nd/L39237@2026-09-17", "source": "LCD L39237", "approved_by": "demo-staff"}
     assert e["at"].endswith("Z")
+
+
+def test_10b_logged_decision_replays(kc_http, decision_log, kc):
+    _agent("maria-tn", "approve")
+    [e] = read_log(decision_log)
+    again = kc("rules_evaluate", code="J0885", facts=facts(), as_recorded=e["recorded_as_of"], **OM_TN)
+    assert again["outcome"] == e["outcome"] and again["primary_rule"]["rule_ref"] == e["ruleRef"]
+    assert again["pack_release"] == e["pack_release"]
 
 
 # --- Negative tests --------------------------------------------------------------------------------------------
@@ -204,14 +211,14 @@ def test_20_overlapping_rule_version(release, tmp_path, db):
     src["rules"].append(dup)
     (tmp_path / "mcd-lcd-l39237.json").write_text(json.dumps(src))
     with psycopg.connect("dbname=postgres", autocommit=True) as c:
-        c.execute("DROP DATABASE IF EXISTS kc_t20 WITH (FORCE)")
-        c.execute("CREATE DATABASE kc_t20")
+        c.execute("DROP DATABASE IF EXISTS kct_overlap WITH (FORCE)")
+        c.execute("CREATE DATABASE kct_overlap")
     from kanini_context.release.build import SQL_FILES, run_sql
-    run_sql("kc_t20", SQL_FILES)
+    run_sql("kct_overlap", SQL_FILES)
     r = subprocess.run([sys.executable, "-m", "kanini_context.curation.load", "--test-review", *map(str, sorted(tmp_path.glob("*.json")))],
-                       cwd=ROOT, capture_output=True, text=True, env={**__import__("os").environ, "KC_DSN": "dbname=kc_t20"})
+                       cwd=ROOT, capture_output=True, text=True, env={**__import__("os").environ, "KC_DSN": "dbname=kct_overlap"})
     assert r.returncode == 1 and "overlapping active versions" in r.stdout
-    with psycopg.connect("dbname=kc_t20") as c:
+    with psycopg.connect("dbname=kct_overlap") as c:
         assert c.execute("SELECT count(*) FROM kc_core.rule").fetchone()[0] == 0   # nothing from that load was kept
     assert db.execute("SELECT count(*) FROM kc_core.rule WHERE rule_key = 'kc:rule/esa-ckd-nd/L39237' AND status = 'active'").fetchone()[0] == 1
 

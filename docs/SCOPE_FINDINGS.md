@@ -3,7 +3,7 @@
 Date: 12 November 2026
 Applies to: "Kanini Context Prototype: Scope" (12 November 2026)
 
-The ten source documents were downloaded, hashed and read before any rule was drafted. The hashes are in `sources/manifest.json`. Most scope facts match the sources. Two scenarios do not, and one rule in the schema needs a small extension. This note records each finding, its effect and the change made.
+The ten source documents were downloaded, hashed and read before any rule was drafted. The hashes are in `kanini_context/sources/manifest.json`. Most scope facts match the sources. Two scenarios do not, and one rule in the schema needs a small extension. This note records each finding, its effect and the change made.
 
 ## 1. Facts confirmed
 

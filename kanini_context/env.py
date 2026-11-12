@@ -12,3 +12,7 @@ except ImportError:
     pass
 
 os.environ.setdefault("PGUSER", "postgres")   # the rest (PGHOST, PGPORT, PGPASSWORD) come from .env or the shell
+
+# Database names: the build database (Kanini side) and the client copy the agent reads. The tests use their own.
+BUILD_DB = os.environ.setdefault("KC_BUILD_DB", "kc_build")
+CLIENT_DB = os.environ.setdefault("KC_CLIENT_DB", "kc_client")

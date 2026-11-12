@@ -5,8 +5,8 @@ Prepared by NANDHU S K. Follows section 7 of the prototype scope, with scenario 
 **Before the demo**
 
 1. Recheck each source on its URL and add a dated `checks` entry in `kanini_context/sources/manifest.json` (Article A56462 especially; until it is rechecked, Ohio answers are held as "source aging").
-2. Record the approvals in each rule file's `review` block, then `python -m kanini_context.release.build` (without `--test-review`).
-3. `pytest` (all must pass), then start the Kanini Context server and `adk web propel/agent`.
+2. Approve the rule files (`python -m kanini_context.curation.approve --by "NANDHU S K"`), commit them, then `python -m kanini_context.release.build`.
+3. On the day: `python -m kanini_context.release.sync`, `pytest` (all must pass), then start the Kanini Context server and `adk web propel/agent`.
 4. Clear the log: delete `propel/journey/decisions.jsonl`.
 
 **1. Source to rule (2 min).** Open LCD L39237 page 7 beside `kanini_context/rules/mcd-lcd-l39237.json`. The rule's quote is the passage word for word; its tests (Hb < 10 or HCT < 30, creatinine within a month, GFR < 45) carry the page they came from. Run `python -m kanini_context.curation.checks` to show every quote is checked against its page. Rules come from source documents, not AI search.

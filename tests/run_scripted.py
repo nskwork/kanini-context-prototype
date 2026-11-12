@@ -1,7 +1,7 @@
 """Run one scenario through the real agent, MCP servers and approval step, with the scripted model.
 
-    python -m propel.agent.run_scripted maria-tn approve
-    python -m propel.agent.run_scripted maria-tn reject
+    python tests/run_scripted.py maria-tn approve
+    python tests/run_scripted.py maria-tn reject
 
 Prints the tool trace and the final text; returns the trace for tests.
 """
@@ -9,13 +9,16 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from pathlib import Path
+
+sys.path[:0] = [str(Path(__file__).resolve().parents[1]), str(Path(__file__).resolve().parent)]
 
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from propel.agent.authorization_agent.agent import build_agent
-from propel.agent.scripted_model import ScriptedModel
+from scripted_model import ScriptedModel
 
 
 async def run(patient_id: str, decision: str = "approve", prompt: str | None = None, skip_checks: bool = False) -> dict:

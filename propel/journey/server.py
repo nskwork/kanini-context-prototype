@@ -55,15 +55,16 @@ def journey_get(patient_id: str = "", order_id: str = "") -> dict:
 
 @mcp.tool
 def journey_record(order_id: str, outcome: str, rule_ref: str, source: str, safe_to_act: bool,
-                   pack_release: str = "", next_step: str = "", note: str = "") -> dict:
+                   pack_release: str = "", next_step: str = "", recorded_as_of: str = "", note: str = "") -> dict:
     """Record the decision for an order after staff approval. The decision fields must be copied from the
     rules_evaluate result for this order (outcome, primary_rule.rule_ref, primary_rule.citation, safe_to_act,
-    pack_release, next_step). Staff approve or reject the call before it runs."""
+    pack_release, next_step, recorded_as_of). Staff approve or reject the call before it runs. With pack_release and
+    recorded_as_of the decision can be replayed later (rules_evaluate with as_recorded)."""
     _, p, o = find_order(order_id)
     if not o:
         return {"status": "not_found", "order_id": order_id}
     entry = {"order": order_id, "decision": "approved", "outcome": outcome, "ruleRef": rule_ref, "source": source,
-             "safe_to_act": safe_to_act, "next_step": next_step, "pack_release": pack_release,
+             "safe_to_act": safe_to_act, "next_step": next_step, "pack_release": pack_release, "recorded_as_of": recorded_as_of,
              "approved_by": REVIEWER, "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     if note:
         entry["note"] = note[:500]

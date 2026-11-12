@@ -29,7 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from kanini_context import env  # noqa: E402,F401
+from kanini_context import env  # noqa: E402  (loads .env)
 from kanini_context.curation.pdftext import pages  # noqa: E402
 
 import psycopg  # noqa: E402
@@ -65,7 +65,7 @@ def docs_for(plan: str, state: str, code: str, dos: str) -> dict[str, list[int] 
     """The documents mode A reads: every source behind a rule the pack binds to this coverage, place, code and
     date (the same documents Kanini Context answers from). A source with licensed text (license_note in the
     manifest) is cut to the pages its rules cite; the others are given whole."""
-    with psycopg.connect("dbname=kc_client") as c:
+    with psycopg.connect(f"dbname={env.CLIENT_DB}") as c:
         refs = [r["rule_ref"].split("@")[0] for r in
                 (c.execute("SELECT kc_api.applicable_rules(%s,%s,%s,%s::date)", (plan, state, "HCPCS|" + code, dos)).fetchone()[0]
                  .get("rules") or [])]
@@ -102,7 +102,7 @@ def prompt_for(pid: str) -> str:
 
 def run_c(pid: str) -> dict:
     p, o, f = order(pid)
-    with psycopg.connect("dbname=kc_client") as c:
+    with psycopg.connect(f"dbname={env.CLIENT_DB}") as c:
         t = time.perf_counter()
         r = c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)",
                       (p["coverage"]["plan"], p["coverage"]["state"], "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f))).fetchone()[0]
@@ -197,7 +197,7 @@ def main(argv: list[str]) -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     import litellm
 
-    report, rows = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL, "scenarios": {}}, []
+    report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL, "scenarios": {}}
     for sc, pid in SCENARIOS:
         c_runs = [run_c(pid) for _ in range(args.runs)]
         ref = c_runs[0]["outcome"]

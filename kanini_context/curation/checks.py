@@ -13,7 +13,7 @@ Checks, per file:
   negation   a quote that says "not required" or "exempt" cannot produce required = true
   schema     every payload fits its rule kind's JSON Schema in the registry; every condition and test
              names a registered fact or data element
-  codes      every HCPCS-shaped code on a located page is either drafted or counted as outside the slice
+  codes      every HCPCS-shaped code on a cited page is drafted, or on the file's not_drafted list with a reason
 A failed check exits non-zero and the file cannot be loaded.
 """
 from __future__ import annotations
@@ -186,14 +186,19 @@ def check_file(path: Path) -> Report:
         for s in d["screens"]:
             if not s.get("finding"):
                 rep.err("a closed-list screen needs a reviewer finding")
-    outside = sorted(located_codes - drafted)
-    if outside:
-        rep.note(f"{len(outside)} other HCPCS codes on the located pages are not drafted in this pack: {', '.join(outside[:12])}"
-                 + (" ..." if len(outside) > 12 else ""))
+    # completeness (spec 7.1): a code on a cited page is drafted, or on the file's reviewed exclusion list with a reason
+    nd = d.get("not_drafted", {})
+    if nd.get("codes") and not nd.get("reason"):
+        rep.err("not_drafted needs a reason")
+    missing = sorted(located_codes - drafted - set(nd.get("codes", [])))
+    if missing:
+        rep.err(f"{len(missing)} codes on the cited pages are neither drafted nor in not_drafted: {', '.join(missing)}")
+    if nd.get("codes"):
+        rep.note(f"{len(nd['codes'])} codes on the cited pages are listed as not drafted ({nd['reason'][:60]}...)")
     rv = d["review"]
     n = len({x for x in rv.get("reviewed_by", []) if x})
     if n == 0:
-        rep.note("not yet reviewed: reviewed_by is empty")
+        rep.note("not yet approved: reviewed_by is empty (curation/approve.py)")
     elif n == 1 and not rv.get("review_exception"):
         rep.err("one reviewer needs a recorded review_exception; two different reviewers are the rule")
     return rep

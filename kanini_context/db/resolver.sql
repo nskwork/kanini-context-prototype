@@ -4,6 +4,17 @@
 -- p_recorded_as_of (default: now), so a past answer can be reproduced exactly for an appeal.
 -- The MCP server (Python) writes one kc_client.tool_audit row per call; these functions only read.
 --
+-- Changes from SQL v0.9 (spec v1.5 resolver), all additions; the spec's 61 tests keep their verdicts:
+--   check_facts           number facts are range-checked; date facts must be real dates
+--   eval_conditions       adds the operator prefix_overlaps (a code list against code prefixes, e.g. C, D0)
+--   candidate_rules       steps 2 to 4 as their own function, also asked "on any date" to tell a missing
+--                         edition from a missing rule
+--   bound_pa_programs     the prior authorization programs bound to a coverage, place and date
+--   resolve_rules         step 6b: a "not required" stated by exhaustion holds only if every bound program was
+--                         screened (scope findings, section 3); the coverage aspect answers 'criteria_apply';
+--                         winning rules carry rule_key, version, citation, authority_kind and review_exception
+--   get_documentation_form also lists a coverage policy's criteria items when no documentation rule answers
+--
 -- Prototype 1.0 changes from SQL v0.9:
 --   check_facts       number facts are range-checked ({"min","max"} in fact_type.allowed); dates must be real dates
 --   eval_conditions   adds the 'prefix_overlaps' operator (a code list against code prefixes, e.g. ICD-10-CM C)
@@ -411,12 +422,12 @@ BEGIN
     -- 6b. A "not required" that rests on closed lists holds only if every prior authorization program bound to
     --     this coverage was screened for this item. One unscreened program makes it "no rule found", never a "no".
     IF v_status = 'resolved' AND k.aspect = 'approval' AND v_result ->> 'value' = 'not_required'
-       AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_win) x WHERE x ->> 'basis' = 'closed_list') THEN
+       AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_win) x WHERE x ->> 'basis' = 'stated_by_exhaustion') THEN
       SELECT jsonb_agg(p -> 'citation' ORDER BY p ->> 'citation') INTO v_unscreened
         FROM jsonb_array_elements(kc_api.bound_pa_programs(p_coverage, c.item_type, p_as_of, p_recorded_as_of)) p
        WHERE NOT (p ->> 'closed_list')::boolean
           OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_win) x
-                          WHERE x ->> 'authority_id' = p ->> 'authority_id' AND x ->> 'basis' = 'closed_list');
+                          WHERE x ->> 'authority_id' = p ->> 'authority_id' AND x ->> 'basis' = 'stated_by_exhaustion');
       IF v_unscreened IS NOT NULL THEN
         v_status := 'no_rule_found'; v_reason := 'pa_program_not_screened';
         v_notes := array_append(v_notes, 'not screened against: ' || (SELECT string_agg(t, '; ') FROM jsonb_array_elements_text(v_unscreened) t));
@@ -534,11 +545,18 @@ CREATE FUNCTION kc_api.get_documentation_form(
   p_requested text[] DEFAULT NULL, p_recorded_as_of timestamptz DEFAULT now()
 ) RETURNS jsonb LANGUAGE plpgsql STABLE AS $$
 DECLARE
-  v_doc jsonb; v_appr jsonb; v_items jsonb; v_q jsonb; v_extra jsonb; v_rt text; v_payer uuid; v_route text;
+  v_doc jsonb; v_crit jsonb; v_appr jsonb; v_items jsonb; v_q jsonb; v_extra jsonb; v_rt text; v_payer uuid; v_route text;
   v_status text; v_next text; v_actionable boolean;
 BEGIN
   v_doc  := kc_api.resolve_rules(p_coverage, 'documentation_requirement', p_code, p_facts, p_as_of, p_recorded_as_of);
   IF v_doc ->> 'status' IN ('invalid_input','needs_facts') THEN RETURN v_doc; END IF;
+  -- A coverage policy's criteria (rule kind coverage_criteria, prototype) are items to send too, such as the
+  -- L39237 labs (spec 7.4). Used when no documentation rule answers.
+  v_crit := kc_api.resolve_rules(p_coverage, 'coverage_criteria', p_code, p_facts, p_as_of, p_recorded_as_of);
+  IF v_doc ->> 'status' <> 'resolved' AND v_crit ->> 'status' IN ('needs_facts','resolved') THEN
+    IF v_crit ->> 'status' = 'needs_facts' THEN RETURN v_crit; END IF;
+    v_doc := v_crit;
+  END IF;
   v_appr := kc_api.resolve_rules(p_coverage, 'approval_required', p_code, p_facts, p_as_of, p_recorded_as_of);
   v_rt   := p_facts ->> 'request_type';
   v_payer := (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'payer' AND natural_key = p_coverage ->> 'payer');
