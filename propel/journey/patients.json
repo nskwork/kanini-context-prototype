@@ -1,0 +1,53 @@
+{
+  "note": "Synthetic demo data. No real patients. Facts use the registered names Kanini Context accepts.",
+  "patients": {
+    "maria-tn": {
+      "display_name": "Maria (synthetic)",
+      "coverage": {"plan": "original-medicare", "state": "TN"},
+      "facts": {"dialysis_status": "none", "diagnosis_codes": ["D63.1", "N18.32"],
+                "hgb_g_dl": 9.4, "egfr": 38, "creatinine_date": "2026-11-02"},
+      "orders": [{"order_id": "ord-001", "code": "J0885", "description": "Epoetin alfa (non-ESRD use), 1000 units",
+                  "date_of_service": "2026-11-15", "encounter_type": "elective", "urgency": "standard", "request_type": "initial"}]
+    },
+    "maria-tn-egfr52": {
+      "display_name": "Maria (synthetic), eGFR 52",
+      "coverage": {"plan": "original-medicare", "state": "TN"},
+      "facts": {"dialysis_status": "none", "diagnosis_codes": ["D63.1", "N18.31"],
+                "hgb_g_dl": 9.4, "egfr": 52, "creatinine_date": "2026-11-02"},
+      "orders": [{"order_id": "ord-002", "code": "J0885", "description": "Epoetin alfa (non-ESRD use), 1000 units",
+                  "date_of_service": "2026-11-15", "encounter_type": "elective", "urgency": "standard", "request_type": "initial"}]
+    },
+    "maria-oh": {
+      "display_name": "Maria (synthetic), Ohio, eGFR 52",
+      "coverage": {"plan": "original-medicare", "state": "OH"},
+      "facts": {"dialysis_status": "none", "diagnosis_codes": ["D63.1", "N18.31"],
+                "hgb_g_dl": 9.4, "egfr": 52, "creatinine_date": "2026-11-02"},
+      "orders": [{"order_id": "ord-003", "code": "J0885", "description": "Epoetin alfa (non-ESRD use), 1000 units",
+                  "date_of_service": "2026-11-15", "encounter_type": "elective", "urgency": "standard", "request_type": "initial"}]
+    },
+    "maria-uhc": {
+      "display_name": "Maria (synthetic), UnitedHealthcare Medicare Advantage",
+      "coverage": {"plan": "uhc-ma", "state": "TN"},
+      "facts": {"dialysis_status": "none", "diagnosis_codes": ["D50.9", "D63.1", "N18.32"],
+                "hgb_g_dl": 9.4, "egfr": 38, "creatinine_date": "2026-11-02"},
+      "orders": [{"order_id": "ord-004", "code": "J1439", "description": "Injectafer (ferric carboxymaltose), 1 mg",
+                  "date_of_service": "2026-11-15", "encounter_type": "elective", "urgency": "standard", "request_type": "initial"}]
+    },
+    "maria-uhc-esa": {
+      "display_name": "Maria (synthetic), UnitedHealthcare Medicare Advantage, ESA",
+      "coverage": {"plan": "uhc-ma", "state": "TN"},
+      "facts": {"dialysis_status": "none", "diagnosis_codes": ["D63.1", "N18.32"],
+                "hgb_g_dl": 9.4, "egfr": 38, "creatinine_date": "2026-11-02"},
+      "orders": [{"order_id": "ord-005", "code": "J0885", "description": "Epoetin alfa (non-ESRD use), 1000 units",
+                  "date_of_service": "2026-11-15", "encounter_type": "elective", "urgency": "standard", "request_type": "initial"}]
+    },
+    "maria-nohgb": {
+      "display_name": "Maria (synthetic), hemoglobin not on file",
+      "coverage": {"plan": "original-medicare", "state": "TN"},
+      "facts": {"dialysis_status": "none", "diagnosis_codes": ["D63.1", "N18.32"],
+                "egfr": 38, "creatinine_date": "2026-11-02"},
+      "orders": [{"order_id": "ord-006", "code": "J0885", "description": "Epoetin alfa (non-ESRD use), 1000 units",
+                  "date_of_service": "2026-11-15", "encounter_type": "elective", "urgency": "standard", "request_type": "initial"}]
+    }
+  }
+}
