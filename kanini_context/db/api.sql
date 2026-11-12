@@ -374,9 +374,10 @@ BEGIN
   SELECT coalesce(jsonb_agg(DISTINCT m), '[]') INTO v_missing FROM jsonb_array_elements(v_missing) m;
 
   -- 3. One outcome
+  -- criteria not met settles it (the order cannot go ahead as is), whatever else is unsettled
   v_outcome := CASE
-    WHEN v_pa = 'unknown' OR v_gap IS NOT NULL THEN 'unknown'
     WHEN v_cstatus = 'not_met' THEN 'other_gate'
+    WHEN v_pa = 'unknown' OR v_gap IS NOT NULL THEN 'unknown'
     WHEN jsonb_array_length(v_missing) > 0 OR v_pa = 'needs_facts' OR (v_cstatus = 'unknown' AND cardinality(v_obtain) > 0) THEN 'needs_facts'
     ELSE v_pa END;
   v_status := CASE
@@ -428,6 +429,7 @@ BEGIN
       || ': the policy''s time limit has passed. Re-evaluate with a newer result, or hold the order'
     WHEN v_outcome = 'other_gate' THEN 'Coverage criteria not met: document further or hold the order'
     WHEN v_outcome = 'unknown' THEN 'Route to staff: ' || kc_api.gap_text(coalesce(v_gap, v_appr ->> 'reason', v_appr ->> 'status'), v_cov, p_as_of)
+         || coalesce(' (' || (SELECT string_agg(n, '; ') FROM jsonb_array_elements_text(v_appr -> 'notes') n) || ')', '')
     WHEN NOT v_safe THEN 'Route to staff: ' || array_to_string(ARRAY(SELECT kc_api.gap_text(h, v_cov, p_as_of) FROM unnest(v_hold) h), '; ')
     WHEN v_outcome = 'pa_required' THEN 'Submit prior authorization' || coalesce(' via ' || (v_route ->> 'submit_via'), '')
          || coalesce(' (' || (v_route -> 'channels' -> 0 ->> 'interface') || ')', '')

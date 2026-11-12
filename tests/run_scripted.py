@@ -21,8 +21,10 @@ from propel.agent.authorization_agent.agent import build_agent
 from scripted_model import ScriptedModel
 
 
-async def run(patient_id: str, decision: str = "approve", prompt: str | None = None, skip_checks: bool = False) -> dict:
-    agent = build_agent(model=ScriptedModel(patient_id=patient_id, skip_checks=skip_checks))
+async def run(patient_id: str, decision: str = "approve", prompt: str | None = None, skip_checks: bool = False,
+              model=None) -> dict:
+    """model: None for the scripted model, or a real model (tests/test_agent_live.py passes GPT-5 mini)."""
+    agent = build_agent(model=model or ScriptedModel(patient_id=patient_id, skip_checks=skip_checks))
     svc = InMemorySessionService()
     runner = Runner(app_name="propel", agent=agent, session_service=svc)
     session = await svc.create_session(app_name="propel", user_id="staff")

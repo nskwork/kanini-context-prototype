@@ -29,7 +29,7 @@ The model chooses the tools and writes the explanation. The outcome always comes
 | `kanini_context/rules/` | One rule file per source: each rule with its page, column, quote, payload and review |
 | `kanini_context/curation/` | `checks.py` (quote on the cited page, numbers and codes in the quote, negation, schema, completeness), `approve.py`, `load.py`, `pdftext.py` |
 | `kanini_context/db/` | `schema.sql`, `registry.sql`, `resolver.sql` (spec resolver), `api.sql` (agent-facing functions), `spec_regression/` |
-| `kanini_context/release/` | `build.py` (build DB, rule digest, client copy, Apache AGE graph `ref_YYYY_MM`), `sync.py` |
+| `kanini_context/release/` | `build.py` (build DB, rule digest, client copy with a read-only tool role, Apache AGE graph `ref_YYYY_MM`), `sync.py`, `owl.py` and the generated ontology `kanini-context.ttl` |
 | `kanini_context/server/mcp_server.py` | The Kanini Context MCP server (FastMCP) |
 | `propel/journey/` | Mock patients and orders, the journey MCP server, the decision log |
 | `propel/agent/authorization_agent/` | The ADK agent for `adk web` |
@@ -50,8 +50,12 @@ python -m venv .venv && source .venv/bin/activate       # Windows: .venv\Scripts
 pip install -r requirements.txt
 cp .env.example .env                                    # then add OPENAI_API_KEY
 
-# 3. Source copies: finds the 10 PDFs in a folder by hash and puts them in kanini_context/sources/raw/
+# 3. Source copies: finds the PDFs in a folder by hash and puts them in kanini_context/sources/raw/
 python -m kanini_context.sources.place ~/Downloads
+#    Two CMS copies are not saved yet (the ASC prior authorization demonstration page, printed to PDF, and its
+#    HCPCS list); save them under the names `place` prints, then record them:
+python -m kanini_context.sources.place --record ~/Downloads
+python -m kanini_context.curation.checks                # fix any page numbers it reports for the new quotes
 
 # 4. Approve the rule files (once, after checking each rule against its source), then commit them
 python -m kanini_context.curation.approve --by "NANDHU S K"
@@ -72,13 +76,17 @@ On the day of the demo, `python -m kanini_context.release.sync` records a sync, 
 
 As the scope sets it, one engineer checks each rule against its source, and formal review comes later. `curation/approve.py` shows every rule with its page and quote and records the approval with a standing exception to the spec's two-approver rule; every answer shows that exception. The rule files are drafted and pass the automated checks; they are not approved yet. Until they are, the build refuses them, and `--test-review` (used by the tests) builds a release labelled `TEST-`. Details in `docs/PROTOTYPE_NOTES.md`, section 2.
 
+## The ASC demonstration
+
+CMS started a prior authorization demonstration for certain ambulatory surgical center services in 2026, bound to Tennessee and Ohio among other states (scope findings, section 6). It is registered in the pack, but its copies are not saved yet, so until they are recorded and approved, Original Medicare ESA answers in Tennessee and Ohio are "no rule found: not screened against the CMS ASC prior authorization demonstration", routed to staff. That is the design working: "No PA" holds only when every bound program has been screened. The tests describe both states.
+
 ## Freshness
 
 Each source has a last-confirmed date in the manifest. Past 14 days an answer that rests on it is held for staff ("source aging", naming the source); past 45 days it is withheld (proposal appendix B.3). Before the demo, recheck each source on its URL and add a dated entry to its `checks` list. Article A56462 was last confirmed on 2026-10-15, so Ohio answers are held until it is rechecked.
 
 ## Tests and the scope
 
-`tests/test_scope.py` holds the scope's tests 1 to 23 under their numbers. Tests 2 to 8 and 11 to 19 call the MCP server; test 20 runs the loader; tests 9, 10 and 21 to 23 run the real agent, journey server, approval step and log with a scripted model in place of GPT-5 mini (`tests/scripted_model.py`), which proves the wiring offline. The same prompts with GPT-5 mini are run in `adk web` (or with `propel/baseline/compare.py`) with the API key.
+`tests/test_scope.py` holds the scope's tests 1 to 23 under their numbers. Tests 2 to 8 and 11 to 19 call the MCP server; test 20 runs the loader; tests 9, 10 and 21 to 23 run the real agent, journey server, approval step and log with a scripted model in place of GPT-5 mini (`tests/scripted_model.py`), which proves the wiring offline. `tests/test_agent_live.py` runs tests 9 and 21 to 23 again with GPT-5 mini when `OPENAI_API_KEY` is set (skipped otherwise).
 
 Field names follow the prototype's tool schemas, as the scope allows. Two answers differ from the scope's examples on purpose, both because L39237 accepts "Hb < 10 g/dL **or** HCT < 30%":
 

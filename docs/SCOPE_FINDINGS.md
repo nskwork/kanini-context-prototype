@@ -81,3 +81,11 @@ The answer cites each list it checked. If any program for the state is not loade
 - The LCD criteria are held as rules of a coverage criteria kind, added through the registry as data.
 
 The other tables, constraints and statuses are unchanged.
+
+## 6. Addendum: a sixth Original Medicare program (found during the build, 12 November 2026)
+
+**Source.** CMS runs a Prior Authorization Demonstration for Certain Ambulatory Surgical Center Services, a five-year demonstration that is not in the fiscal year 2024 program statistics. After a delay announced on 20 November 2025, it applies to dates of service from 19 January 2026 in California, Florida, Tennessee, Pennsylvania, Maryland, Georgia and New York, and from 16 February 2026 in Texas, Arizona and Ohio. Its service categories are blepharoplasty, botulinum toxin injections, panniculectomy, rhinoplasty and vein ablation.
+
+**Effect.** The program binds both scenario states. Under the closed-list rule in section 3, "No PA" in Tennessee and Ohio holds only once this program is loaded and screened. ESAs are very unlikely to be on its list, but the screen has to be made against the saved list, like the others.
+
+**Change.** The program is registered in the pack with its states and dates. Until its page and HCPCS list are saved and the screen is approved, Original Medicare ESA answers in Tennessee and Ohio return "no rule found", naming the program, and route to staff. Once saved and approved, they return to "No PA" with no code change. The saved copies go in through `python -m kanini_context.sources.place --record`.

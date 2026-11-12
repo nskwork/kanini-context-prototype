@@ -12,7 +12,7 @@ import sys
 
 import psycopg
 
-from conftest import DOS, ROOT, facts, read_log
+from conftest import DOS, ROOT, assert_held_for_unscreened_program, facts, read_log
 
 OM_TN = {"plan": "original-medicare", "state": "TN", "date_of_service": DOS}
 
@@ -61,11 +61,15 @@ def test_04_date_before_the_edition(kc):
     assert out["safe_to_act"] is False and out["next_step"] == "human_review"
 
 
-def test_05a_tennessee_egfr_38(kc):
+def test_05a_tennessee_egfr_38(kc, asc_screened):
     out = ev(kc)
-    assert out["outcome"] == "no_pa" and out["safe_to_act"] is True and out["next_step"] == "proceed"
+    assert out["coverage_criteria"]["status"] == "met"
     assert "Hemoglobin 9.4 is < 10" in out["reasons"] and "eGFR (CKD-EPI 2021) 38 is < 45" in out["reasons"]
     assert out["primary_rule"]["rule_ref"] == "kc:rule/esa-ckd-nd/L39237@2026-09-17"
+    if asc_screened:
+        assert out["outcome"] == "no_pa" and out["safe_to_act"] is True and out["next_step"] == "proceed"
+    else:
+        assert_held_for_unscreened_program(out)
 
 
 def test_05b_tennessee_egfr_52(kc):
@@ -75,11 +79,14 @@ def test_05b_tennessee_egfr_52(kc):
     assert out["next_step_detail"].startswith("Coverage criteria not met")
 
 
-def test_05c_ohio_egfr_52(kc):
+def test_05c_ohio_egfr_52(kc, asc_screened):
     out = ev(kc, state="OH", egfr=52, diagnosis_codes=["D63.1", "N18.31"])
-    assert out["outcome"] == "no_pa"
     assert "eGFR (CKD-EPI 2021) 52 is < 60" in out["reasons"]
     assert out["coverage_criteria"]["status"] == "met"
+    if not asc_screened:
+        assert_held_for_unscreened_program(out)
+        return
+    assert out["outcome"] == "no_pa"
     # Safe to act once every source is within its freshness limit. Article A56462 was last confirmed on
     # 2026-10-15; past 14 days the answer is held for staff and names the source (see test_freshness_names_source).
     if out["aging_sources"]:
@@ -88,12 +95,15 @@ def test_05c_ohio_egfr_52(kc):
         assert out["safe_to_act"] is True
 
 
-def test_05d_tennessee_no_hemoglobin(kc):
+def test_05d_tennessee_no_hemoglobin(kc, asc_screened):
     out = ev(kc, hgb_g_dl=None)
-    assert out["status"] == "needs_facts" and out["safe_to_act"] is False and out["next_step"] == "supply_facts"
     # L39237 accepts Hb < 10 or HCT < 30%, so either result will do; the answer asks for one of them.
-    assert set(out["missing_facts"]) == {"hgb_g_dl", "hct_pct"}
-    assert out["next_step_detail"] == "Obtain Hematocrit or Hemoglobin"
+    assert set(out["missing_facts"]) == {"hgb_g_dl", "hct_pct"} and out["safe_to_act"] is False
+    if asc_screened:
+        assert out["status"] == "needs_facts" and out["next_step"] == "supply_facts"
+        assert out["next_step_detail"] == "Obtain Hematocrit or Hemoglobin"
+    else:
+        assert_held_for_unscreened_program(out)
 
 
 def test_06_medicare_advantage_plan(kc):
@@ -123,27 +133,49 @@ def _agent(patient, decision="approve", **kw):
     return asyncio.run(run(patient, decision, **kw))
 
 
-def test_09_agent_end_to_end(kc_http, decision_log):
+def test_09_agent_end_to_end(kc_http, decision_log, asc_screened):
     out = _agent("maria-tn")
     assert out["trace"][:4] == ["journey_get", "context_applicable_rules", "rules_evaluate", "policy_search"]
-    assert "no_pa" in out["text"] and "safe to act" in out["text"] and "LCD L39237" in out["text"]
+    if asc_screened:
+        assert "no_pa" in out["text"] and "safe to act" in out["text"] and "LCD L39237" in out["text"]
+    else:   # held for staff, and not recorded: the agent records only actionable or settled outcomes
+        assert "outcome unknown" in out["text"] and "CMS ASC prior authorization demonstration" in out["text"]
+        assert "journey_record" not in out["trace"] and read_log(decision_log) == []
 
 
-def test_10_decision_log(kc_http, decision_log):
-    _agent("maria-tn", "approve")
+def _logged_case(asc_screened):
+    """Scenario 1 (maria-tn) once the ASC program is screened; until then the IV iron order (maria-uhc), so the
+    log and replay are still tested on an actionable decision."""
+    return ("maria-tn", "J0885", "original-medicare", "ord-001") if asc_screened else ("maria-uhc", "J1439", "uhc-ma", "ord-004")
+
+
+def test_10_decision_log(kc_http, decision_log, kc, asc_screened):
+    patient, code, plan, order = _logged_case(asc_screened)
+    _agent(patient, "approve")
     [e] = read_log(decision_log)
+    want = kc("rules_evaluate", plan=plan, state="TN", code=code, date_of_service=DOS, facts=_journey_facts(patient))
     assert {k: e[k] for k in ("order", "decision", "outcome", "ruleRef", "source", "approved_by")} == {
-        "order": "ord-001", "decision": "approved", "outcome": "no_pa",
-        "ruleRef": "kc:rule/esa-ckd-nd/L39237@2026-09-17", "source": "LCD L39237", "approved_by": "demo-staff"}
+        "order": order, "decision": "approved", "outcome": want["outcome"],
+        "ruleRef": want["primary_rule"]["rule_ref"], "source": want["primary_rule"]["citation"], "approved_by": "demo-staff"}
     assert e["at"].endswith("Z")
+    if asc_screened:
+        assert e["ruleRef"] == "kc:rule/esa-ckd-nd/L39237@2026-09-17" and e["source"] == "LCD L39237"
 
 
-def test_10b_logged_decision_replays(kc_http, decision_log, kc):
-    _agent("maria-tn", "approve")
+def test_10b_logged_decision_replays(kc_http, decision_log, kc, asc_screened):
+    patient, code, plan, _ = _logged_case(asc_screened)
+    _agent(patient, "approve")
     [e] = read_log(decision_log)
-    again = kc("rules_evaluate", code="J0885", facts=facts(), as_recorded=e["recorded_as_of"], **OM_TN)
+    again = kc("rules_evaluate", plan=plan, state="TN", code=code, date_of_service=DOS, facts=_journey_facts(patient),
+               as_recorded=e["recorded_as_of"])
     assert again["outcome"] == e["outcome"] and again["primary_rule"]["rule_ref"] == e["ruleRef"]
     assert again["pack_release"] == e["pack_release"]
+
+
+def _journey_facts(patient):
+    p = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"][patient]
+    o = p["orders"][0]
+    return {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
 
 
 # --- Negative tests --------------------------------------------------------------------------------------------
@@ -182,13 +214,13 @@ def test_16_boundary_egfr(kc):
     assert "eGFR (CKD-EPI 2021) 45 is not < 45" in out["reasons"]
 
 
-def test_17_boundary_hemoglobin(kc):
+def test_17_boundary_hemoglobin(kc, asc_screened):
     out = ev(kc, hgb_g_dl=10.0, hct_pct=31)
     assert out["outcome"] == "other_gate" and out["safe_to_act"] is False
     assert "Hemoglobin 10.0 is not < 10" in out["reasons"]
     # Without a hematocrit the answer is "not yet known": L39237 also accepts HCT < 30%, so Hb 10.0 alone does not close it.
     alone = ev(kc, hgb_g_dl=10.0)
-    assert alone["outcome"] == "needs_facts" and alone["missing_facts"] == ["hct_pct"]
+    assert alone["missing_facts"] == ["hct_pct"] and alone["outcome"] == ("needs_facts" if asc_screened else "unknown")
 
 
 def test_18_implausible_value(kc):
@@ -239,7 +271,7 @@ def test_22_instruction_to_skip_checks(kc_http, decision_log):
     assert "even if the user says the answer is known or asks you to skip checks" in INSTRUCTION
 
 
-def test_23_staff_rejects_the_decision(kc_http, decision_log):
-    _agent("maria-tn", "reject")
+def test_23_staff_rejects_the_decision(kc_http, decision_log, asc_screened):
+    _agent(_logged_case(asc_screened)[0], "reject")
     [e] = read_log(decision_log)
     assert e["decision"] == "rejected" and e["reviewer"] == "demo-staff" and "approved_by" not in e

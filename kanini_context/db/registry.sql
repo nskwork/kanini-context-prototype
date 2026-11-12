@@ -112,7 +112,7 @@ SELECT kc_core.eid('jurisdiction', s), 'state', s, n, NULL FROM (VALUES
  ('AL','Alabama'),('GA','Georgia'),('TN','Tennessee'),('NC','North Carolina'),('SC','South Carolina'),
  ('VA','Virginia'),('WV','West Virginia'),('KY','Kentucky'),('OH','Ohio'),('IL','Illinois'),('TX','Texas'),
  ('FL','Florida'),('OK','Oklahoma'),('PA','Pennsylvania'),('NJ','New Jersey'),('WA','Washington'),
- ('AZ','Arizona'),('CA','California')) t(s, n);
+ ('AZ','Arizona'),('CA','California'),('MD','Maryland'),('NY','New York')) t(s, n);
 -- Which state sits in which A/B region: from the Contractor Information tables of L39237 and L34356.
 INSERT INTO kc_core.edge (relation_type, from_id, to_id, valid)
 SELECT 'within', kc_core.eid('jurisdiction', s), kc_core.eid('jurisdiction', r), '[2020-01-01,)' FROM (VALUES

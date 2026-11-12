@@ -63,6 +63,7 @@ def conn() -> psycopg.Connection:
     global _conn
     if _conn is None or _conn.closed:
         _conn = psycopg.connect(DSN, autocommit=True)
+        _conn.execute("SET ROLE kc_agent")   # read-only to the pack; may only add audit rows (spec 5.5, 7.2)
     return _conn
 
 

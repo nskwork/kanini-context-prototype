@@ -235,5 +235,31 @@
     ],
     "sha256": "eeddfd4c7ef35bb718423b4268a74c7601db0f3783a3693004c8320af4508441",
     "bytes": 596793
+  },
+  {
+    "source_id": "cms-asc-pa-demo",
+    "file": "CMS-ASC-PA-demonstration.pdf",
+    "title": "CMS Prior Authorization Demonstration for Certain Ambulatory Surgical Center Services",
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
+    "url": "https://www.cms.gov/data-research/monitoring-programs/medicare-fee-service-compliance-programs/prior-authorization-and-pre-claim-review-initiatives/prior-authorization-demonstration-certain-ambulatory-surgical-center-services",
+    "license_class": "public",
+    "edition": "Page as updated 2025-11-20 (revised phase dates)",
+    "checks": [],
+    "open_question": "found 2026-11-12: a CMS prior authorization program bound to Tennessee (from 2026-01-19) and Ohio (from 2026-02-16), not in the FY2024 program statistics. Save this page as PDF (print to PDF) under this file name and record it: python -m kanini_context.sources.place --record FOLDER"
+  },
+  {
+    "source_id": "cms-asc-pa-demo-codes",
+    "file": "CMS-ASC-PA-demonstration-services-list.pdf",
+    "title": "CMS ASC Prior Authorization Demonstration: list of HCPCS codes",
+    "publisher": "CMS",
+    "source_class": "federal",
+    "access_method": "manual_upload",
+    "url": "https://www.cms.gov/files/document/services-list-asc-pa-demonstration.pdf",
+    "license_class": "public",
+    "edition": "As published with the demonstration",
+    "checks": [],
+    "open_question": "download and record with place --record; the screen finding (ESAs not on the list) is checked against it"
   }
 ]

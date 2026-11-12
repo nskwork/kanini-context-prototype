@@ -86,13 +86,20 @@ def load_sources(cur) -> dict[str, object]:
     snaps = {}
     for m in MANIFEST:
         f = RAW / m["file"]
+        every, aging, stale = FRESHNESS[m["source_class"]]
+        if not m.get("sha256"):
+            # known source, copy not saved yet: recorded so its programs can be registered (and stay unscreened)
+            cur.execute("""INSERT INTO kc_core.source VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NULL)""",
+                        (m["source_id"], m["title"], m["publisher"], m["source_class"], m["access_method"], m["url"],
+                         m["license_class"], every, aging, stale))
+            print(f"not saved yet: {m['source_id']} ({m['url']})")
+            continue
         if not f.exists():
             raise LoadError(f"{m['source_id']}: saved copy missing at {f}; download it from {m['url']}")
         digest = sha256(f)
         if digest != m["sha256"]:
             raise LoadError(f"{m['source_id']}: file hash {digest[:10]} differs from the manifest {m['sha256'][:10]}; "
                             "the copy is not the one reviewed")
-        every, aging, stale = FRESHNESS[m["source_class"]]
         last_ok = max((c["at"] for c in m["checks"] if c["ok"]), default=None)
         cur.execute("""INSERT INTO kc_core.source VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (m["source_id"], m["title"], m["publisher"], m["source_class"], m["access_method"], m["url"],
@@ -163,8 +170,21 @@ def load_bindings(cur, aid, e: dict, ed: dict, snap, approvers, exception):
         cur.execute("""INSERT INTO kc_core.authority_binding
               (authority_id, program_id, plan_id, jurisdiction_id, item_scope, valid, snapshot_id, reviewed_by, review_exception)
               VALUES (%s,%s,%s,%s,%s,daterange(%s,%s),%s,%s,%s)""",
-              (aid, s["program"], s["plan"], s["jurisdiction"], b["item_scope"], ed["valid_from"], ed.get("valid_to"),
-               snap, approvers, exception))
+              (aid, s["program"], s["plan"], s["jurisdiction"], b["item_scope"], b.get("valid_from", ed["valid_from"]),
+               ed.get("valid_to"), snap, approvers, exception))
+
+
+def register_unscreened(cur, e: dict, approvers, exception):
+    """A program known to bind this coverage whose source copy is not saved yet: its authority and bindings are
+    recorded, with no edition and no screen, so a "not required" that rests on closed lists for these places
+    becomes "no rule found" until it is screened (scope findings, section 3)."""
+    a = e["authority"]
+    aid = eid(cur, "authority", a["key"])
+    issuer = one(cur, "SELECT entity_id FROM kc_core.entity WHERE entity_type='payer' AND natural_key=%s", (a["issuer"],))
+    cur.execute("INSERT INTO kc_core.authority VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (aid, a["kind"], issuer, a["citation"], a["layer"], a["title"], a.get("closed_list", False)))
+    load_bindings(cur, aid, e, e["edition"], None, approvers, exception)
+    print(f"registered unscreened: {a['citation']} (source copy not saved)")
 
 
 def load_codes(cur, e: dict, snap, approvers, exception):
@@ -240,6 +260,9 @@ def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
     entries = d["programs"] if "programs" in d else [d]
     n = 0
     for e in entries:
+        if e["source_id"] not in snaps:
+            register_unscreened(cur, e, approvers, exception)
+            continue
         snap = snaps[e["source_id"]]
         lic = next(m["license_class"] for m in MANIFEST if m["source_id"] == e["source_id"])
         aid, avid, ed = load_authority(cur, e, snap)
@@ -291,7 +314,8 @@ def main(argv: list[str]) -> int:
                 d = json.loads(p.read_text())
                 approvers, exception, _ = review_of(d, args.test_review)
                 for e in (d["programs"] if "programs" in d else [d]):
-                    load_codes(cur, e, snaps[e["source_id"]], approvers, exception)
+                    if e["source_id"] in snaps:
+                        load_codes(cur, e, snaps[e["source_id"]], approvers, exception)
             total = 0
             for p in paths:
                 n = load_file(cur, p, snaps, args.test_review)

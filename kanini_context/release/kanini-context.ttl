@@ -1,0 +1,795 @@
+@prefix kc: <https://kanini.com/ontology/kanini-context#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://kanini.com/ontology/kanini-context> a owl:Ontology ;
+    rdfs:label "Kanini Context ontology" ;
+    owl:versionInfo "prototype 1.0, from schema specification v1.5" .
+
+kc:AppealWindow a owl:Class ;
+    rdfs:comment "aspect: appeal; default effect: floor" ;
+    rdfs:subClassOf kc:Obligation .
+
+kc:ApprovalRequired a owl:Class ;
+    rdfs:comment "aspect: approval; default effect: additive" ;
+    rdfs:subClassOf kc:Rule .
+
+kc:BillingArticle a owl:Class ;
+    rdfs:label "billing article" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:ClearinghouseEndpoint a owl:Class ;
+    rdfs:label "clearinghouse" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:CoverageCriteria a owl:Class ;
+    rdfs:comment "aspect: coverage; default effect: additive" ;
+    rdfs:subClassOf kc:Rule .
+
+kc:CrdEndpoint a owl:Class ;
+    rdfs:label "crd" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:DecisionTimeframe a owl:Class ;
+    rdfs:comment "aspect: timeframe; default effect: ceiling" ;
+    rdfs:subClassOf kc:Obligation .
+
+kc:DocumentationRequirement a owl:Class ;
+    rdfs:comment "aspect: documentation; default effect: additive" ;
+    rdfs:subClassOf kc:Rule .
+
+kc:DtrEndpoint a owl:Class ;
+    rdfs:label "dtr" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:EmployerGroupProgram a owl:Class ;
+    rdfs:label "employer group" ;
+    rdfs:subClassOf kc:Program .
+
+kc:ExchangeProgram a owl:Class ;
+    rdfs:label "exchange" ;
+    rdfs:subClassOf kc:Program .
+
+kc:Exemption a owl:Class ;
+    rdfs:comment "aspect: approval; default effect: override" ;
+    rdfs:subClassOf kc:Rule .
+
+kc:FaxEndpoint a owl:Class ;
+    rdfs:label "fax" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:Guideline a owl:Class ;
+    rdfs:label "guideline" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:Lcd a owl:Class ;
+    rdfs:label "lcd" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:LibraryKnowledgeArtifact a owl:Class ;
+    rdfs:label "library" ;
+    rdfs:subClassOf kc:KnowledgeArtifact .
+
+kc:MedicaidFfsProgram a owl:Class ;
+    rdfs:label "medicaid ffs" ;
+    rdfs:subClassOf kc:Program .
+
+kc:MedicaidManagedCareProgram a owl:Class ;
+    rdfs:label "medicaid managed care" ;
+    rdfs:subClassOf kc:Program .
+
+kc:MedicareAdvantageProgram a owl:Class ;
+    rdfs:label "medicare advantage" ;
+    rdfs:subClassOf kc:Program .
+
+kc:MedicareFfsProgram a owl:Class ;
+    rdfs:label "medicare ffs" ;
+    rdfs:subClassOf kc:Program .
+
+kc:Ncd a owl:Class ;
+    rdfs:label "ncd" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:PaProgram a owl:Class ;
+    rdfs:label "pa program" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:PasEndpoint a owl:Class ;
+    rdfs:label "pas" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:PayerList a owl:Class ;
+    rdfs:label "payer list" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:PayerPaApiEndpoint a owl:Class ;
+    rdfs:label "payer pa api" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:PayerPolicy a owl:Class ;
+    rdfs:label "payer policy" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:PhoneEndpoint a owl:Class ;
+    rdfs:label "phone" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:PlanDocument a owl:Class ;
+    rdfs:label "plan document" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:PortalEndpoint a owl:Class ;
+    rdfs:label "portal" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:QuestionnaireKnowledgeArtifact a owl:Class ;
+    rdfs:label "questionnaire" ;
+    rdfs:subClassOf kc:KnowledgeArtifact .
+
+kc:Regulation a owl:Class ;
+    rdfs:label "regulation" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:StateManual a owl:Class ;
+    rdfs:label "state manual" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:StateRule a owl:Class ;
+    rdfs:label "state rule" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:Statute a owl:Class ;
+    rdfs:label "statute" ;
+    rdfs:subClassOf kc:Authority .
+
+kc:Thing a owl:Class ;
+    rdfs:label "thing" ;
+    rdfs:comment "Anything the pack knows about" .
+
+kc:X12278Endpoint a owl:Class ;
+    rdfs:label "x12 278" ;
+    rdfs:subClassOf kc:Endpoint .
+
+kc:about a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:comment "What a rule covers (rule.subject_id) (n:1; stored as column)" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range kc:TerminologyItem .
+
+kc:authorityCitation a owl:DatatypeProperty ;
+    rdfs:label "citation" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range xsd:string .
+
+kc:authorityClosedList a owl:DatatypeProperty ;
+    rdfs:label "closed list" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range xsd:boolean .
+
+kc:authorityKind a owl:DatatypeProperty ;
+    rdfs:label "kind" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range xsd:string .
+
+kc:authorityLayer a owl:DatatypeProperty ;
+    rdfs:label "layer" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range xsd:string .
+
+kc:authorityTitle a owl:DatatypeProperty ;
+    rdfs:label "title" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range xsd:string .
+
+kc:belongsTo a owl:ObjectProperty ;
+    rdfs:comment "A code is a member of a value set for a period (n:m; stored as table)" ;
+    rdfs:domain kc:Code ;
+    rdfs:range kc:ValueSet .
+
+kc:binds a owl:ObjectProperty ;
+    rdfs:comment "Which programs, plans and places an authority applies to (n:m; stored as table)" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range kc:CoverageItem .
+
+kc:codeCode a owl:DatatypeProperty ;
+    rdfs:label "code" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:codeDisplay a owl:DatatypeProperty ;
+    rdfs:label "display" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:codeFirstRelease a owl:DatatypeProperty ;
+    rdfs:label "first release" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:codeItemType a owl:DatatypeProperty ;
+    rdfs:label "item type" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:codeRecorded a owl:DatatypeProperty ;
+    rdfs:label "recorded" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:codeReplacedBy a owl:DatatypeProperty ;
+    rdfs:label "replaced by" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:codeValid a owl:DatatypeProperty ;
+    rdfs:label "valid" ;
+    rdfs:domain kc:Code ;
+    rdfs:range xsd:string .
+
+kc:conceptDefinition a owl:DatatypeProperty ;
+    rdfs:label "definition" ;
+    rdfs:domain kc:Concept ;
+    rdfs:range xsd:string .
+
+kc:conceptLabel a owl:DatatypeProperty ;
+    rdfs:label "label" ;
+    rdfs:domain kc:Concept ;
+    rdfs:range xsd:string .
+
+kc:dataElementCode a owl:DatatypeProperty ;
+    rdfs:label "code" ;
+    rdfs:domain kc:DataElement ;
+    rdfs:range xsd:string .
+
+kc:dataElementFact a owl:DatatypeProperty ;
+    rdfs:label "fact" ;
+    rdfs:domain kc:DataElement ;
+    rdfs:range xsd:string .
+
+kc:dataElementName a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain kc:DataElement ;
+    rdfs:range xsd:string .
+
+kc:dataElementUnit a owl:DatatypeProperty ;
+    rdfs:label "unit" ;
+    rdfs:domain kc:DataElement ;
+    rdfs:range xsd:string .
+
+kc:dataElementUsCoreProfile a owl:DatatypeProperty ;
+    rdfs:label "us core profile" ;
+    rdfs:domain kc:DataElement ;
+    rdfs:range xsd:string .
+
+kc:dataElementValueType a owl:DatatypeProperty ;
+    rdfs:label "value type" ;
+    rdfs:domain kc:DataElement ;
+    rdfs:range xsd:string .
+
+kc:defersTo a owl:ObjectProperty ;
+    rdfs:comment "Insurer criteria follow Medicare policy where it exists (n:m; stored as edge)" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range kc:Authority .
+
+kc:documentedBy a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:comment "The insurer questionnaire for a rule (n:1; stored as column)" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range kc:KnowledgeArtifact .
+
+kc:endpointBaseUrl a owl:DatatypeProperty ;
+    rdfs:label "base url" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:string .
+
+kc:endpointExcludesDrugs a owl:DatatypeProperty ;
+    rdfs:label "excludes drugs" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:boolean .
+
+kc:endpointInterface a owl:DatatypeProperty ;
+    rdfs:label "interface" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:string .
+
+kc:endpointLive a owl:DatatypeProperty ;
+    rdfs:label "live" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:boolean .
+
+kc:endpointPreference a owl:DatatypeProperty ;
+    rdfs:label "preference" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:integer .
+
+kc:endpointValid a owl:DatatypeProperty ;
+    rdfs:label "valid" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:string .
+
+kc:endpointVerifiedAt a owl:DatatypeProperty ;
+    rdfs:label "verified at" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:dateTime .
+
+kc:endpointVersion a owl:DatatypeProperty ;
+    rdfs:label "version" ;
+    rdfs:domain kc:Endpoint ;
+    rdfs:range xsd:string .
+
+kc:exposes a owl:ObjectProperty ;
+    rdfs:comment "How to reach an insurer (endpoint.payer_id) (1:n; stored as column)" ;
+    rdfs:domain kc:Payer ;
+    rdfs:range kc:Endpoint .
+
+kc:issuedIn a owl:ObjectProperty ;
+    rdfs:comment "An authority edition and its snapshot (authority_version) (1:n; stored as table)" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range kc:Snapshot .
+
+kc:jurisdictionCode a owl:DatatypeProperty ;
+    rdfs:label "code" ;
+    rdfs:domain kc:Jurisdiction ;
+    rdfs:range xsd:string .
+
+kc:jurisdictionContractor a owl:DatatypeProperty ;
+    rdfs:label "contractor" ;
+    rdfs:domain kc:Jurisdiction ;
+    rdfs:range xsd:string .
+
+kc:jurisdictionKind a owl:DatatypeProperty ;
+    rdfs:label "kind" ;
+    rdfs:domain kc:Jurisdiction ;
+    rdfs:range xsd:string .
+
+kc:jurisdictionName a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain kc:Jurisdiction ;
+    rdfs:range xsd:string .
+
+kc:knowledgeArtifactCanonicalUrl a owl:DatatypeProperty ;
+    rdfs:label "canonical url" ;
+    rdfs:domain kc:KnowledgeArtifact ;
+    rdfs:range xsd:string .
+
+kc:knowledgeArtifactFormat a owl:DatatypeProperty ;
+    rdfs:label "format" ;
+    rdfs:domain kc:KnowledgeArtifact ;
+    rdfs:range xsd:string .
+
+kc:knowledgeArtifactKind a owl:DatatypeProperty ;
+    rdfs:label "kind" ;
+    rdfs:domain kc:KnowledgeArtifact ;
+    rdfs:range xsd:string .
+
+kc:knowledgeArtifactVersion a owl:DatatypeProperty ;
+    rdfs:label "version" ;
+    rdfs:domain kc:KnowledgeArtifact ;
+    rdfs:range xsd:string .
+
+kc:locatedIn a owl:ObjectProperty ;
+    rdfs:comment "Where a plan is offered (n:m; stored as edge)" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range kc:Jurisdiction .
+
+kc:mapsTo a owl:ObjectProperty ;
+    rdfs:comment "A concept and the codes that express it (n:m; stored as table)" ;
+    rdfs:domain kc:Concept ;
+    rdfs:range kc:Code .
+
+kc:nearestFhirResource a owl:AnnotationProperty .
+
+kc:offeredUnder a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:comment "A plan delivers a program (n:1; stored as column)" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range kc:Program .
+
+kc:operatedBy a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:comment "The insurer behind the plan (n:1; stored as column)" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range kc:Payer .
+
+kc:payerClearinghouseIds a owl:DatatypeProperty ;
+    rdfs:label "clearinghouse ids" ;
+    rdfs:domain kc:Payer ;
+    rdfs:range xsd:string .
+
+kc:payerLegalName a owl:DatatypeProperty ;
+    rdfs:label "legal name" ;
+    rdfs:domain kc:Payer ;
+    rdfs:range xsd:string .
+
+kc:payerNaicCode a owl:DatatypeProperty ;
+    rdfs:label "naic code" ;
+    rdfs:domain kc:Payer ;
+    rdfs:range xsd:string .
+
+kc:payerShortName a owl:DatatypeProperty ;
+    rdfs:label "short name" ;
+    rdfs:domain kc:Payer ;
+    rdfs:range xsd:string .
+
+kc:planDsnpIntegration a owl:DatatypeProperty ;
+    rdfs:label "dsnp integration" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range xsd:string .
+
+kc:planExternalId a owl:DatatypeProperty ;
+    rdfs:label "external id" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range xsd:string .
+
+kc:planPlanType a owl:DatatypeProperty ;
+    rdfs:label "plan type" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range xsd:string .
+
+kc:planValid a owl:DatatypeProperty ;
+    rdfs:label "valid" ;
+    rdfs:domain kc:Plan ;
+    rdfs:range xsd:string .
+
+kc:preempts a owl:ObjectProperty ;
+    rdfs:comment "Federal law overrides state law for an aspect (n:m; stored as edge)" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range kc:Authority .
+
+kc:programKind a owl:DatatypeProperty ;
+    rdfs:label "kind" ;
+    rdfs:domain kc:Program ;
+    rdfs:range xsd:string .
+
+kc:programName a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain kc:Program ;
+    rdfs:range xsd:string .
+
+kc:replacedBy a owl:ObjectProperty ;
+    rdfs:comment "A retired code and its successor (n:m; stored as column)" ;
+    rdfs:domain kc:Code ;
+    rdfs:range kc:Code .
+
+kc:requires a owl:ObjectProperty ;
+    rdfs:comment "Documentation a rule asks for (rule_requirement) (n:m; stored as table)" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range kc:DataElement .
+
+kc:ruleAspect a owl:DatatypeProperty ;
+    rdfs:label "aspect" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleBasis a owl:DatatypeProperty ;
+    rdfs:label "basis" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleConditions a owl:DatatypeProperty ;
+    rdfs:label "conditions" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleDateBasis a owl:DatatypeProperty ;
+    rdfs:label "date basis" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleEffect a owl:DatatypeProperty ;
+    rdfs:label "effect" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleExtractedBy a owl:DatatypeProperty ;
+    rdfs:label "extracted by" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleLicenseClass a owl:DatatypeProperty ;
+    rdfs:label "license class" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleMappingConfidence a owl:DatatypeProperty ;
+    rdfs:label "mapping confidence" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:decimal .
+
+kc:ruleNotStated a owl:DatatypeProperty ;
+    rdfs:label "not stated" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:rulePayload a owl:DatatypeProperty ;
+    rdfs:label "payload" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleRecorded a owl:DatatypeProperty ;
+    rdfs:label "recorded" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleReleaseId a owl:DatatypeProperty ;
+    rdfs:label "release id" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleReviewException a owl:DatatypeProperty ;
+    rdfs:label "review exception" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleReviewedAt a owl:DatatypeProperty ;
+    rdfs:label "reviewed at" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:dateTime .
+
+kc:ruleReviewedBy a owl:DatatypeProperty ;
+    rdfs:label "reviewed by" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleRuleKey a owl:DatatypeProperty ;
+    rdfs:label "rule key" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleRuleKind a owl:DatatypeProperty ;
+    rdfs:label "rule kind" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleSourceLocator a owl:DatatypeProperty ;
+    rdfs:label "source locator" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleSourceQuote a owl:DatatypeProperty ;
+    rdfs:label "source quote" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleStatus a owl:DatatypeProperty ;
+    rdfs:label "status" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleValid a owl:DatatypeProperty ;
+    rdfs:label "valid" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleValidFromBasis a owl:DatatypeProperty ;
+    rdfs:label "valid from basis" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleValidFromHi a owl:DatatypeProperty ;
+    rdfs:label "valid from hi" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:date .
+
+kc:ruleValidFromLo a owl:DatatypeProperty ;
+    rdfs:label "valid from lo" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:date .
+
+kc:ruleValidPossible a owl:DatatypeProperty ;
+    rdfs:label "valid possible" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:string .
+
+kc:ruleValidToHi a owl:DatatypeProperty ;
+    rdfs:label "valid to hi" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:date .
+
+kc:ruleValidToLo a owl:DatatypeProperty ;
+    rdfs:label "valid to lo" ;
+    rdfs:domain kc:Rule ;
+    rdfs:range xsd:date .
+
+kc:snapshotBlobUri a owl:DatatypeProperty ;
+    rdfs:label "blob uri" ;
+    rdfs:domain kc:Snapshot ;
+    rdfs:range xsd:string .
+
+kc:snapshotContentSha256 a owl:DatatypeProperty ;
+    rdfs:label "content sha256" ;
+    rdfs:domain kc:Snapshot ;
+    rdfs:range xsd:string .
+
+kc:snapshotMediaType a owl:DatatypeProperty ;
+    rdfs:label "media type" ;
+    rdfs:domain kc:Snapshot ;
+    rdfs:range xsd:string .
+
+kc:snapshotRetrievedAt a owl:DatatypeProperty ;
+    rdfs:label "retrieved at" ;
+    rdfs:domain kc:Snapshot ;
+    rdfs:range xsd:dateTime .
+
+kc:snapshotStatedEffective a owl:DatatypeProperty ;
+    rdfs:label "stated effective" ;
+    rdfs:domain kc:Snapshot ;
+    rdfs:range xsd:string .
+
+kc:sourceAccessMethod a owl:DatatypeProperty ;
+    rdfs:label "access method" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:string .
+
+kc:sourceAgingAfter a owl:DatatypeProperty ;
+    rdfs:label "aging after" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:duration .
+
+kc:sourceCheckEvery a owl:DatatypeProperty ;
+    rdfs:label "check every" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:duration .
+
+kc:sourceLastSuccessAt a owl:DatatypeProperty ;
+    rdfs:label "last success at" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:dateTime .
+
+kc:sourceLicenseClass a owl:DatatypeProperty ;
+    rdfs:label "license class" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:string .
+
+kc:sourceName a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:string .
+
+kc:sourcePublisher a owl:DatatypeProperty ;
+    rdfs:label "publisher" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:string .
+
+kc:sourceSourceClass a owl:DatatypeProperty ;
+    rdfs:label "source class" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:string .
+
+kc:sourceStaleAfter a owl:DatatypeProperty ;
+    rdfs:label "stale after" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:duration .
+
+kc:sourceUrl a owl:DatatypeProperty ;
+    rdfs:label "url" ;
+    rdfs:domain kc:Source ;
+    rdfs:range xsd:string .
+
+kc:states a owl:ObjectProperty ;
+    rdfs:comment "The authority that issued a rule (rule.authority_id) (1:n; stored as column)" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range kc:Rule .
+
+kc:supersedes a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:comment "A newer document replaces an older one (1:1; stored as edge)" ;
+    rdfs:domain kc:Authority ;
+    rdfs:range kc:Authority .
+
+kc:valueSetCanonicalUrl a owl:DatatypeProperty ;
+    rdfs:label "canonical url" ;
+    rdfs:domain kc:ValueSet ;
+    rdfs:range xsd:string .
+
+kc:valueSetDefinition a owl:DatatypeProperty ;
+    rdfs:label "definition" ;
+    rdfs:domain kc:ValueSet ;
+    rdfs:range xsd:string .
+
+kc:valueSetFilter a owl:DatatypeProperty ;
+    rdfs:label "filter" ;
+    rdfs:domain kc:ValueSet ;
+    rdfs:range xsd:string .
+
+kc:valueSetName a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain kc:ValueSet ;
+    rdfs:range xsd:string .
+
+kc:valueSetVersion a owl:DatatypeProperty ;
+    rdfs:label "version" ;
+    rdfs:domain kc:ValueSet ;
+    rdfs:range xsd:string .
+
+kc:within a owl:ObjectProperty ;
+    rdfs:comment "A state sits in a Medicare contractor region (n:m; stored as edge)" ;
+    rdfs:domain kc:Jurisdiction ;
+    rdfs:range kc:Jurisdiction .
+
+kc:Obligation a owl:Class ;
+    rdfs:comment "aspect: obligation; default effect: ceiling" ;
+    rdfs:subClassOf kc:Rule .
+
+kc:Concept a owl:Class ;
+    rdfs:label "concept" ;
+    rdfs:comment "A plain clinical idea, used where codes are licensed or a source names a group" ;
+    rdfs:subClassOf kc:TerminologyItem .
+
+kc:TerminologyItem a owl:Class ;
+    rdfs:label "terminology item" ;
+    rdfs:comment "A code, group of codes or clinical idea" .
+
+kc:CoverageItem a owl:Class ;
+    rdfs:label "coverage item" ;
+    rdfs:comment "Something that defines who pays" .
+
+kc:Payer a owl:Class ;
+    rdfs:label "payer" ;
+    rdfs:comment "An insurer or government payer" ;
+    rdfs:subClassOf kc:CoverageItem ;
+    kc:nearestFhirResource "Organization" .
+
+kc:Snapshot a owl:Class ;
+    rdfs:label "snapshot" ;
+    rdfs:comment "An exact captured copy of a document (kc_core.snapshot)" ;
+    kc:nearestFhirResource "Binary" .
+
+kc:ValueSet a owl:Class ;
+    rdfs:label "value set" ;
+    rdfs:comment "A named group of codes" ;
+    rdfs:subClassOf kc:TerminologyItem ;
+    kc:nearestFhirResource "ValueSet" .
+
+kc:DataElement a owl:Class ;
+    rdfs:label "data element" ;
+    rdfs:comment "A piece of documentation tied to a standard code" ;
+    kc:nearestFhirResource "ObservationDefinition" .
+
+kc:Jurisdiction a owl:Class ;
+    rdfs:label "jurisdiction" ;
+    rdfs:comment "A nation, state, Medicare contractor region or county" ;
+    rdfs:subClassOf kc:CoverageItem .
+
+kc:KnowledgeArtifact a owl:Class ;
+    rdfs:label "knowledge artifact" ;
+    rdfs:comment "An insurer questionnaire or logic library" ;
+    kc:nearestFhirResource "Questionnaire" .
+
+kc:Plan a owl:Class ;
+    rdfs:label "plan" ;
+    rdfs:comment "One plan offered by a payer under a program" ;
+    rdfs:subClassOf kc:CoverageItem ;
+    kc:nearestFhirResource "InsurancePlan" .
+
+kc:Program a owl:Class ;
+    rdfs:label "program" ;
+    rdfs:comment "A coverage program such as Medicare Advantage" ;
+    rdfs:subClassOf kc:CoverageItem .
+
+kc:Source a owl:Class ;
+    rdfs:label "source" ;
+    rdfs:comment "Where a document is collected from (kc_core.source)" .
+
+kc:Code a owl:Class ;
+    rdfs:label "code" ;
+    rdfs:comment "A code from a standard code system, valid for dates" ;
+    rdfs:subClassOf kc:TerminologyItem ;
+    kc:nearestFhirResource "Coding" .
+
+kc:Endpoint a owl:Class ;
+    rdfs:label "endpoint" ;
+    rdfs:comment "A way to reach an insurer and whether it works" ;
+    kc:nearestFhirResource "Endpoint" .
+
+kc:Authority a owl:Class ;
+    rdfs:label "authority" ;
+    rdfs:comment "A document or body with standing to set rules" ;
+    kc:nearestFhirResource "DocumentReference" .
+
+kc:Rule a owl:Class ;
+    rdfs:label "rule" ;
+    rdfs:comment "What an authority says about a subject, for a scope and dates (kc_core.rule)" ;
+    kc:nearestFhirResource "PlanDefinition" .
+

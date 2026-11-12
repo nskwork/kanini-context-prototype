@@ -53,7 +53,12 @@ def _registry_names(table: str) -> set[str]:
     return set(re.findall(r"kc_core\.eid\('data_element','([^']+)'\)", block))
 
 
+def _state_names() -> dict[str, str]:
+    return dict(re.findall(r"\('([A-Z]{2})','([A-Z][a-z][A-Za-z ]*)'\)", REGISTRY))   # state names, not region pairs
+
+
 KINDS = _registry_kinds()
+STATES = _state_names()
 FACTS = _registry_names("fact")
 ELEMENTS = _registry_names("element")
 
@@ -163,6 +168,17 @@ def check_file(path: Path) -> Report:
         src = MANIFEST[e["source_id"]]
         f = src["file"]
         ed = e["edition"]
+        if not src.get("sha256"):
+            rep.note(f"{e['authority']['key']}: source copy not saved yet; registered as unscreened until it is recorded")
+            continue
+        if e["authority"]["kind"] == "pa_program":
+            # a closed-list program's places must be stated in its quoted text, since "not required" rests on them
+            text = " ".join(x for x in (ed["quote"], e.get("list_quote", {}).get("quote", ""),
+                                        e.get("bindings_locator", {}).get("quote", "")) if x)
+            for b in e["bindings"]:
+                j = b.get("jurisdiction")
+                if j and j != "US" and STATES.get(j, j) not in text:
+                    rep.err(f"{e['authority']['key']}: binding to {j} ({STATES.get(j, j)}) is not in the program's quoted text")
         check_quote(rep, f, ed["locator"], ed["quote"], f"{e['authority']['key']} edition")
         if "list_quote" in e:
             check_quote(rep, f, e["list_quote"]["locator"], e["list_quote"]["quote"], f"{e['authority']['key']} list")

@@ -80,6 +80,10 @@ class ScriptedModel(BaseLlm):
         if "policy_search" not in names:
             yield _call("policy_search", {"rule_ref": prim.get("rule_ref", "")})
             return
+        if not (ev.get("safe_to_act") or ev.get("outcome") in ("other_gate", "needs_facts")):
+            yield _text(f"Decision card · {o['order_id']} · outcome {ev.get('outcome')} · not safe to act · "
+                        f"{ev.get('next_step_detail')}")   # the instruction records only actionable or settled outcomes
+            return
         if "journey_record" not in names:
             # a careless model might write a different outcome here; the before_tool callback replaces it
             yield _call("journey_record", {"order_id": o["order_id"], "outcome": "no_pa", "rule_ref": "made-up",

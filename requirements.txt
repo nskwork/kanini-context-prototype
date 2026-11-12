@@ -8,4 +8,5 @@ psycopg[binary]==3.3.9
 pdfplumber==0.11.10
 jsonschema==4.26.0
 python-dotenv==1.2.4
+rdflib==7.6.0
 pytest==9.2.0

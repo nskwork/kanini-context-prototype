@@ -97,3 +97,17 @@ def facts(**over):
             "hgb_g_dl": 9.4, "egfr": 38, "creatinine_date": "2026-11-02"}
     base.update(over)
     return {k: v for k, v in base.items() if v is not None}
+
+
+@pytest.fixture(scope="session")
+def asc_screened(db) -> bool:
+    """Whether the CMS ASC prior authorization demonstration (bound to Tennessee and Ohio from 2026) has been
+    screened for the ESA service. Until its source copy is recorded and approved, Original Medicare answers in those
+    states are "no rule found", naming it, instead of "No PA" (scope findings, section 3)."""
+    return db.execute("SELECT EXISTS (SELECT 1 FROM kc_core.rule WHERE rule_key = 'kc:rule/esa-ckd-nd/no-pa/cms-pa-asc')").fetchone()[0]
+
+
+def assert_held_for_unscreened_program(out: dict):
+    assert out["outcome"] == "unknown" and out["safe_to_act"] is False and out["next_step"] == "human_review"
+    assert out["prior_authorization"]["reason"] == "pa_program_not_screened"
+    assert "CMS ASC prior authorization demonstration" in out["next_step_detail"]

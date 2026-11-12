@@ -27,9 +27,26 @@ from pathlib import Path
 
 import psycopg
 
+from kanini_context.release.owl import export as owl_export
+
 ROOT = Path(__file__).resolve().parents[2]
 DB = ROOT / "kanini_context" / "db"
 from kanini_context import env  # noqa: F401,E402  (loads .env)
+
+# At the client the pack is read-only (spec 5.5 and 7.2). The tool server works as kc_agent, which may read the
+# pack, run the kc_api tools and add audit rows, and nothing else. The role is shared by the server; its grants are
+# per database.
+AGENT_ROLE_SQL = """
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kc_agent') THEN CREATE ROLE kc_agent NOLOGIN; END IF;
+END $$;
+GRANT kc_agent TO CURRENT_USER;
+GRANT USAGE ON SCHEMA kc_meta, kc_core, kc_api, kc_gov, kc_client TO kc_agent;
+GRANT SELECT ON ALL TABLES IN SCHEMA kc_meta, kc_core, kc_api, kc_gov, kc_client TO kc_agent;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA kc_api TO kc_agent;
+GRANT INSERT ON kc_client.tool_audit TO kc_agent;
+GRANT USAGE ON SEQUENCE kc_client.tool_audit_audit_id_seq TO kc_agent;
+"""
 
 # The last date of service a release answers for: the day before the earliest change the pack already knows is
 # coming (an open change flag, or the end of a loaded edition). With none known, the end of the following month.
@@ -90,9 +107,15 @@ def build_graph(cur, graph: str) -> tuple[int, int] | None:
     cur.execute("SELECT create_graph(%s)", (graph,))
     # vertices: every entity, every current rule (id = rule_key), every snapshot and source
     verts = cur.execute("""
-        SELECT entity_id::text, entity_type, jsonb_build_object('id', natural_key) FROM kc_core.entity
-        UNION ALL SELECT rule_id::text, 'rule', jsonb_build_object('id', rule_key, 'valid_from', lower(valid)::text,
-                         'kind', rule_kind, 'basis', basis, 'release', release_id) FROM kc_core.rule WHERE upper_inf(recorded)
+        SELECT e.entity_id::text, e.entity_type, jsonb_build_object('id', e.natural_key)
+               || CASE WHEN e.entity_type = 'concept'   -- the scope's "Service": a service concept such as esa-ckd-nd
+                       THEN jsonb_build_object('kind', 'service', 'label', (SELECT label FROM kc_core.concept c WHERE c.entity_id = e.entity_id))
+                       ELSE '{}' END
+          FROM kc_core.entity e
+        UNION ALL SELECT r.rule_id::text, 'rule', jsonb_build_object('id', r.rule_key, 'valid_from', lower(r.valid)::text,
+                         'kind', r.rule_kind, 'basis', r.basis, 'release', r.release_id, 'citation', a.citation,
+                         'page', r.source_locator ->> 'page', 'quote', r.source_quote)   -- the cited passage
+          FROM kc_core.rule r JOIN kc_core.authority a ON a.entity_id = r.authority_id WHERE upper_inf(r.recorded)
         UNION ALL SELECT snapshot_id::text, 'snapshot', jsonb_build_object('id', source_id, 'sha256', content_sha256,
                          'retrieved_at', retrieved_at::text) FROM kc_core.snapshot
         UNION ALL SELECT 'source:' || s.source_id, 'source', jsonb_build_object('id', s.source_id, 'url', s.url,
@@ -163,9 +186,12 @@ def main(argv: list[str]) -> int:
                     (release, now, git_commit(), now, digest, covers))
         cur.execute("UPDATE kc_core.rule SET release_id = %s WHERE release_id IS NULL", (release,))
         cur.execute("INSERT INTO kc_client.sync_log VALUES (%s, %s)", (now, release))
+        cur.execute(AGENT_ROLE_SQL)
         n_rules = cur.execute("SELECT count(*) FROM kc_core.rule WHERE status = 'active'").fetchone()[0]
         graph = None if args.no_graph else build_graph(cur, GRAPH)
 
+    t, c, o, d = owl_export(env.BUILD_DB)
+    print(f"ontology: release/kanini-context.ttl, {c} classes, {o} relations, {d} attributes")
     print(f"release {release}: {n_rules} active rules, digest {digest[:12]}, answers dates of service through {covers}")
     if graph:
         print(f"graph: {graph[0]} vertices, {graph[1]} edges")

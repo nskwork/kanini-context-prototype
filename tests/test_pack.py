@@ -12,11 +12,18 @@ def ev(kc, plan="original-medicare", state="TN", code="J0885", **f):
     return kc("rules_evaluate", plan=plan, state=state, code=code, date_of_service=DOS, facts=facts(**f))
 
 
-def test_no_pa_rests_on_every_bound_program(kc):
-    tn, oh = ev(kc), ev(kc, state="OH", diagnosis_codes=["D63.1", "N18.31"], egfr=52)
-    assert tn["prior_authorization"]["basis"] == ["stated_by_exhaustion"]
-    assert len(tn["prior_authorization"]["rule_refs"]) == 3          # HOPD, RSNAT, DMEPOS (national)
-    assert len(oh["prior_authorization"]["rule_refs"]) == 5          # plus home health RCD and WISeR in Ohio
+def test_no_pa_rests_on_every_bound_program(kc, asc_screened):
+    tn, oh, ky = (ev(kc), ev(kc, state="OH", diagnosis_codes=["D63.1", "N18.31"], egfr=52),
+                  ev(kc, state="KY", diagnosis_codes=["D63.1", "N18.31"], egfr=52))
+    # Kentucky (J15, like Ohio) has only the national programs: HOPD, RSNAT, DMEPOS, each screened
+    assert ky["prior_authorization"]["basis"] == ["stated_by_exhaustion"] and len(ky["prior_authorization"]["rule_refs"]) == 3
+    if asc_screened:
+        assert len(tn["prior_authorization"]["rule_refs"]) == 4      # plus the ASC demonstration
+        assert len(oh["prior_authorization"]["rule_refs"]) == 6      # plus home health RCD, WISeR and the ASC demonstration
+    else:
+        for out in (tn, oh):
+            assert out["prior_authorization"]["reason"] == "pa_program_not_screened"
+            assert out["prior_authorization"]["notes"] == ["not screened against: CMS ASC prior authorization demonstration"]
 
 
 def test_unscreened_program_turns_no_into_unknown(db):
@@ -195,3 +202,24 @@ def test_coverage_object_takes_no_patient_fields(kc):
     out = kc("resolve_rules", coverage={"program": "medicare_advantage", "plan": "uhc-ma", "state": "TN", "patient": "x"},
              rule_kind="approval_required", code="J1439", date=DOS)
     assert out["error"] == "unexpected field: coverage.patient"
+
+
+def test_tool_role_is_read_only(release):
+    import psycopg
+    import pytest as pt
+    with psycopg.connect("dbname=kct_client", autocommit=True) as c:
+        c.execute("SET ROLE kc_agent")
+        assert c.execute("SELECT count(*) FROM kc_core.rule").fetchone()[0] > 0
+        c.execute("INSERT INTO kc_client.tool_audit (tool, release_id, status, duration_ms) VALUES ('t','t','t',0)")
+        for sql in ("UPDATE kc_core.rule SET payload = '{}'", "INSERT INTO kc_client.sync_log VALUES (now(), 'x')",
+                    "DELETE FROM kc_client.tool_audit"):
+            with pt.raises(psycopg.errors.InsufficientPrivilege):
+                c.execute(sql)
+
+
+def test_ontology_file(release):
+    from rdflib import OWL, RDF, Graph
+    g = Graph().parse(ROOT / "kanini_context/release/kanini-context.ttl", format="turtle")
+    classes = {str(s).rsplit("#", 1)[1] for s in g.subjects(RDF.type, OWL.Class)}
+    assert {"Rule", "CoverageCriteria", "PaProgram", "Lcd"} <= classes
+    assert len(set(g.subjects(RDF.type, OWL.ObjectProperty))) == 17
