@@ -1,8 +1,17 @@
--- Read path behind the seven agent tools (proposal Appendix B.1). Deterministic: the same release,
+-- Read path behind the agent tools (proposal Appendix B.1). Deterministic: the same release,
 -- the same question and the same "as recorded" moment always return the same answer.
 -- Nothing here reads the wall clock directly: every freshness check is measured against
 -- p_recorded_as_of (default: now), so a past answer can be reproduced exactly for an appeal.
 -- The MCP server (Python) writes one kc_client.tool_audit row per call; these functions only read.
+--
+-- Prototype 1.0 changes from SQL v0.9:
+--   check_facts       number facts are range-checked ({"min","max"} in fact_type.allowed); dates must be real dates
+--   eval_conditions   adds the 'prefix_overlaps' operator (a code list against code prefixes, e.g. ICD-10-CM C)
+--   candidate_rules   step 4 of the resolver as its own function, shared by resolve_rules and applicable_rules
+--   resolve_rules     closed-list completeness check (a "not required" from closed lists needs every bound
+--                     prior authorization program to have been screened); rule_key and edition on each winner;
+--                     each requirement item carries its element id and the fact that holds its value
+--   get_documentation_form   items are joined on the element id rather than the code
 
 -------------------------------------------------------------------------------
 -- Facts: only registered facts are accepted (no free text, no patient identifiers)
@@ -13,9 +22,14 @@ CREATE FUNCTION kc_api.check_facts(p_facts jsonb) RETURNS text LANGUAGE sql STAB
       OR EXISTS (SELECT 1 FROM kc_meta.fact_type f WHERE f.fact = k AND (
              (f.value_type = 'enum'      AND NOT (f.allowed @> jsonb_build_array(p_facts -> k)))
           OR (f.value_type IN ('integer','number') AND jsonb_typeof(p_facts -> k) <> 'number')
+          OR (f.value_type IN ('integer','number') AND jsonb_typeof(p_facts -> k) = 'number' AND f.allowed IS NOT NULL
+              AND (CASE WHEN jsonb_typeof(p_facts -> k) = 'number'
+                        THEN (f.allowed ? 'min' AND (p_facts ->> k)::numeric < (f.allowed ->> 'min')::numeric)
+                          OR (f.allowed ? 'max' AND (p_facts ->> k)::numeric > (f.allowed ->> 'max')::numeric) END))
           OR (f.value_type = 'boolean'   AND jsonb_typeof(p_facts -> k) <> 'boolean')
           OR (f.value_type = 'date'      AND (jsonb_typeof(p_facts -> k) <> 'string'
-                                              OR (p_facts ->> k) !~ '^\d{4}-\d{2}-\d{2}$'))
+                                              OR (p_facts ->> k) !~ '^\d{4}-\d{2}-\d{2}$'
+                                              OR NOT pg_input_is_valid(p_facts ->> k, 'date')))
           OR (f.value_type = 'code_list' AND jsonb_typeof(p_facts -> k) <> 'array')))
 $$;
 
@@ -47,6 +61,9 @@ BEGIN
       WHEN 'neq'      THEN v <> c -> 'value'
       WHEN 'overlaps' THEN jsonb_typeof(v) = 'array'               -- e.g. any diagnosis in a list
                            AND EXISTS (SELECT 1 FROM jsonb_array_elements(v) a WHERE (c -> 'value') @> jsonb_build_array(a))
+      WHEN 'prefix_overlaps' THEN jsonb_typeof(v) = 'array'        -- e.g. any diagnosis starting with C (neoplasms)
+                           AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(v) a, jsonb_array_elements_text(c -> 'value') p
+                                        WHERE a LIKE p || '%')
       WHEN 'lt'  THEN kc_api.cmp_fact(v, c -> 'value') <  0
       WHEN 'lte' THEN kc_api.cmp_fact(v, c -> 'value') <= 0
       WHEN 'gt'  THEN kc_api.cmp_fact(v, c -> 'value') >  0
@@ -115,6 +132,129 @@ BEGIN
 END $$;
 
 -------------------------------------------------------------------------------
+-- candidate_rules: resolver steps 2 to 4 (spec section 7.2). Every approved rule that could answer this
+-- question: about the code or a group it belongs to, possibly in force on the date (or on any date, when
+-- p_any_date is true), within the coverage's scope, and from an authority bound to that coverage.
+-- Returns one JSON object per rule (without its condition result), ordered by layer, or NULL.
+-------------------------------------------------------------------------------
+CREATE FUNCTION kc_api.candidate_rules(
+  p_coverage jsonb, p_rule_kind text, p_code text, p_as_of date,
+  p_recorded_as_of timestamptz DEFAULT now(), p_any_date boolean DEFAULT false
+) RETURNS jsonb LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  c record; k record;
+  v_prog uuid; v_payer uuid; v_plan uuid; v_pos int; v_subjects uuid[]; v_jur uuid[]; v_lapse interval;
+  v_cands jsonb;
+BEGIN
+  SELECT * INTO k FROM kc_meta.rule_kind WHERE rule_kind = p_rule_kind;
+  SELECT * INTO c FROM kc_core.code
+   WHERE code_system_id = split_part(p_code, '|', 1) AND code = split_part(p_code, '|', 2)
+     AND recorded @> p_recorded_as_of
+   ORDER BY (valid @> p_as_of) DESC LIMIT 1;
+  IF NOT FOUND OR k.rule_kind IS NULL THEN RETURN NULL; END IF;
+
+  v_prog  := (SELECT entity_id FROM kc_core.program WHERE kind = p_coverage ->> 'program');
+  v_payer := (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'payer' AND natural_key = p_coverage ->> 'payer');
+  v_plan  := (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'plan'  AND natural_key = p_coverage ->> 'plan');
+  v_pos   := coalesce((p_coverage ->> 'payer_position')::int, 1);
+
+  -- Everything the code belongs to on that date: the code, its value sets, its concepts.
+  SELECT array_agg(DISTINCT s) INTO v_subjects FROM (
+    SELECT c.entity_id AS s
+    UNION SELECT m.value_set_id FROM kc_core.value_set_member m
+      WHERE m.code_system_id = c.code_system_id AND m.code = c.code AND (p_any_date OR m.valid @> p_as_of) AND m.recorded @> p_recorded_as_of
+    UNION SELECT vs.entity_id FROM kc_core.value_set vs
+      WHERE vs.definition = 'intensional' AND (vs.filter ->> 'item_type' = c.item_type OR vs.filter ? 'any')
+    UNION SELECT cm.concept_id FROM kc_core.concept_map cm
+      WHERE cm.code_system_id = c.code_system_id AND cm.code = c.code AND (p_any_date OR cm.valid @> p_as_of) AND cm.recorded @> p_recorded_as_of
+  ) x;
+
+  -- Places that apply: the nation, the state, and every region it sits within (any depth).
+  WITH RECURSIVE up(j) AS (
+      SELECT entity_id FROM kc_core.jurisdiction WHERE code IN ('US', p_coverage ->> 'state')
+      UNION SELECT e.to_id FROM kc_core.edge e JOIN up ON e.from_id = up.j
+       WHERE e.relation_type = 'within' AND e.valid @> p_as_of AND e.recorded @> p_recorded_as_of)
+  SELECT array_agg(j) INTO v_jur FROM up;
+
+  -- How long the client copy had gone without a sync, as of the moment asked about.
+  SELECT p_recorded_as_of - max(synced_at) INTO v_lapse FROM kc_client.sync_log WHERE synced_at <= p_recorded_as_of;
+  -- A copy that has never synced is treated as out of date, not as current.
+  v_lapse := coalesce(v_lapse, interval '9999 days');
+
+  SELECT jsonb_agg(jsonb_build_object(
+           'rule_id', r.rule_id, 'rule_key', r.rule_key, 'rule_kind', r.rule_kind, 'effect', r.effect, 'payload', r.payload,
+           'conditions', r.conditions,
+           'basis', r.basis, 'mapping_confidence', r.mapping_confidence, 'not_stated', to_jsonb(r.not_stated),
+           'layer', a.layer, 'lrank', kc_meta.layer_rank(a.layer), 'issuer', a.issuer_id, 'citation', a.citation, 'authority', a.title,
+           'authority_id', a.entity_id, 'authority_kind', a.kind, 'closed_list', a.closed_list, 'version', av.version_label,
+           'confirmed_valid', r.valid::text, 'uncertain', NOT (r.valid @> p_as_of),
+           'snapshot_id', r.snapshot_id, 'locator', r.source_locator, 'quote', r.source_quote,
+           'stale', coalesce(p_recorded_as_of - fr.last_ok > src.stale_after, false),
+           'aging', coalesce(p_recorded_as_of - fr.last_ok > src.aging_after, false),
+           'sync_aging', coalesce(v_lapse > sl.aging_after, false),
+           'out_of_sync', v_lapse IS NOT NULL AND v_lapse > sl.stop_after,
+           'pending_change', EXISTS (SELECT 1 FROM kc_gov.change_flag f WHERE f.source_id = src.source_id
+                                      AND f.detected_at <= p_recorded_as_of
+                                      AND (f.resolved_at IS NULL OR f.resolved_at > p_recorded_as_of)
+                                      AND (f.applies_from IS NULL OR f.applies_from <= p_as_of)),
+           'requirements', (SELECT coalesce(jsonb_agg(g ORDER BY g ->> 'group'), '[]') FROM (
+                               SELECT jsonb_build_object('group', rq.group_no, 'logic', min(rq.group_logic),
+                                        'items', jsonb_agg(jsonb_build_object('element', de.name,
+                                           'element_id', de.entity_id, 'fact', de.fact, 'unit', de.unit,
+                                           'system', de.code_system_id, 'loinc', de.code,
+                                           'test', rq.test, 'lookback', rq.lookback::text, 'when', rq.when_needed)
+                                           ORDER BY de.code, rq.test::text, de.name)) AS g
+                                 FROM kc_core.rule_requirement rq JOIN kc_core.data_element de ON de.entity_id = rq.data_element_id
+                                WHERE rq.rule_id = r.rule_id GROUP BY rq.group_no) gg))
+         ORDER BY kc_meta.layer_rank(a.layer), r.rule_id)
+    INTO v_cands
+    FROM kc_api.all_rule r
+    JOIN kc_api.all_authority a          ON a.entity_id = r.authority_id
+    JOIN kc_api.all_authority_version av ON av.authority_version_id = r.authority_version_id
+    LEFT JOIN kc_core.snapshot sn       ON sn.snapshot_id = r.snapshot_id
+    LEFT JOIN kc_core.source src        ON src.source_id = sn.source_id
+    LEFT JOIN LATERAL (SELECT max(checked_at) AS last_ok FROM kc_core.source_check sc
+                        WHERE sc.source_id = src.source_id AND sc.ok AND sc.checked_at <= p_recorded_as_of) fr ON true
+    LEFT JOIN kc_client.sync_limit sl   ON sl.source_class = src.source_class
+   WHERE r.status = 'active' AND r.recorded @> p_recorded_as_of
+     AND (a.layer <> 'CG' OR k.use_case = 'clinical_guidance')   -- guidance never decides a payer rule, but answers guidance questions
+     AND r.aspect = k.aspect
+     AND r.subject_id = ANY (v_subjects)
+     AND (p_any_date OR r.valid_possible @> p_as_of)
+     AND (r.program_id IS NULL OR r.program_id = v_prog)
+     AND (r.payer_id IS NULL OR r.payer_id = v_payer)
+     AND (r.plan_id IS NULL OR r.plan_id = v_plan)
+     AND (r.jurisdiction_id IS NULL OR r.jurisdiction_id = ANY (v_jur))
+     AND EXISTS (SELECT 1 FROM kc_api.all_binding b
+                  WHERE b.authority_id = r.authority_id AND b.recorded @> p_recorded_as_of AND (p_any_date OR b.valid @> p_as_of)
+                    AND (b.program_id IS NULL OR b.program_id = v_prog)
+                    AND (b.plan_id IS NULL OR b.plan_id = v_plan)
+                    AND (b.jurisdiction_id IS NULL OR b.jurisdiction_id = ANY (v_jur))
+                    AND (v_pos = 1 OR b.applies_when_secondary)
+                    AND (b.item_scope = 'all' OR b.item_scope =
+                         CASE WHEN c.item_type = 'drug' THEN 'drugs' ELSE 'items_and_services' END));
+  RETURN v_cands;
+END $$;
+
+-- The prior authorization programs bound to a coverage on a date (authority kind 'pa_program').
+-- A "not required" built from closed lists holds only when every one of these was screened.
+CREATE FUNCTION kc_api.bound_pa_programs(p_coverage jsonb, p_item_type text, p_as_of date,
+                                         p_recorded_as_of timestamptz DEFAULT now()) RETURNS jsonb
+LANGUAGE sql STABLE AS $$
+  WITH RECURSIVE up(j) AS (
+      SELECT entity_id FROM kc_core.jurisdiction WHERE code IN ('US', p_coverage ->> 'state')
+      UNION SELECT e.to_id FROM kc_core.edge e JOIN up ON e.from_id = up.j
+       WHERE e.relation_type = 'within' AND e.valid @> p_as_of AND e.recorded @> p_recorded_as_of)
+  SELECT coalesce(jsonb_agg(DISTINCT jsonb_build_object('authority_id', a.entity_id, 'citation', a.citation,
+                                                        'closed_list', a.closed_list)), '[]')
+    FROM kc_api.all_authority a JOIN kc_api.all_binding b ON b.authority_id = a.entity_id
+   WHERE a.kind = 'pa_program' AND b.recorded @> p_recorded_as_of AND b.valid @> p_as_of
+     AND (b.program_id IS NULL OR b.program_id = (SELECT entity_id FROM kc_core.program WHERE kind = p_coverage ->> 'program'))
+     AND (b.jurisdiction_id IS NULL OR b.jurisdiction_id IN (SELECT j FROM up))
+     AND (b.item_scope = 'all' OR b.item_scope = CASE WHEN p_item_type = 'drug' THEN 'drugs' ELSE 'items_and_services' END)
+$$;
+
+-------------------------------------------------------------------------------
 -- resolve_rules: what the rules say about one code, for one coverage, on one date
 -------------------------------------------------------------------------------
 CREATE FUNCTION kc_api.resolve_rules(
@@ -127,11 +267,11 @@ CREATE FUNCTION kc_api.resolve_rules(
 ) RETURNS jsonb LANGUAGE plpgsql STABLE AS $$
 DECLARE
   c record; k record; m text; v_bad text;
-  v_prog uuid; v_payer uuid; v_plan uuid; v_pos int; v_subjects uuid[]; v_jur uuid[];
+  v_payer uuid; v_pos int;
   v_cands jsonb; v_live jsonb; v_win jsonb; v_missing jsonb; v_lay text;
   v_status text := 'resolved'; v_reason text; v_result jsonb; v_notes text[] := '{}';
-  v_reasons text[] := '{}'; v_actionable boolean; v_next text; v_lapse interval;
-  v_cap numeric; v_floor numeric; v_val numeric; v_payload jsonb; v_kept jsonb;
+  v_reasons text[] := '{}'; v_actionable boolean; v_next text;
+  v_cap numeric; v_floor numeric; v_val numeric; v_payload jsonb; v_kept jsonb; v_unscreened jsonb;
 BEGIN
   SELECT * INTO k FROM kc_meta.rule_kind WHERE rule_kind = p_rule_kind;
   IF NOT FOUND THEN RETURN jsonb_build_object('status','invalid_input','reason','unknown_rule_kind','actionable',false); END IF;
@@ -152,85 +292,14 @@ BEGIN
                               'replaced_by', to_jsonb(c.replaced_by),'next_step','validate_codes');
   END IF;
 
-  v_prog  := (SELECT entity_id FROM kc_core.program WHERE kind = p_coverage ->> 'program');
   v_payer := (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'payer' AND natural_key = p_coverage ->> 'payer');
-  v_plan  := (SELECT entity_id FROM kc_core.entity WHERE entity_type = 'plan'  AND natural_key = p_coverage ->> 'plan');
   v_pos   := coalesce((p_coverage ->> 'payer_position')::int, 1);
 
-  -- 2. Everything the code belongs to on that date: the code, its value sets, its concepts.
-  SELECT array_agg(DISTINCT s) INTO v_subjects FROM (
-    SELECT c.entity_id AS s
-    UNION SELECT m.value_set_id FROM kc_core.value_set_member m
-      WHERE m.code_system_id = c.code_system_id AND m.code = c.code AND m.valid @> p_as_of AND m.recorded @> p_recorded_as_of
-    UNION SELECT vs.entity_id FROM kc_core.value_set vs
-      WHERE vs.definition = 'intensional' AND (vs.filter ->> 'item_type' = c.item_type OR vs.filter ? 'any')
-    UNION SELECT cm.concept_id FROM kc_core.concept_map cm
-      WHERE cm.code_system_id = c.code_system_id AND cm.code = c.code AND cm.valid @> p_as_of AND cm.recorded @> p_recorded_as_of
-  ) x;
-
-  -- 3. Places that apply: the nation, the state, and every region it sits within (any depth).
-  WITH RECURSIVE up(j) AS (
-      SELECT entity_id FROM kc_core.jurisdiction WHERE code IN ('US', p_coverage ->> 'state')
-      UNION SELECT e.to_id FROM kc_core.edge e JOIN up ON e.from_id = up.j
-       WHERE e.relation_type = 'within' AND e.valid @> p_as_of AND e.recorded @> p_recorded_as_of)
-  SELECT array_agg(j) INTO v_jur FROM up;
-
-  -- How long the client copy had gone without a sync, as of the moment asked about.
-  SELECT p_recorded_as_of - max(synced_at) INTO v_lapse FROM kc_client.sync_log WHERE synced_at <= p_recorded_as_of;
-  -- A copy that has never synced is treated as out of date, not as current.
-  v_lapse := coalesce(v_lapse, interval '9999 days');
-
-  -- 4. Candidate rules (shared release plus the client's own T5 layer).
-  SELECT jsonb_agg(jsonb_build_object(
-           'rule_id', r.rule_id, 'rule_kind', r.rule_kind, 'effect', r.effect, 'payload', r.payload,
-           'basis', r.basis, 'mapping_confidence', r.mapping_confidence, 'not_stated', to_jsonb(r.not_stated),
-           'layer', a.layer, 'lrank', kc_meta.layer_rank(a.layer), 'issuer', a.issuer_id, 'citation', a.citation, 'authority', a.title, 'version', av.version_label,
-           'confirmed_valid', r.valid::text, 'uncertain', NOT (r.valid @> p_as_of),
-           'cond', kc_api.eval_conditions(r.conditions, coalesce(p_facts,'{}')),
-           'snapshot_id', r.snapshot_id, 'locator', r.source_locator, 'quote', r.source_quote,
-           'stale', coalesce(p_recorded_as_of - fr.last_ok > src.stale_after, false),
-           'aging', coalesce(p_recorded_as_of - fr.last_ok > src.aging_after, false),
-           'sync_aging', coalesce(v_lapse > sl.aging_after, false),
-           'out_of_sync', v_lapse IS NOT NULL AND v_lapse > sl.stop_after,
-           'pending_change', EXISTS (SELECT 1 FROM kc_gov.change_flag f WHERE f.source_id = src.source_id
-                                      AND f.detected_at <= p_recorded_as_of
-                                      AND (f.resolved_at IS NULL OR f.resolved_at > p_recorded_as_of)
-                                      AND (f.applies_from IS NULL OR f.applies_from <= p_as_of)),
-           'requirements', (SELECT coalesce(jsonb_agg(g ORDER BY g ->> 'group'), '[]') FROM (
-                               SELECT jsonb_build_object('group', rq.group_no, 'logic', min(rq.group_logic),
-                                        'items', jsonb_agg(jsonb_build_object('element', de.name,
-                                           'system', de.code_system_id, 'loinc', de.code,
-                                           'test', rq.test, 'lookback', rq.lookback::text, 'when', rq.when_needed)
-                                           ORDER BY de.code, rq.test::text)) AS g
-                                 FROM kc_core.rule_requirement rq JOIN kc_core.data_element de ON de.entity_id = rq.data_element_id
-                                WHERE rq.rule_id = r.rule_id GROUP BY rq.group_no) gg))
-         ORDER BY kc_meta.layer_rank(a.layer), r.rule_id)
+  -- 2 to 4. Candidate rules (shared release plus the client's own T5 layer), with each rule's conditions tested.
+  SELECT jsonb_agg(x || jsonb_build_object('cond', kc_api.eval_conditions(x -> 'conditions', coalesce(p_facts,'{}')))
+                   ORDER BY (x ->> 'lrank')::int, x ->> 'rule_id')
     INTO v_cands
-    FROM kc_api.all_rule r
-    JOIN kc_api.all_authority a          ON a.entity_id = r.authority_id
-    JOIN kc_api.all_authority_version av ON av.authority_version_id = r.authority_version_id
-    LEFT JOIN kc_core.snapshot sn       ON sn.snapshot_id = r.snapshot_id
-    LEFT JOIN kc_core.source src        ON src.source_id = sn.source_id
-    LEFT JOIN LATERAL (SELECT max(checked_at) AS last_ok FROM kc_core.source_check sc
-                        WHERE sc.source_id = src.source_id AND sc.ok AND sc.checked_at <= p_recorded_as_of) fr ON true
-    LEFT JOIN kc_client.sync_limit sl   ON sl.source_class = src.source_class
-   WHERE r.status = 'active' AND r.recorded @> p_recorded_as_of
-     AND (a.layer <> 'CG' OR k.use_case = 'clinical_guidance')   -- guidance never decides a payer rule, but answers guidance questions
-     AND r.aspect = k.aspect
-     AND r.subject_id = ANY (v_subjects)
-     AND r.valid_possible @> p_as_of
-     AND (r.program_id IS NULL OR r.program_id = v_prog)
-     AND (r.payer_id IS NULL OR r.payer_id = v_payer)
-     AND (r.plan_id IS NULL OR r.plan_id = v_plan)
-     AND (r.jurisdiction_id IS NULL OR r.jurisdiction_id = ANY (v_jur))
-     AND EXISTS (SELECT 1 FROM kc_api.all_binding b
-                  WHERE b.authority_id = r.authority_id AND b.recorded @> p_recorded_as_of AND b.valid @> p_as_of
-                    AND (b.program_id IS NULL OR b.program_id = v_prog)
-                    AND (b.plan_id IS NULL OR b.plan_id = v_plan)
-                    AND (b.jurisdiction_id IS NULL OR b.jurisdiction_id = ANY (v_jur))
-                    AND (v_pos = 1 OR b.applies_when_secondary)
-                    AND (b.item_scope = 'all' OR b.item_scope =
-                         CASE WHEN c.item_type = 'drug' THEN 'drugs' ELSE 'items_and_services' END));
+    FROM jsonb_array_elements(kc_api.candidate_rules(p_coverage, p_rule_kind, p_code, p_as_of, p_recorded_as_of)) x;
 
   IF v_cands IS NULL THEN
     v_status := 'no_rule_found'; v_reason := 'no_reviewed_rule_in_scope';
@@ -326,6 +395,7 @@ BEGIN
                THEN to_jsonb('required'::text) ELSE to_jsonb('not_required'::text) END
         WHEN k.measures IS NOT NULL THEN v_payload
         WHEN k.aspect = 'documentation' THEN to_jsonb('all_rules_apply'::text)
+        WHEN k.aspect = 'coverage' THEN to_jsonb('criteria_apply'::text)
         -- any other rule kind (other workflows): every applicable rule's payload, so new kinds need no resolver change
         ELSE (SELECT jsonb_agg(jsonb_build_object('rule_id', x -> 'rule_id', 'layer', x -> 'layer', 'payload', x -> 'payload')
                                ORDER BY (x ->> 'lrank')::int, x ->> 'rule_id') FROM jsonb_array_elements(v_win) x) END,
@@ -336,6 +406,21 @@ BEGIN
                     'logic', coalesce(x -> 'payload' -> 'logic', '"all"'), 'groups', x -> 'requirements')
                     ORDER BY (x ->> 'lrank')::int), '[]') FROM jsonb_array_elements(v_win) x)
         ELSE '[]'::jsonb END);
+
+    -- 6b. A "not required" that rests on closed lists holds only if every prior authorization program bound to
+    --     this coverage was screened for this item. One unscreened program makes it "no rule found", never a "no".
+    IF v_status = 'resolved' AND k.aspect = 'approval' AND v_result ->> 'value' = 'not_required'
+       AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_win) x WHERE x ->> 'basis' = 'closed_list') THEN
+      SELECT jsonb_agg(p -> 'citation' ORDER BY p ->> 'citation') INTO v_unscreened
+        FROM jsonb_array_elements(kc_api.bound_pa_programs(p_coverage, c.item_type, p_as_of, p_recorded_as_of)) p
+       WHERE NOT (p ->> 'closed_list')::boolean
+          OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_win) x
+                          WHERE x ->> 'authority_id' = p ->> 'authority_id' AND x ->> 'basis' = 'closed_list');
+      IF v_unscreened IS NOT NULL THEN
+        v_status := 'no_rule_found'; v_reason := 'pa_program_not_screened';
+        v_notes := array_append(v_notes, 'not screened against: ' || (SELECT string_agg(t, '; ') FROM jsonb_array_elements_text(v_unscreened) t));
+      END IF;
+    END IF;
 
     -- 7. Honest status: uncertain dates, unreviewed changes, stale sources and a lapsed copy block action.
     IF v_status = 'resolved' THEN
@@ -351,7 +436,7 @@ BEGIN
     END IF;
   END IF;
 
-  -- 8. The safe-to-act flag and the reasons when it is false.
+  -- 8. The safe-to-act flag and the reasons when it is false. A closed-list "not required" counts as stated.
   IF v_status = 'resolved' THEN
     IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_win) x WHERE x ->> 'basis' = 'interpreted') THEN
       v_reasons := array_append(v_reasons, 'basis_interpreted'::text); END IF;
@@ -386,7 +471,8 @@ BEGIN
     'status', v_status, 'reason', v_reason,
     'actionable', v_actionable, 'actionable_reasons', to_jsonb(v_reasons),
     'result', v_result, 'notes', to_jsonb(v_notes),
-    'winning_rules', (SELECT jsonb_agg(jsonb_build_object('rule_id', x -> 'rule_id', 'layer', x -> 'layer',
+    'winning_rules', (SELECT jsonb_agg(jsonb_build_object('rule_id', x -> 'rule_id', 'rule_key', x -> 'rule_key',
+                        'version', x -> 'version', 'layer', x -> 'layer',
                         'rule_kind', x -> 'rule_kind', 'effect', x -> 'effect', 'payload', x -> 'payload',
                         'basis', x -> 'basis', 'mapping_confidence', x -> 'mapping_confidence',
                         'confirmed_valid', x -> 'confirmed_valid', 'not_stated', x -> 'not_stated'))
@@ -472,7 +558,7 @@ BEGIN
     FROM jsonb_array_elements(coalesce(v_doc -> 'result' -> 'requirements', '[]')) rq,
          jsonb_array_elements(rq -> 'groups') g,
          jsonb_array_elements(g -> 'items') it
-    JOIN kc_core.data_element de ON de.code_system_id IS NOT DISTINCT FROM it ->> 'system' AND de.code = it ->> 'loinc'
+    JOIN kc_core.data_element de ON de.entity_id = (it ->> 'element_id')::uuid
     LEFT JOIN kc_core.code_system cs ON cs.code_system_id = de.code_system_id
    WHERE v_rt IS NULL OR it ->> 'when' IN ('both','always', v_rt);
 

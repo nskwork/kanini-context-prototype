@@ -1,6 +1,16 @@
--- Kanini Context: physical schema, draft 0.9
+-- Kanini Context: physical schema, prototype 1.0 (from spec v1.5 / SQL v0.9)
 -- Target: Azure Database for PostgreSQL, Flexible Server. Tested on PostgreSQL 16.
 -- Field names follow Appendix B of the research proposal.
+--
+-- Changes from SQL v0.9, each an extension the spec allows (spec section 7.6):
+--   fact_type.allowed      may hold {"min":..,"max":..} for number facts (lab values are range-checked)
+--   authority.kind         adds 'pa_program' (a Medicare FFS prior authorization program)
+--   authority.closed_list  the source lists everything it covers, so absence from it is meaningful
+--   rule.basis             adds 'closed_list' (stated by a complete list: proposal section 10.4)
+--   rule.rule_key          a readable rule id such as kc:rule/esa-ckd-nd/L39237, shared by its versions
+--   data_element.fact      the registered fact that carries the element's value
+--   kc_gov.release.covers_through   last date of service the release answers for
+--   graph_edges            adds documented_by, issued_in and replaced_by, so every relation appears
 --
 -- Valid time:  when a fact is true in the real world. Stored as four bounds so an
 --              uncertain start or end is never turned into an invented date:
@@ -64,7 +74,7 @@ CREATE FUNCTION kc_meta.layer_rank(l text) RETURNS int LANGUAGE sql IMMUTABLE AS
 CREATE TABLE kc_meta.fact_type (                        -- facts a caller may pass; no free text
   fact        text PRIMARY KEY,
   value_type  text NOT NULL CHECK (value_type IN ('enum','code_list','integer','number','boolean','date')),
-  allowed     jsonb,                                     -- allowed values for enums
+  allowed     jsonb,                                     -- allowed values for enums; {"min":..,"max":..} for numbers
   description text NOT NULL
 );
 
@@ -236,11 +246,12 @@ CREATE TABLE kc_core.jurisdiction (
 CREATE TABLE kc_core.authority (
   entity_id uuid PRIMARY KEY REFERENCES kc_core.entity,
   kind      text NOT NULL CHECK (kind IN ('statute','regulation','ncd','lcd','billing_article',
-                 'state_rule','state_manual','payer_policy','payer_list','plan_document','guideline')),
+                 'state_rule','state_manual','payer_policy','payer_list','plan_document','guideline','pa_program')),
   issuer_id uuid REFERENCES kc_core.entity,
   citation  text NOT NULL,
   layer     text NOT NULL CHECK (layer IN ('T0','T1','T2','T3','T4','T5','CG')),
-  title     text NOT NULL
+  title     text NOT NULL,
+  closed_list boolean NOT NULL DEFAULT false   -- the source lists everything it covers (a reviewer confirms this)
 );
 
 CREATE TABLE kc_core.authority_version (    -- relation: issued_in (authority -> snapshot)
@@ -286,7 +297,8 @@ CREATE TABLE kc_core.data_element (
   code            text,                       -- LOINC for labs, ICD-10-CM for diagnoses
   value_type      text NOT NULL CHECK (value_type IN ('quantity','coded','boolean','date','attachment')),
   unit            text,                       -- UCUM
-  us_core_profile text
+  us_core_profile text,
+  fact            text REFERENCES kc_meta.fact_type   -- the registered fact that carries this element's value
 );
 
 CREATE TABLE kc_core.knowledge_artifact (   -- an insurer questionnaire or logic library
@@ -360,6 +372,7 @@ CREATE TRIGGER edge_types BEFORE INSERT OR UPDATE ON kc_core.edge
 -------------------------------------------------------------------------------
 CREATE TABLE kc_core.rule (
   rule_id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  rule_key             text,                         -- readable id shared by every version, e.g. kc:rule/esa-ckd-nd/L39237
   rule_kind            text NOT NULL REFERENCES kc_meta.rule_kind,
   aspect               text NOT NULL,
   subject_id           uuid NOT NULL REFERENCES kc_core.entity,     -- about
@@ -372,7 +385,8 @@ CREATE TABLE kc_core.rule (
   effect               text NOT NULL CHECK (effect IN ('override','ceiling','floor','additive')),
   conditions           jsonb NOT NULL DEFAULT '[]',  -- [{"fact":"encounter_type","op":"in","value":["emergency"]}]
   payload              jsonb NOT NULL DEFAULT '{}',
-  basis                text NOT NULL CHECK (basis IN ('stated','interpreted')),
+  basis                text NOT NULL CHECK (basis IN ('stated','interpreted','closed_list')),
+                         -- closed_list: a complete list states it by not listing the item (authority.closed_list)
   mapping_confidence   numeric(3,2),                 -- set when basis = 'interpreted'
   not_stated           text[] NOT NULL DEFAULT '{}',
   date_basis           text NOT NULL DEFAULT 'date_of_service'
@@ -405,7 +419,7 @@ CREATE TABLE kc_core.rule (
   CHECK (valid_to_lo IS NULL OR valid_to_hi IS NULL OR valid_to_lo <= valid_to_hi),
   CHECK (valid_to_lo IS NULL OR valid_from_hi < valid_to_lo),
   CHECK (status <> 'active' OR kc_core.n_approvers(reviewed_by) >= 2),
-  CHECK (basis = 'stated' OR mapping_confidence IS NOT NULL),
+  CHECK (basis <> 'interpreted' OR mapping_confidence IS NOT NULL),
   -- one authority, subject, rule kind, aspect and scope: no two current active versions
   -- may both be confirmed valid on the same date
   EXCLUDE USING gist (authority_id WITH =, subject_id WITH =, rule_kind WITH =, aspect WITH =,
@@ -462,7 +476,8 @@ CREATE TABLE kc_gov.release (
   git_commit   text NOT NULL,
   record_as_of timestamptz NOT NULL,
   digest       text NOT NULL,
-  status       text NOT NULL CHECK (status IN ('built','tested','published','withdrawn'))
+  status       text NOT NULL CHECK (status IN ('built','tested','published','withdrawn')),
+  covers_through date                        -- last date of service this release answers for
 );
 
 -- History is never deleted. A correction or a retirement closes the old row in record time and adds a new one,
@@ -586,4 +601,11 @@ CREATE VIEW kc_core.graph_edges AS
   UNION ALL SELECT 'requires', q.rule_id, q.data_element_id, daterange(NULL,NULL), tstzrange(NULL,NULL) FROM kc_core.rule_requirement q
   UNION ALL SELECT 'binds', b.authority_id, coalesce(b.plan_id, b.program_id, b.jurisdiction_id), b.valid, b.recorded
     FROM kc_core.authority_binding b
-  UNION ALL SELECT 'exposes', e.payer_id, e.entity_id, e.valid, tstzrange(NULL,NULL) FROM kc_core.endpoint e;
+  UNION ALL SELECT 'exposes', e.payer_id, e.entity_id, e.valid, tstzrange(NULL,NULL) FROM kc_core.endpoint e
+  UNION ALL SELECT 'documented_by', r.rule_id, r.knowledge_artifact_id, r.valid, r.recorded
+    FROM kc_core.rule r WHERE r.knowledge_artifact_id IS NOT NULL
+  UNION ALL SELECT 'issued_in', v.authority_id, v.snapshot_id, v.valid, v.recorded FROM kc_core.authority_version v
+  UNION ALL SELECT 'replaced_by', c.entity_id, n.entity_id, c.valid, c.recorded
+    FROM kc_core.code c JOIN kc_core.code n ON n.code_system_id = c.code_system_id AND n.code = ANY (c.replaced_by)
+                                            AND upper_inf(n.recorded)
+   WHERE upper_inf(c.recorded);
