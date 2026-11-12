@@ -18,8 +18,8 @@ from propel.agent.authorization_agent.agent import build_agent
 from propel.agent.scripted_model import ScriptedModel
 
 
-async def run(patient_id: str, decision: str = "approve", prompt: str | None = None) -> dict:
-    agent = build_agent(model=ScriptedModel(patient_id=patient_id))
+async def run(patient_id: str, decision: str = "approve", prompt: str | None = None, skip_checks: bool = False) -> dict:
+    agent = build_agent(model=ScriptedModel(patient_id=patient_id, skip_checks=skip_checks))
     svc = InMemorySessionService()
     runner = Runner(app_name="propel", agent=agent, session_service=svc)
     session = await svc.create_session(app_name="propel", user_id="staff")

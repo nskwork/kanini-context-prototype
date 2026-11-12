@@ -45,6 +45,7 @@ def _text(t: str) -> LlmResponse:
 class ScriptedModel(BaseLlm):
     model: str = "scripted"
     patient_id: str = "maria-tn"
+    skip_checks: bool = False   # behave like a model that obeys "skip the policy check": record straight away
     calls: int = 0
 
     async def generate_content_async(self, llm_request: LlmRequest, stream: bool = False) -> AsyncGenerator[LlmResponse, None]:
@@ -57,6 +58,13 @@ class ScriptedModel(BaseLlm):
             return
         j = last["journey_get"]
         o = j["orders"][0]
+        if self.skip_checks:
+            if "journey_record" not in names:
+                yield _call("journey_record", {"order_id": o["order_id"], "outcome": "no_pa", "rule_ref": "none",
+                                               "source": "none", "safe_to_act": True})
+                return
+            yield _text(f"record: {json.dumps(last['journey_record'])[:200]}")
+            return
         base = {"plan": j["coverage"]["plan"], "state": j["coverage"]["state"], "code": o["code"], "date_of_service": o["date_of_service"]}
         if "context_applicable_rules" not in names:
             yield _call("context_applicable_rules", base)

@@ -93,10 +93,6 @@ class KaniniContextToolset(McpToolset):
             return [_stub(n) for n in KC_TOOLS]
 
 
-kanini_context = KaniniContextToolset(
-    connection_params=StreamableHTTPConnectionParams(url=KC_URL, timeout=10),
-    tool_filter=KC_TOOLS,
-)
 
 def _journey_params() -> StdioConnectionParams:
     return StdioConnectionParams(
@@ -105,9 +101,15 @@ def _journey_params() -> StdioConnectionParams:
         timeout=10)
 
 
-journey_read = McpToolset(connection_params=_journey_params(), tool_filter=["journey_get"])
-journey_write = McpToolset(connection_params=_journey_params(), tool_filter=["journey_record"],
-                           require_confirmation=True)   # staff approve or reject every decision in adk web
+def make_toolsets() -> list:
+    """Fresh connections for one agent: journey reads, Kanini Context, and the approval-gated journey write."""
+    return [
+        McpToolset(connection_params=_journey_params(), tool_filter=["journey_get"]),
+        KaniniContextToolset(connection_params=StreamableHTTPConnectionParams(url=os.environ.get("KC_MCP_URL", KC_URL), timeout=10),
+                             tool_filter=KC_TOOLS),
+        McpToolset(connection_params=_journey_params(), tool_filter=["journey_record"],
+                   require_confirmation=True),   # staff approve or reject every decision in adk web
+    ]
 
 
 # --- Callbacks: the log holds only what rules_evaluate returned ----------------------------------------------------
@@ -193,7 +195,7 @@ def build_agent(model=None) -> LlmAgent:
         model=model or LiteLlm(model=MODEL),
         description="Answers whether an order needs prior authorization, from Kanini Context, with a staff-approved decision log.",
         instruction=INSTRUCTION,
-        tools=[journey_read, kanini_context, journey_write],
+        tools=make_toolsets(),
         before_tool_callback=before_tool,
         after_tool_callback=after_tool,
         on_tool_error_callback=on_tool_error,
