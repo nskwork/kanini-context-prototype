@@ -50,8 +50,8 @@ def conn() -> psycopg.Connection:
     return _conn
 
 
-def invalid(reason: str) -> dict:
-    return {"status": "invalid_input", "reason": reason, "safe_to_act": False, "next_step": "fix_input"}
+def invalid(error: str) -> dict:
+    return {"status": "invalid_input", "error": error, "safe_to_act": False, "next_step": "fix_input"}
 
 
 def norm_code(code: str) -> str | None:
@@ -59,6 +59,21 @@ def norm_code(code: str) -> str | None:
     if "|" not in c:
         c = "HCPCS|" + c
     return c if re.fullmatch(r"HCPCS\|[A-Z]\d{4}", c) else None
+
+
+def norm_item(service: str, code: str) -> tuple[str | None, str | None]:
+    """An order item: a HCPCS code, or a service concept key such as esa-ckd-nd. Returns (item, error)."""
+    if code.strip():
+        c = norm_code(code)
+        return (c, None) if c else (None, "code must be a HCPCS code such as J0885")
+    sv = service.strip()
+    if not sv:
+        return None, "missing field: service (or code)"
+    if norm_code(sv) and re.fullmatch(r"(HCPCS\|)?[A-Za-z]\d{4}", sv):
+        return norm_code(sv), None
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", sv):
+        return None, "service must be a service key such as esa-ckd-nd, or a HCPCS code"
+    return sv, None
 
 
 def norm_date(d: str) -> str | None:
@@ -74,6 +89,8 @@ def call(tool: str, sql: str, args: tuple) -> dict:
         c = conn()
         out = c.execute(sql, args).fetchone()[0]
         ms = (time.perf_counter() - t0) * 1000
+        if out.get("status") == "invalid_input":   # refused input is not logged
+            return out
         refs = out.get("rule_refs") or [r["rule_ref"] for r in out.get("rules", []) + out.get("results", []) if "rule_ref" in r] \
             or ([out["rule_ref"]] if isinstance(out.get("rule_ref"), str) else [])
         keys = [r.split("@", 1)[0] for r in refs if r]
@@ -92,25 +109,28 @@ mcp = FastMCP(
 
 
 @mcp.tool
-def context_applicable_rules(plan: str, state: str, code: str, date_of_service: str) -> dict:
-    """Which reviewed rules apply to an order before any patient facts, and the facts and documents they need.
+def context_applicable_rules(plan: str, state: str, date_of_service: str, service: str = "", code: str = "") -> dict:
+    """Which reviewed rules apply to an order before any patient facts, each with its rule_ref (rule@edition), source,
+    and the facts and documents it needs. Call this first, then rules_evaluate with the facts it lists.
 
-    plan: one of """ + PLANS + """. state: two-letter US state of the patient.
-    code: HCPCS code, e.g. J0885 or HCPCS|J0885. date_of_service: YYYY-MM-DD.
+    plan: one of """ + PLANS + """. state: two-letter US state of the patient. date_of_service: YYYY-MM-DD.
+    service: a service key such as esa-ckd-nd (ESA, CKD not on dialysis), or code: a HCPCS code such as J0885 or J1439.
     """
-    c, d = norm_code(code), norm_date(date_of_service)
-    if not c:
-        return invalid("code must be a HCPCS code such as J0885")
+    item, err = norm_item(service, code)
+    if err:
+        return invalid(err)
+    d = norm_date(date_of_service)
     if not d:
         return invalid("date_of_service must be YYYY-MM-DD")
-    return call("context_applicable_rules", "SELECT kc_api.applicable_rules(%s, %s, %s, %s::date)", (plan, state, c, d))
+    return call("context_applicable_rules", "SELECT kc_api.applicable_rules(%s, %s, %s, %s::date)", (plan, state, item, d))
 
 
 @mcp.tool
 def rules_evaluate(plan: str, state: str, code: str, date_of_service: str, facts: dict[str, Any] | None = None) -> dict:
-    """The decision packet for one order: prior authorization outcome (pa_required, no_pa, exempt, needs_facts, unknown),
-    coverage criteria checked against the facts (met, not_met with reasons, or unknown with missing_facts), documentation,
-    decision clock, submission route, rule_refs, sources, freshness, safe_to_act and next_step.
+    """The decision for one order. outcome: pa_required, no_pa, exempt, other_gate (coverage criteria not met),
+    needs_facts or unknown; with reasons, safe_to_act, next_step and next_step_detail, missing_facts, the coverage
+    criteria checked against the facts, evidence to send, decision_clock, route, primary_rule, rule_refs and sources.
+    The outcome always comes from this tool; never state one it did not return.
 
     plan: one of """ + PLANS + """. state: two-letter US state. code: HCPCS code. date_of_service: YYYY-MM-DD.
     facts: """ + FACTS_HELP
@@ -144,16 +164,12 @@ class InvalidInputAsAnswer(Middleware):
         except Exception as ex:   # validation errors raised before the tool runs
             errs = getattr(ex.__cause__ or ex, "errors", None)
             if callable(errs):
-                parts = [f"{e['type'].replace('_argument', '').replace('_keyword', '')}: {'.'.join(map(str, e['loc'][-1:]))}"
-                         for e in errs()]
-                msg = "; ".join(parts)
+                words = {"missing_argument": "missing field", "missing": "missing field",
+                         "unexpected_keyword_argument": "unexpected field"}
+                msg = "; ".join(f"{words.get(e['type'], 'invalid field')}: {e['loc'][-1]}" for e in errs())
             else:
                 msg = str(ex).splitlines()[0][:300]
-            body = invalid(f"malformed call to {context.message.name}: {msg}")
-            with _lock:
-                conn().execute("""INSERT INTO kc_client.tool_audit (tool, release_id, status, duration_ms)
-                                  VALUES (%s, coalesce(current_setting('kc.release', true), 'none'), 'invalid_input', 0)""",
-                               (context.message.name,))
+            body = invalid(msg)   # refused input is not logged
             return ToolResult(content=json.dumps(body), structured_content=body)
 
 

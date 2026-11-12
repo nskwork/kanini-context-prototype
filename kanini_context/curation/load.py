@@ -155,9 +155,11 @@ def load_codes(cur, e: dict, snap, approvers, exception):
         system, code = c["code"].split("|", 1)
         if cur.execute("SELECT 1 FROM kc_core.code WHERE code_system_id=%s AND code=%s", (system, code)).fetchone():
             continue   # the same code drafted from two sources is loaded once, from the first
+        # The policy lists the code but does not say when the code set created it, and the HCPCS file is not loaded in the
+        # prototype, so the code's own dates stay open. The policy's dates go on its concept maps and rules instead.
         cur.execute("""INSERT INTO kc_core.code (entity_id, code_system_id, code, display, item_type, valid, first_release, snapshot_id)
-                       VALUES (kc_core.eid('code', %s), %s, %s, %s, %s, daterange(%s, NULL), %s, %s)""",
-                    (c["code"], system, code, c["display"], c["item_type"], e["codes_valid_from"], e["edition"]["label"], snap))
+                       VALUES (kc_core.eid('code', %s), %s, %s, %s, %s, daterange(NULL, NULL), %s, %s)""",
+                    (c["code"], system, code, c["display"], c["item_type"], f"listed in {e['authority']['citation']}", snap))
     for cp in e.get("concepts", []):
         cid = eid(cur, "concept", cp["key"])
         cur.execute("INSERT INTO kc_core.concept VALUES (%s,%s,%s)", (cid, cp["label"], cp["definition"]))
@@ -189,6 +191,7 @@ def insert_rule(cur, *, r: dict, aid, avid, ed: dict, snap, approvers, exception
     if "quote_continued" in r:
         locator["continued"] = r["quote_continued"]
         quote = f"{quote} {r['quote_continued']['quote']}"
+    # A rule may start later than its edition (its own "valid_from", stated by the source)
     rid = one(cur, """INSERT INTO kc_core.rule
           (rule_key, rule_kind, aspect, subject_id, authority_id, authority_version_id, program_id, payer_id, plan_id,
            jurisdiction_id, effect, conditions, payload, basis, mapping_confidence, not_stated,
@@ -199,7 +202,8 @@ def insert_rule(cur, *, r: dict, aid, avid, ed: dict, snap, approvers, exception
           (r["rule_key"], r["rule_kind"], kind[0], subject_id(cur, r["subject"]), aid, avid,
            s["program"], s["payer"], s["plan"], s["jurisdiction"], r.get("effect", kind[1]),
            Jsonb(r.get("conditions", [])), Jsonb(r["payload"]), r["basis"], r.get("mapping_confidence"),
-           r.get("not_stated", []), ed["valid_from_basis"], ed["valid_from"], ed["valid_from"], ed.get("valid_to"), ed.get("valid_to"),
+           r.get("not_stated", []), "stated" if "valid_from" in r else ed["valid_from_basis"],
+           r.get("valid_from", ed["valid_from"]), r.get("valid_from", ed["valid_from"]), ed.get("valid_to"), ed.get("valid_to"),
            snap, Jsonb(locator), quote, r["extracted_by"], approvers, exception, license_class))
     for rq in r.get("requirements", []):
         de = one(cur, "SELECT entity_id FROM kc_core.entity WHERE entity_type='data_element' AND natural_key=%s", (rq["element"],))
@@ -279,6 +283,10 @@ def main(argv: list[str]) -> int:
             if cur.fetchone()[0]:
                 raise LoadError("rules that may overlap once uncertain dates are known: see kc_gov.possible_overlap")
             print(f"{total} rules loaded{' (TEST build)' if args.test_review else ''}")
+    except psycopg.errors.ExclusionViolation as ex:
+        # two current active versions of one rule (same authority, subject, kind and scope) valid on the same dates
+        print(f"nothing loaded: overlapping active versions ({ex.diag.constraint_name}): {ex.diag.message_detail or ex}")
+        return 1
     except (LoadError, psycopg.Error) as ex:
         print(f"nothing loaded: {ex}")
         return 1

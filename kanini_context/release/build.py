@@ -8,9 +8,9 @@ Steps:
   2. a digest of every active rule, so two builds of the same files can be compared
   3. the client copy (kc_client), cloned from the build: the release row with the last date it answers
      for, the first sync, the pack's release id as a database setting, and every rule stamped with it
-  4. the graph view of the copy in Apache AGE (when the extension is installed): every entity, rule and
-     snapshot as a vertex and every relation from kc_core.graph_edges as an edge, so the same pack can be
-     browsed as a graph; answers always come from the relational tables
+  4. the graph view of the copy in Apache AGE (when the extension is installed), named ref_YYYY_MM: every
+     entity, rule, snapshot and source as a vertex, every relation from kc_core.graph_edges as an edge, and
+     (Rule)-[:SOURCED_FROM]->(Source) for each rule; answers always come from the relational tables
 
 Connection: the usual PostgreSQL variables (PGHOST, PGPORT, PGUSER, PGPASSWORD); default the local test server.
 """
@@ -34,6 +34,7 @@ for k, v in ENV.items():
     os.environ.setdefault(k, v)
 
 COVERS_THROUGH = "2026-12-31"   # the next known changes start 2027-01-01 (UHC step therapy edition, WISeR year 2)
+GRAPH = "ref"
 SQL_FILES = ["schema.sql", "registry.sql", "resolver.sql", "api.sql"]
 
 
@@ -80,25 +81,35 @@ def build_graph(cur, graph: str) -> tuple[int, int] | None:
     cur.execute("LOAD 'age'")
     cur.execute('SET search_path = ag_catalog, "$user", public')
     cur.execute("SELECT create_graph(%s)", (graph,))
+    # vertices: every entity, every current rule (id = rule_key), every snapshot and source
     verts = cur.execute("""
-        SELECT entity_id::text, entity_type, natural_key FROM kc_core.entity
-        UNION ALL SELECT rule_id::text, 'rule', rule_key FROM kc_core.rule WHERE upper_inf(recorded)
-        UNION ALL SELECT snapshot_id::text, 'snapshot', source_id FROM kc_core.snapshot
-        UNION ALL SELECT 'source:' || source_id, 'source', source_id FROM kc_core.source""").fetchall()
+        SELECT entity_id::text, entity_type, jsonb_build_object('id', natural_key) FROM kc_core.entity
+        UNION ALL SELECT rule_id::text, 'rule', jsonb_build_object('id', rule_key, 'valid_from', lower(valid)::text,
+                         'kind', rule_kind, 'basis', basis, 'release', release_id) FROM kc_core.rule WHERE upper_inf(recorded)
+        UNION ALL SELECT snapshot_id::text, 'snapshot', jsonb_build_object('id', source_id, 'sha256', content_sha256,
+                         'retrieved_at', retrieved_at::text) FROM kc_core.snapshot
+        UNION ALL SELECT 'source:' || s.source_id, 'source', jsonb_build_object('id', s.source_id, 'url', s.url,
+                         'doc', coalesce((SELECT min(a.citation) FROM kc_core.authority_version v JOIN kc_core.authority a ON a.entity_id = v.authority_id
+                                          JOIN kc_core.snapshot sn ON sn.snapshot_id = v.snapshot_id WHERE sn.source_id = s.source_id
+                                         HAVING count(DISTINCT a.entity_id) = 1), s.name))
+          FROM kc_core.source s""").fetchall()
     kinds = {}
-    for vid, etype, key in verts:
+    for vid, etype, props in verts:
         kinds[vid] = label(etype)
-        cur.execute(f"SELECT * FROM cypher('{graph}', $$ CREATE (:{label(etype)} {{id: $id, key: $key}}) $$, %s) AS (v agtype)",
-                    (json.dumps({"id": vid, "key": key}),))
+        props = {k: v for k, v in {**props, "uid": vid}.items() if v is not None}
+        body = ", ".join(f"{k}: ${k}" for k in props)   # keys are fixed names above; values go in as parameters
+        cur.execute(f"SELECT * FROM cypher('{graph}', $$ CREATE (v:{label(etype)} {{{body}}}) $$, %s) AS (v agtype)",
+                    (json.dumps(props),))
     edges = cur.execute("""
         SELECT relation_type, from_id::text, to_id::text FROM kc_core.graph_edges WHERE upper_inf(recorded)
-        UNION ALL SELECT 'sourced_from', rule_id::text, snapshot_id::text FROM kc_core.rule WHERE upper_inf(recorded)
+        UNION ALL SELECT 'sourced_from', r.rule_id::text, 'source:' || sn.source_id
+          FROM kc_core.rule r JOIN kc_core.snapshot sn ON sn.snapshot_id = r.snapshot_id WHERE upper_inf(r.recorded)
         UNION ALL SELECT 'copy_of', snapshot_id::text, 'source:' || source_id FROM kc_core.snapshot""").fetchall()
     n = 0
     for rel, a, b in edges:
         if a not in kinds or b not in kinds:
             continue
-        cur.execute(f"""SELECT * FROM cypher('{graph}', $$ MATCH (a:{kinds[a]} {{id: $a}}), (b:{kinds[b]} {{id: $b}})
+        cur.execute(f"""SELECT * FROM cypher('{graph}', $$ MATCH (a:{kinds[a]} {{uid: $a}}), (b:{kinds[b]} {{uid: $b}})
                         CREATE (a)-[:{rel.upper()}]->(b) $$, %s) AS (e agtype)""", (json.dumps({"a": a, "b": b}),))
         n += 1
     cur.execute('SET search_path = "$user", public')
@@ -115,6 +126,8 @@ def main(argv: list[str]) -> int:
     release = args.release or now.strftime("%Y.%m.%d")
     if args.test_review and not release.startswith("TEST-"):
         release = "TEST-" + release
+    global GRAPH
+    GRAPH = now.strftime("ref_%Y_%m")   # one graph per monthly reference pack, e.g. ref_2026_11
 
     # 1. build database
     fresh_db("kc_build")
@@ -143,14 +156,14 @@ def main(argv: list[str]) -> int:
         cur.execute("UPDATE kc_core.rule SET release_id = %s WHERE release_id IS NULL", (release,))
         cur.execute("INSERT INTO kc_client.sync_log VALUES (%s, %s)", (now, release))
         n_rules = cur.execute("SELECT count(*) FROM kc_core.rule WHERE status = 'active'").fetchone()[0]
-        graph = None if args.no_graph else build_graph(cur, "kc_" + "".join(ch if ch.isalnum() else "_" for ch in release.lower()))
+        graph = None if args.no_graph else build_graph(cur, GRAPH)
 
     print(f"release {release}: {n_rules} active rules, digest {digest[:12]}, answers dates of service through {COVERS_THROUGH}")
     if graph:
         print(f"graph: {graph[0]} vertices, {graph[1]} edges")
     elif not args.no_graph:
         print("graph: Apache AGE not installed; skipped (answers do not depend on it)")
-    print("client copy: database kc_client")
+    print(f"client copy: database kc_client{f', graph {GRAPH}' if graph else ''}")
     return 0
 
 
