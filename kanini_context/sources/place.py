@@ -72,9 +72,15 @@ def main(argv: list[str]) -> int:
             print('usage: place --checked SOURCE_ID "what you saw"')
             return 1
         return checked(argv[1], argv[2])
-    if "--record" in argv:
-        argv = [a for a in argv if a != "--record"]
-        record(list(map(Path, argv)))
+    record_new = "--record" in argv
+    folders = [Path(a).expanduser() for a in argv if a != "--record"]   # "~" works in every shell, PowerShell too
+    for f in folders:
+        if not f.is_dir():
+            print(f"folder not found: {f}")
+            return 1
+    argv = [str(f) for f in folders]
+    if record_new:
+        record(folders)
     want = {m["sha256"]: m for m in MANIFEST if m.get("sha256")}
     for folder in map(Path, argv):
         for p in folder.rglob("*.pdf"):
