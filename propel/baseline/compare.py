@@ -194,11 +194,26 @@ def summarise(runs: list[dict], ref: str) -> dict:
             "seconds": statistics.mean(r["ms"] for r in runs) / 1000}
 
 
+def _server_up() -> bool:
+    import socket
+    from urllib.parse import urlparse
+    u = urlparse(os.environ.get("KC_MCP_URL", "http://127.0.0.1:8765/mcp"))
+    try:
+        socket.create_connection((u.hostname, u.port or 80), timeout=2).close()
+        return True
+    except OSError:
+        return False
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--offline", action="store_true", help="mode C and A's prompt sizes only; no LLM calls")
     args = ap.parse_args(argv)
+    if not args.offline and not _server_up():
+        print(f"Kanini Context server not reachable at {os.environ.get('KC_MCP_URL')}; mode B needs it.\n"
+              "Start it in another terminal first:  python -m kanini_context.server.mcp_server --http 8765")
+        return 1
     OUT.mkdir(parents=True, exist_ok=True)
     import litellm
 
