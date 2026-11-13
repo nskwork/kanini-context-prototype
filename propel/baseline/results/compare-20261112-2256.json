@@ -1,0 +1,253 @@
+{
+  "at": "2026-11-13T04:49:28+00:00",
+  "model": "openai/gpt-5-mini",
+  "reasoning_effort": "low",
+  "a_reasoning_effort": "low",
+  "scenarios": {
+    "1": {
+      "patient": "maria-tn",
+      "reference_outcome": "no_pa",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.027916440000990406
+      },
+      "A_prompt_tokens": 25800,
+      "A_full_docs_tokens": 62596,
+      "B": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4.2,
+        "tokens_in": 11690,
+        "tokens_out": 626.6,
+        "seconds": 10.293564779999723,
+        "setup_seconds": 2.8763193599996155,
+        "card_right_by_model": 0
+      },
+      "B_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "2": {
+      "patient": "maria-tn-egfr52",
+      "reference_outcome": "other_gate",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.032884620000550056
+      },
+      "A_prompt_tokens": 25800,
+      "A_full_docs_tokens": 62596,
+      "B": {
+        "runs": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 5,
+        "tokens_in": 13671,
+        "tokens_out": 594,
+        "seconds": 10.511874579999859,
+        "setup_seconds": 2.878403399999661,
+        "card_right_by_model": 0
+      },
+      "B_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "3": {
+      "patient": "maria-oh",
+      "reference_outcome": "no_pa",
+      "rule": "kc:rule/esa-ckd-nd/L34356@2026-10-04",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.03807062000050791
+      },
+      "A_prompt_tokens": 22528,
+      "A_full_docs_tokens": 47701,
+      "B": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4,
+        "tokens_in": 11168,
+        "tokens_out": 458,
+        "seconds": 8.377227519999725,
+        "setup_seconds": 2.9043241399995168,
+        "card_right_by_model": 0
+      },
+      "B_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "4": {
+      "patient": "maria-uhc",
+      "reference_outcome": "pa_required",
+      "rule": "kc:rule/J1439/uhc-ma-pa@2026-10-01",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.02864377999867429
+      },
+      "A_prompt_tokens": 39421,
+      "A_full_docs_tokens": 39193,
+      "B": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4,
+        "tokens_in": 10512,
+        "tokens_out": 414.4,
+        "seconds": 7.131229619999067,
+        "setup_seconds": 4.002210380000906,
+        "card_right_by_model": 0
+      },
+      "B_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "5": {
+      "patient": "maria-uhc-esa",
+      "reference_outcome": "unknown",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "unknown": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.04501617999994778
+      },
+      "A_prompt_tokens": 37711,
+      "A_full_docs_tokens": 74580,
+      "B": {
+        "runs": 5,
+        "outcomes": {
+          "unknown": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4,
+        "tokens_in": 11031,
+        "tokens_out": 1075.6,
+        "seconds": 15.96074923999986,
+        "setup_seconds": 2.966014140001062,
+        "card_right_by_model": 5
+      },
+      "B_card_lines": [
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ]
+      ]
+    },
+    "6": {
+      "patient": "maria-nohgb",
+      "reference_outcome": "needs_facts",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.030861359999835258
+      },
+      "A_prompt_tokens": 25781,
+      "A_full_docs_tokens": 62596,
+      "B": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4,
+        "tokens_in": 10966,
+        "tokens_out": 804,
+        "seconds": 14.121409719999793,
+        "setup_seconds": 2.820025079999323,
+        "card_right_by_model": 2
+      },
+      "B_card_lines": [
+        [
+          "Outcome: Not yet known (facts needed) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not yet known (facts needed) \u00b7 not safe to act"
+        ],
+        [],
+        [
+          "Outcome: Not yet known (facts needed) \u00b7 not safe to act",
+          "- rules_evaluate outcome: needs_facts (primary rule: LCD L39237)."
+        ],
+        []
+      ]
+    }
+  }
+}

@@ -1,0 +1,389 @@
+{
+  "at": "2026-11-13T16:09:26+00:00",
+  "model": "openai/gpt-5-mini",
+  "reasoning_effort": "low",
+  "a_reasoning_effort": "low",
+  "a_docs": [
+    "agent"
+  ],
+  "scenarios": {
+    "1": {
+      "patient": "maria-tn",
+      "reference_outcome": "no_pa",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.03173200000019279
+      },
+      "A_agent": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 3,
+          "no_pa": 2
+        },
+        "matches_rules": 2,
+        "llm_calls": 5.8,
+        "tokens_in": 31013.6,
+        "tokens_out": 1098.2,
+        "seconds": 18.562118499999634,
+        "setup_seconds": 1.9660861000040313,
+        "pages_read": 2.6,
+        "searches": 2.2
+      },
+      "A_agent_runs": [
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-001\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy:\n- The Medicare billing/coding guidance (A58982 for LCD L39237) requires specific coverage criteria for ESAs in CKD not on dialysis (diagnosis D63.1 plus an appropriate CKD code such as N18.32, and serum creatinine and/or GFR) \u2014 those diagnoses and eGFR are present for this patient (D63.1, N18.32, eGFR 38) (A58982, pp. 9\u201311).\n- The same guidance requires that iron stores be evaluated prior to ESA initiation (transferrin saturation \u226520% and ferritin \u2265100 ng/mL) and documented before starting therapy; those iron study results are not present in the patient facts provided (A58982, pp. 10\u201311).\nNext step: Obtain and document pre-initiation iron studies (TSAT and ferritin) and ensure the serum creatinine/GFR documentation is included with the claim; once iron stores meet the required thresholds and documentation is assembled, re-evaluate for coverage/authorization.\nSource: Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237) \u2014 Required documentation and CKD (non-dialysis) coverage criteria, pages 9\u201311; code group listing including J0885, page 17.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-001\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy: Patient and order meet many Medicare coverage elements for J0885 (CKD not on dialysis; D63.1 and N18.32 present; pre-initiation Hgb 9.4 < 10) \u2014 but documentation requirements for ESA initiation include iron studies (TSAT >= 20% and ferritin >= 100 ng/mL) and evaluation/treatment of other causes of anemia, which are not present in the journey facts.\nNext step: Obtain and document pre-initiation iron studies (transferrin saturation and ferritin) and documentation of evaluation/treatment of other causes of anemia. After those data are added, re-evaluate medical necessity/authorization.\nSource: CMS Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents for L39237), Required Documentation and CKD-not-on-dialysis coverage criteria \u2014 pages 10\u201311 (iron stores TSAT >=20% and ferritin >=100 ng/mL; required evaluation of other causes; diagnosis code requirements).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "no_pa",
+          "reasons": null,
+          "card": "001\nOutcome: No PA \u00b7 safe to act\nWhy: Original Medicare (Palmetto MAC jurisdiction covering TN) uses LCD L39237 / A58982 coverage rules for ESAs and does not impose a separate prior-authorization for J0885; coverage is determined by meeting Medicare medical necessity criteria.\nWhy: The order\u2019s facts meet the LCD/article coverage criteria: diagnosis D63.1 and CKD code N18.32 are listed as acceptable, pre-initiation Hgb <10 g/dL (Hgb 9.4) and eGFR 38 mL/min/1.73m2 (<45) satisfy the CKD non-dialysis thresholds referenced, so clinical coverage criteria are met.\nNext step: Proceed without a payer prior authorization. Ensure documentation in the chart includes serum creatinine/GFR, the billed diagnoses (D63.1 and N18.32), pre-initiation Hgb, and required iron studies (TSAT and ferritin) per Medicare documentation requirements; retain modifiers (EC and a route modifier JA/JB) on the claim as required.\nSource: CMS Medicare article A58982 (Erythropoiesis Stimulating Agents) \u2014 pages 10\u201311 and 17 (requirements for CKD non-dialysis: diagnoses, pre-initiation Hb <10 g/dL, GFR threshold, iron studies, and HCPCS group codes); LCD L39237 (Palmetto MAC jurisdiction list showing Tennessee) \u2014 page 1.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": ", Hgb 9.4 and no dialysis, which are consistent with a potentially covered indication, but the record as returned does not include documentation that the required evaluation/corrections were performed.\nNext step: Staff should obtain and attach/document the following before authorization can be determined:\n- Iron studies (ferritin, transferrin saturation) and documentation that iron deficiency was corrected if present, or documentation showing iron deficiency ruled out.\n- Documentation of evaluation for other reversible causes (B12/folate, hemolysis, active bleeding, bone marrow disorders) or statement that these were evaluated and addressed.\n- Blood pressure status (ESA is contraindicated with uncontrolled hypertension) and any relevant notes about transfusion dependence or symptomatic anemia.\nOnce those items are in the chart, re-check against LCD L39237 coverage criteria and re-run the authorization decision.\nSource: LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA) \u2014 Coverage indications and limitations; see pages describing covered indications (CKD stages IIIb\u2013V), and the requirement to consider/correct iron deficiency and other causes before starting ESA (pages 5\u20136).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "no_pa",
+          "reasons": null,
+          "card": "7 and billing article A58982 which do not impose a separate prior\u2011authorization requirement for ESA (J0885) administration.\nWhy: The patient\u2019s billed diagnoses include D63.1 with CKD non\u2011dialysis (N18.32) and labs show Hb 9.4 and eGFR 38 mL/min/1.73m2 \u2014 meeting the LCD/article clinical thresholds (GFR <45 and sufficiently low Hb) to support ESA use.\nWhy: The article (A58982) requires documentation elements (serum creatinine/GFR; diagnosis code D63.1 with CKD codes; EC modifier and JA/JB as applicable) and requires iron\u2011store evaluation (TSAT \u226520% and ferritin \u2265100 ng/mL) prior to and during therapy \u2014 the MAC may request these records.\nNext step: Bill with the required CKD diagnosis (D63.1 + N18.32), include the EC modifier and JA/JB per A58982; confirm and upload prior iron studies (TSAT and ferritin) and the serum creatinine/GFR to the chart in case the MAC requests documentation.\nSource: CMS Billing & Coding Article A58982, \u201cErythropoiesis Stimulating Agents\u201d \u2014 requirements for CKD non\u2011dialysis, documentation elements, iron\u2011store requirements (A58982, p.10; code groupings and J0885 listed, A58982, p.17). LCD L39237 (Palmetto GBA) \u2014 jurisdiction includes Tennessee (L39237, p.1\u20132).",
+          "rule_cited": null
+        }
+      ]
+    },
+    "2": {
+      "patient": "maria-tn-egfr52",
+      "reference_outcome": "other_gate",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.02773385999898892
+      },
+      "A_agent": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 1,
+          "other_gate": 4
+        },
+        "matches_rules": 4,
+        "llm_calls": 5,
+        "tokens_in": 20336.6,
+        "tokens_out": 858.6,
+        "seconds": 13.328896360003274,
+        "setup_seconds": 1.5124410599994007,
+        "pages_read": 2.4,
+        "searches": 1.4
+      },
+      "A_agent_runs": [
+        {
+          "outcome": "no_pa",
+          "reasons": null,
+          "card": "ow target ranges and to avoid transfusion), and required evaluation/documentation elements are present in policy (rule: evaluate/correct iron/vitamin causes, document BP, weight, most recent Hb, route/dose).\nWhy: Claims must report the Hb/Hct and the appropriate non-ESRD ESA modifier (EC for non-chemo/radiation anemia) and medical record documentation must be maintained \u2014 these are documentation/claiming requirements, not prior authorization requirements.\nNext step: Proceed with administration/ordering and submit claim using HCPCS J0885 with the EC modifier, include the most recent Hb (9.4 g/dL) on the claim, and retain medical record documentation showing evaluation of other causes, BP control, dose/route and clinical rationale in case of contractor review.\nSource: LCD L39237 (Erythropoiesis Stimulating Agents) \u2014 contractor/jurisdiction and coverage context (pages 1\u20133; page 6 for required evaluation and exclusions).\nSource: LCD L34356 (ESA) \u2014 coverage indications and limitations; Hb/target guidance and denial conditions (pages 7, 9\u201310).\nSource: Billing & Coding Article A58982 \u2014 required documentation, claim reporting of Hb/Hct, and MDS/Hb <10 requirement examples (pages 8 and 14).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-002\nOutcome: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy: The Medicare billing/coding guidance for ESAs in CKD-not-on-dialysis requires specific CKD staging/GFR criteria; patients with CKD stage IIIa (eGFR ~45\u201359) do not meet the GFR requirements for coverage with the D63.1 + CKD diagnosis combinations. The patient\u2019s eGFR is 52 (CKD stage IIIa), so the coverage GFR threshold is not met despite Hb <10 g/dL.\nNext step: Do not administer under this coverage rule. Staff should consider alternative management (e.g., evaluate for transfusion or treat reversible causes of anemia), or confirm whether the patient has a different billed CKD diagnosis code meeting the coverage list (e.g., N18.32, N18.4, N18.5, I12.x/I13.x) or other documentation that would satisfy coverage; if provider believes coverage applies, submit supporting clinical documentation for medical review/exception.\nSource: Billing and Coding Article A58982, \u201cErythropoiesis Stimulating Agents (for L39237)\u201d, pages 10\u201311 (requirements for CKD not on dialysis; GFR threshold and note that patients with stage I, II and IIIa CKD do not meet GFR requirements).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-002\nOutcome: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy: Patient has HCPCS J0885 (epoetin alfa) for CKD not on dialysis but does not meet the LCD required CKD staging/GFR codes \u2014 the billing guidance for non-dialysis CKD requires D63.1 plus CKD codes such as N18.32, N18.4, or N18.5 (stage 3b\u20135); the patient has N18.31 (CKD stage 3a), which is not an accepted code for coverage. (Patient\u2019s eGFR 52 mL/min/1.73 m2 is above the GFR threshold cited.) \nNext step: Staff should contact the ordering provider to (a) confirm/obtain a CKD diagnosis code that matches the LCD coverage requirements (N18.32, N18.4, N18.5) or provide documentation supporting use despite stage 3a (e.g., documentation of GFR trend or other qualifying conditions), or (b) consider alternative treatment or coding. If additional clinical facts (e.g., recent confirmatory GFR/creatinine showing lower GFR or alternate qualifying diagnosis) are provided, re-evaluate for possible coverage or PA.\nSource: Billing and Coding Article A58982 (supports LCD L39237) \u2014 Required documentation and CKD non-dialysis criteria, pages 10\u201311.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-002\nOutcome: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy: The billing guidance for ESAs in CKD not on dialysis requires both (1) D63.1 and (2) a CKD diagnosis code indicating more advanced CKD (examples listed include N18.32, N18.4, N18.5) and/or a GFR threshold supporting ESA use; the patient has D63.1 but has N18.31 (CKD 3a) and eGFR 52 mL/min/1.73 m2 which does not meet the stated GFR threshold (<45 mL/min/1.73 m2) supporting ESA initiation.\nNext step: Do not administer under current Medicare coverage; staff should either (a) obtain updated documentation/labs showing a lower eGFR or an eligible CKD diagnosis code (or documentation of dialysis status if applicable), or (b) consider alternative management (transfusion/other therapies) and/or discuss appeal/medical review if clinical justification exists.\nSource: Billing and Coding Article A58982, \u201cErythropoiesis Stimulating Agents (for L39237)\u201d, pages 10\u201311 \u2014 required documentation, GFR threshold guidance, and list of accepted CKD diagnosis codes for CKD not on dialysis (J0885).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-002\nOutcome: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy: The Palmetto LCD L39237 limits non\u2011ESRD ESA coverage to CKD stages IIIb, IV and V (not stage 3a); patient has N18.31 / eGFR 52 which is CKD stage 3a (LCD L39237, pp.5-6).\nWhy: The billing article for L39237 requires specific CKD diagnosis codes (e.g., N18.32, N18.4, N18.5) to support J0885 for non\u2011dialysis CKD; N18.31 is not listed as an accepted code (A58982, p.10).\nNext step: Do not authorize. Ask clinical staff to provide documentation of a covered indication \u2014 e.g., confirm a qualifying CKD stage (IIIb/IV/V) or submit an alternate covered diagnosis (chemotherapy-induced anemia, AZT-related anemia, low\u2011risk MDS, or peri\u2011surgical use) with supporting labs/notes \u2014 then re-review.\nSource: LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA), pp.5-6; Billing & Coding Article A58982 (for L39237), p.10.",
+          "rule_cited": null
+        }
+      ]
+    },
+    "3": {
+      "patient": "maria-oh",
+      "reference_outcome": "no_pa",
+      "rule": "kc:rule/esa-ckd-nd/L34356@2026-10-04",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.027987220001523382
+      },
+      "A_agent": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 1,
+          "other_gate": 4
+        },
+        "matches_rules": 1,
+        "llm_calls": 4.6,
+        "tokens_in": 18822.2,
+        "tokens_out": 898.6,
+        "seconds": 14.189581479993649,
+        "setup_seconds": 1.5901590600027702,
+        "pages_read": 2.6,
+        "searches": 1.4
+      },
+      "A_agent_runs": [
+        {
+          "outcome": "no_pa",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-003\nOutcome: No PA \u00b7 safe to act\nWhy: Original Medicare coverage for erythropoiesis-stimulating agents is governed by the Medicare LCD/article (L39237 / A58982) and identifies J0885 as the HCPCS code for non\u2011ESRD use; the policy describes clinical coverage criteria (including hemoglobin/hematocrit targets) rather than a prior authorization requirement (A58982 discusses billing/modifier and medical necessity review but does not impose a PA) (see sources).\nNext step: Proceed with the order; ensure medical record documents diagnosis (CKD non\u2011dialysis N18.31 / D63.1), current hemoglobin (9.4 g/dL), intent of therapy, and report the appropriate ESA modifier (EC for non\u2011cancer, non\u2011chemotherapy use) on the claim per A58982.\nSource: Article A58982 (Billing & Coding: Erythropoiesis Stimulating Agents), pages 5, 6, 17 \u2014 shows J0885 is for non\u2011ESRD use, hemoglobin/hematocrit targets, modifier requirements and that coverage is determined by medical necessity rather than a PA; also governed by LCD L39237 (see LCD L39237, page 4).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-003\nOutcome: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy: The Medicare billing/coding guidance for ESAs (A58982 / L39237) requires documentation of CKD-related anemia (D63.1) AND supports ESA use for CKD-not-on-dialysis patients typically when GFR is below ~45 mL/min/1.73 m2; the patient\u2019s eGFR is 52, which does not meet that reasonable-threshold criterion.\nNext step: Staff should either (a) supply additional documentation justifying ESA use despite eGFR>45 (e.g., transfusion dependence, symptomatic anemia with supporting literature, other compelling clinical evidence) or (b) withhold ESA administration / submit denial and pursue appeal with supporting records. Ensure the claim will include the EC modifier and required labs (serum creatinine/GFR, iron studies) per CMS guidance.\nSource: Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6 and 10 \u2014 required ICD D63.1 for CKD not on dialysis, EC modifier requirement, and GFR <45 mL/min/1.73 m2 cited as a reasonable threshold to support ESA administration.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "come: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy:\n- Medicare guidance for ESAs in CKD-not-on-dialysis cites a reasonable GFR threshold of <45 mL/min/1.73 m2 to support ESA use; patient eGFR = 52 (above threshold). (A58982, p.10)\n- Required documentation/conditions include serum creatinine/GFR and appropriate CKD diagnosis coding (D63.1 is present), but having the diagnosis alone is insufficient without meeting the GFR threshold or alternate transfusion-dependent/symptomatic justification. (A58982, p.10; L34356, p.4)\nNext step: Staff should either (a) obtain/document a clinical justification that meets Medicare exceptions (e.g., substantial transfusion dependence or clear symptomatic anemia requiring ESA despite eGFR >45), or (b) consider alternative management (transfusion or other therapy) and not bill Medicare for ESA without appropriate exception documentation; if an exception applies, include required documentation (serum creatinine/GFR, iron studies, D63.1, EC/JA/JB modifiers) with claim.\nSource: Billing and Coding Article A58982, \"Erythropoiesis Stimulating Agents\" \u2014 page 10 (GFR threshold; required documentation) and page 17 (J0885 listed for non-ESRD use).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-003\nOutcome: Other gate (coverage criteria not met) \u00b7 safe to act\nWhy: Patient does not meet LCD L39237 CKD (non-dialysis) coverage criteria \u2014 although Hb 9.4 g/dL (<10) meets the hemoglobin requirement, the LCD requires GFR < 45 mL/min/1.73 m2 (or the specific CKD stage codes for non-dialysis coverage); this patient\u2019s eGFR is 52 and the diagnosis is N18.31 (CKD stage 3a), which does not satisfy the \u201cGFR <45\u201d / qualifying-stage requirement for J0885 under the LCD (L39237). (See L39237 pp. 7\u20138)\nNext step: Do not submit an authorization for payment under Original Medicare for J0885 as submitted; staff should either (a) document that the drug is not covered for this indication under Medicare and discuss alternative treatment options with the clinician, or (b) if clinically justified, submit supporting documentation for an exception/medical review/appeal describing extraordinary clinical circumstances (and include recent creatinine/GFR documentation), per CMS/APPEALS process.\nSource: LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA) \u2014 Coverage Criteria and Limitations (pages 6\u20138).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "other_gate",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-003\nOutcome: Other gate (coverage criteria not met) \u00b7 not safe to act\nWhy: The MAC guidance for ESAs in CKD-not-on-dialysis indicates a GFR <45 mL/min/1.73 m2 is a reasonable threshold to support ESA use for CKD-related anemia, and the patient\u2019s eGFR is 52 (above that threshold).\nWhy: Required documentation elements (serum creatinine/GFR, relevant CKD diagnosis billed with the ESA code, and pre-treatment iron studies) must be present and meet the policy criteria; the eGFR does not meet the stated threshold for routine coverage.\nNext step: Staff should review for any alternative coverage rationale (other supporting diagnoses or transfusion dependence), obtain/attach serum creatinine/GFR and iron studies (TSAT, ferritin) if not already documented, and escalate to the MAC if clinical exceptions apply or to request prior authorization/medical review determination.\nSource: Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 5 and 10 (requirements for CKD-not-on-dialysis, GFR threshold, and required documentation)",
+          "rule_cited": null
+        }
+      ]
+    },
+    "4": {
+      "patient": "maria-uhc",
+      "reference_outcome": "pa_required",
+      "rule": "kc:rule/J1439/uhc-ma-pa@2026-10-01",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.033101580000948164
+      },
+      "A_agent": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 4,
+          "needs_facts": 1
+        },
+        "matches_rules": 4,
+        "llm_calls": 5,
+        "tokens_in": 22574.2,
+        "tokens_out": 744.6,
+        "seconds": 12.550123340004939,
+        "setup_seconds": 1.5892875999998068,
+        "pages_read": 2.2,
+        "searches": 1.2
+      },
+      "A_agent_runs": [
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Why: The Part B step-therapy policy requires prior authorization for Injectafer unless criteria are met (trial of at least 3 weeks of two preferred IV irons, intolerance/contraindication to two preferred agents, or continuation of prior therapy within 365 days) (page 8).\nWhy: The patient record does not document prior IV iron therapy, trials of preferred agents, or contraindications to preferred therapies, so the policy criteria are not satisfied in the chart.\nNext step: Staff should submit a prior authorization request for J1439 and include documentation of either: (a) trials of at least two preferred IV iron therapies (with dates and response), (b) documented contraindications/intolerance to at least two preferred IV iron therapies, or (c) evidence of continuation of Injectafer within the past 365 days. If unable to supply those, request a clinical review/appeal with supporting clinical notes explaining medical necessity.\nSource: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, \u201cMedicare Part B Step Therapy Programs,\u201d Intravenous Iron Replacement Therapy \u2014 Non-Preferred Product Step Therapy Criteria (page 8) and HCPCS code list showing J1439 as non-preferred (page 18).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-004\nOutcome: PA required \u00b7 not safe to act\nWhy: UnitedHealthcare Medicare Advantage lists J1439 (Injectafer) in its Injectable medications / Intravenous Iron Replacement Therapy section requiring prior authorization.\nNext step: Submit a prior authorization request for J1439 via the UnitedHealthcare Provider Portal Prior Authorization and Notification tool (Specialty Pharmacy) or call 888-397-8129.\nSource: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements \u2014 Injectable medications / Intravenous Iron Replacement Therapy (J1439 listed); see pages 17 and 19.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-004\nOutcome: PA required \u00b7 not safe to act\nWhy: Injectafer (HCPCS J1439) is listed as a non-preferred intravenous iron product under the UnitedHealthcare MA Part B Step Therapy policy; non-preferred IV iron (Injectafer) may be covered only when step-therapy criteria are met (trial of at least 3 weeks of at least two preferred IV iron therapies, or documented contraindication/intolerance to at least two preferred therapies, or continuation of prior therapy within 365 days). The chart/facts do not show those required prior trials or contraindications.\nNext step: Staff should submit a prior authorization request with documentation showing either (a) trials of at least 3 weeks each of two preferred IV iron therapies (iron sucrose J1756, sodium ferric gluconate J2916, or ferumoxytol Q0138) with minimal response, OR (b) documented contraindication/intolerance to at least two preferred IV iron therapies, OR (c) evidence of continuation of prior therapy within the past 365 days.\nSource: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, \u201cIntravenous Iron Replacement Therapy\u201d (pages 8, 18).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-004\nOutcome: PA required \u00b7 safe to act\nWhy: UnitedHealthcare's provider prior authorization list explicitly includes J1439 (Injectafer) under Intravenous Iron Replacement (requires prior authorization). \nWhy: UnitedHealthcare Part B Step Therapy policy lists J1439 as a non-preferred intravenous iron product, indicating prior authorization/step-therapy requirements apply.\nNext step: Submit a prior authorization request for ord-004 (J1439, Injectafer) through the UnitedHealthcare Provider Portal Prior Authorization and Notification tool (or call the UHC PA phone line) with clinical documentation (diagnosis, recent labs Hgb 9.4 g/dL and eGFR 38, dialysis status, and proposed dose/date of service).\nSource: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, Intravenous Iron Replacement section, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (Medicare Part B Step Therapy Programs), Intravenous Iron Replacement table, page 18.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-004\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy: J1439 (Injectafer) is listed as non-preferred under UnitedHealthcare Medicare Advantage Part B step therapy for intravenous iron; coverage requires meeting step-therapy criteria (trial of at least 3 weeks of two preferred IV iron therapies OR history of contraindication/intolerance to at least two preferred therapies OR continuation of prior therapy within past 365 days). (policy shows Injectafer as non-preferred and lists the step therapy criteria)\nNext step: Obtain documentation whether the member has had (a) trials of at least two preferred IV iron therapies (e.g., ferumoxytol, sodium ferric gluconate, iron sucrose) each for at least 3 weeks with inadequate response, or (b) documented contraindication/intolerance to at least two preferred therapies, or (c) claim(s) for Injectafer within the past 365 days (continuation). Submit that evidence with the PA request.\nSource: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, \"Medicare Part B Step Therapy Programs\" \u2014 Intravenous Iron Replacement Therapy section (page 8) and HCPCS code listing showing J1439 as non-preferred (page 18).",
+          "rule_cited": null
+        }
+      ]
+    },
+    "5": {
+      "patient": "maria-uhc-esa",
+      "reference_outcome": "unknown",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "unknown": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.03152869999757968
+      },
+      "A_agent": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 4,
+          "unknown": 1
+        },
+        "matches_rules": 1,
+        "llm_calls": 5,
+        "tokens_in": 19569.2,
+        "tokens_out": 714.6,
+        "seconds": 12.474468039994827,
+        "setup_seconds": 1.5462519399996382,
+        "pages_read": 2.2,
+        "searches": 1.2
+      },
+      "A_agent_runs": [
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-005\nOutcome: PA required \u00b7 not safe to act\nWhy: UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa) as requiring prior authorization for outpatient administration (UHC MA prior authorization requirements, page 7).\nWhy: CMS billing/coding guidance for non\u2011ESRD ESA codes (J0881, J0885, etc.) prescribes documentation, modifiers, and medical necessity criteria that payers use to adjudicate coverage\u2014these support use of a PA workflow for J0885 (A58982, pages 6\u20137).\nNext step: Submit prior authorization through the UnitedHealthcare Provider Portal Prior Authorization and Notification tool (UHCprovider.com) or call 888-397-8129; include hemoglobin result, CKD diagnosis (N18.32), relevant labs, and the required ESA and route modifiers per CMS guidance.\nSource: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7.  \nSource: CMS Billing and Coding Article A58982, \u201cErythropoiesis Stimulating Agents (for L39237)\u201d, pages 6\u20137.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "unknown",
+          "reasons": null,
+          "card": "umentation for J0885 in CKD non-dialysis (e.g., diagnosis D63.1 with appropriate CKD staging, serum creatinine/GFR, iron studies, Hb thresholds, EC modifier, documentation requirements) but do not state whether UnitedHealthcare Medicare Advantage (uhc-ma) requires a prior authorization prior to administration.\nWhy: The available CMS articles/LCDs specify medical necessity and billing requirements (including required diagnoses, labs, and modifiers) but do not address plan-level prior authorization procedures for a Medicare Advantage plan in Tennessee.\nNext step: Ask clinical or plan-authorizations staff to check UnitedHealthcare Medicare Advantage (TN) plan-specific prior authorization rules for ESA J0885 (order ord-005, DOS 2026-11-15) and confirm whether a plan-level PA is required; if PA is required, submit requested documentation (Hb, GFR/creatinine, iron studies, diagnosis codes D63.1 + CKD stage, and rationale) per the CMS documentation.\nSource: CMS Medicare Coverage Database \u2014 Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 10 and 17 (coverage criteria, required documentation, code groupings); LCD L34356 (ESA) page 11 (Hb upper limit and rationale).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-005\nOutcome: PA required \u00b7 not safe to act\nWhy: UnitedHealthcare Medicare Advantage requires prior authorization for erythropoiesis stimulating agents including J0885 (UH C PA list)  \nWhy: Medicare/CMS guidance specifies required documentation and coverage rules for J0885 in CKD not on dialysis (dual diagnosis D63.1 + CKD stage code, GFR/creatinine, iron studies, etc.), which must be submitted with the PA (CMS guidance pages cited)\nNext step: Submit prior authorization for J0885 through the UnitedHealthcare Provider Portal Prior Authorization and Notification tool (or call the UHC number on the PA list). Include: diagnosis codes D63.1 and N18.32, serum creatinine and/or GFR, hemoglobin, iron studies (TSAT and ferritin), and clinical justification per CMS guidance.\nSource: UnitedHealthcare Medicare Advantage prior authorization requirements, page 7 (Erythropoiesis Stimulating Agents J0885 require prior authorization); CMS Medicare Coverage Database article A58982, pages 6, 10 and 21 (HCPCS code grouping, required documentation elements, CKD non-dialysis coverage criteria).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-005\nOutcome: PA required \u00b7 not safe to act\nWhy: UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa non-ESRD) as requiring prior authorization for outpatient/office-administered ESAs.\nNext step: Staff should submit a prior authorization request for order ord-005 via the UnitedHealthcare Provider Portal Prior Authorization and Notification tool (UHCprovider.com) or call 888-397-8129.\nSource: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7 (Erythropoiesis Stimulating Agents \u2014 J0885 requires prior authorization).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "pa_required",
+          "reasons": null,
+          "card": "age prior authorization list explicitly requires prior authorization for erythropoiesis stimulating agents (J0885). (UHC MA PA list, page 7)\n- The patient otherwise meets Medicare coverage elements for non-dialysis CKD ESA use (diagnosis D63.1, CKD code N18.32, eGFR 38 < 45 mL/min/1.73 m2, Hgb 9.4 g/dL), so documentation should support medical necessity per the MAC guidance. (Billing & Coding Article A58982, Required Documentation Elements and CKD non-dialysis criteria, page 10)\nNext step: Submit prior authorization request to UnitedHealthcare via the Provider Portal Prior Authorization & Notification tool (or call listed PA number). Include required documentation: current serum creatinine and/or GFR, recent hemoglobin, iron studies (TSAT and ferritin), relevant diagnosis codes (D63.1, N18.32), intended HCPCS J0885 with appropriate ESA modifiers (EC and JA/JB), and clinical rationale/notes.\nSource:\n- UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements \u2014 Erythropoiesis Stimulating Agents, page 7.\n- CMS MAC Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents) \u2014 Required Documentation Elements; CKD not on dialysis criteria, page 10.",
+          "rule_cited": null
+        }
+      ]
+    },
+    "6": {
+      "patient": "maria-nohgb",
+      "reference_outcome": "needs_facts",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.03161220000183675
+      },
+      "A_agent": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 4,
+          "no_pa": 1
+        },
+        "matches_rules": 4,
+        "llm_calls": 5.4,
+        "tokens_in": 23781.8,
+        "tokens_out": 735,
+        "seconds": 14.25657566000009,
+        "setup_seconds": 1.5067715199984377,
+        "pages_read": 2.2,
+        "searches": 1.8
+      },
+      "A_agent_runs": [
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-006\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy: The CMS billing/coding guidance for ESAs (J0885) requires documentation of symptomatic anemia of CKD not on dialysis and specific lab criteria (pre-initiation hemoglobin < 10 g/dL and iron studies) and presence of required diagnoses (D63.1 plus CKD diagnosis such as N18.32) \u2014 hemoglobin and iron stores are not present in the chart.\nNext step: Obtain and document pre-initiation hemoglobin (Hb) and iron studies (TSAT and ferritin). If Hb < 10 g/dL, transferrin saturation \u2265 20% and ferritin \u2265 100 ng/mL, then proceed (no separate Medicare PA indicated in the CMS guidance; include required ICD-10 D63.1 and N18.32 and EC/JA/JB modifier billing elements per CMS). If Hb \u2265 10 or iron studies not met, ESA not supported by coverage criteria.\nSource: CMS Billing & Coding Article A58982, \"Erythropoiesis Stimulating Agents (for L39237)\" \u2014 pages 9, 10, 17 (requirements for CKD not on dialysis; required documentation elements; code group listing).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-006\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy: Patient's hemoglobin (pre-initiation Hgb) is not on file but Medicare coverage for non-dialysis ESA (J0885) requires a pre-initiation Hgb < 10 g/dL to meet coverage criteria.\nWhy: Coverage criteria for non-dialysis CKD/anemia and other indications require documentation of Hgb < 10 g/dL (or Hct < 30%) prior to initiating ESA therapy.\nNext step: Obtain and document a current pre-initiation hemoglobin (Hgb) result (within 1 week of planned initiation as required by policy) and add it to the chart; then re-evaluate the order for prior authorization.\nSource: Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents) \u2014 required documentation and code groups; see pages showing J0885 is for non\u2011ESRD use and that pre-initiation Hgb requirements apply (A58982 pages 13 and 17).  \nSource: LCD L34356 (ESA) \u2014 coverage criteria requiring Hgb < 10 g/dL (or Hct < 30%) for non-dialysis/CKD indications (L34356 page 8).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-006\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy: Hemoglobin (pre-initiation Hb) not on file \u2014 coverage requires a pre-initiation Hb < 10 g/dL for CKD not on dialysis.\nWhy: Iron stores (TSAT and ferritin) and documentation of evaluation/treatment of other causes of anemia are required prior to ESA initiation and are not present in the record.\nNext step: Obtain and document pre-initiation hemoglobin, transferrin saturation (TSAT) and ferritin (and any evaluation/treatment of other causes of anemia); then re-evaluate for prior authorization.\nSource: Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237), Required Documentation and Coverage Criteria for CKD NOT on Dialysis \u2014 pages 10\u201311.",
+          "rule_cited": null
+        },
+        {
+          "outcome": "needs_facts",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-006\nOutcome: Not yet known (facts needed) \u00b7 not safe to act\nWhy: Patient has CKD not on dialysis with qualifying diagnosis (D63.1 and N18.32) and eGFR 38 (<45) which meets CKD criteria for ESA use (supports potential coverage).\nWhy: Coverage requires a documented pre-initiation hemoglobin (Hb) < 10 g/dL to start ESA for CKD not on dialysis; that Hb value is not on file for this patient.\nWhy: Coverage also requires baseline iron studies (TSAT \u226520% and ferritin \u2265100 ng/mL) and documentation of evaluation/treatment of other causes of anemia prior to ESA initiation; those labs/results are not on file.\nNext step: Obtain and document a recent pre-initiation hemoglobin result, transferrin saturation and ferritin, and evidence that other causes of anemia were evaluated/managed; then re-check authorization decision.\nSource: Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237) \u2014 pages 10\u201311 (pre-initiation Hb <10 g/dL requirement; CKD diagnosis and GFR threshold; iron store requirements).",
+          "rule_cited": null
+        },
+        {
+          "outcome": "no_pa",
+          "reasons": null,
+          "card": "Decision card \u00b7 ord-006\nOutcome: No PA \u00b7 safe to act\nWhy:\n- Medicare coverage criteria for epoetin alfa (J0885) for CKD not on dialysis are described in the MAC guidance and billing article (requires diagnosis D63.1 plus CKD staging codes, EC modifier and supporting labs) \u2014 documentation required but no Medicare-wide prior authorization for this HCPCS is specified in the governing MAC documents for Jurisdiction J/M (Palmetto) for the date of service.\nNext step:\n- Proceed with the order and administer if clinical criteria are met; bill with EC modifier, include D63.1 plus the appropriate CKD stage code (e.g., N18.32), and retain/document serum creatinine/GFR and iron studies per policy.\nSource:\n- Billing & Coding Article A58982, \u201cErythropoiesis Stimulating Agents (for L39237)\u201d, page 10 (documentation requirements, diagnosis and modifier guidance) \u2014 supports medical necessity elements for J0885.\n- LCD L39237 \u201cErythropoiesis Stimulating Agents\u201d, pages 1\u20133 (Palmetto GBA jurisdiction information and coverage statement).",
+          "rule_cited": null
+        }
+      ]
+    }
+  }
+}

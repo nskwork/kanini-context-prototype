@@ -17,7 +17,10 @@ __pycache__/
 .pytest_cache/
 
 # comparison runs
-propel/baseline/results/
+propel/baseline/results/*
+!propel/baseline/results/compare-2026*.md
+!propel/baseline/results/compare-20261112-2256.json
+!propel/baseline/results/compare-20261113-*.json
 
 # adk web session store (chat history)
 .adk/

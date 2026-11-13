@@ -420,7 +420,7 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 | `kanini_context/release/` | `build.py`, `sync.py`, `owl.py`, `kanini-context.ttl` |
 | `kanini_context/server/` | The Kanini Context MCP server |
 | `propel/journey/` | Synthetic patients and orders, journey MCP server, decision log |
-| `propel/agent/authorization_agent/` | The ADK agent |
+| `propel/agent/` | The ADK agents: `authorization_agent` (with Kanini Context, lane B) and `no_context_agent` (the same agent reading the documents itself, lane A) |
 | `propel/baseline/` | The A / B / C comparison |
 | `propel/dashboard/` | The browser dashboard: FastAPI server, page, vendored d3 and fonts |
 | `tests/` | Scope tests 1 to 23, pack tests, live-model tests, scripted model |
