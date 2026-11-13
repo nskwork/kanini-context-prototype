@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-73%20of%2073%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-75%20of%2075%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -22,7 +22,7 @@ Prepared by NANDHU S K
 
 The prototype's objective: show the value of the context layer, and how it reduces or eliminates repeated LLM calls for information that is already in the context. So the comparison is the same agent with and without it. Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Reports in `propel/baseline/results/`: `compare-20261113-1017` (A), `compare-20261112-2256` (B), `compare-20261113-0850` and `compare-20261113-1031` (one-call baselines).
 
-> **How to read this table.** A is the Propel agent with no Kanini Context: same model, same patient-record tool, and document tools (list, search, read pages) in place of the context layer, so it finds and reads the policy itself for every order. B is the same agent with Kanini Context. C is Kanini Context with no AI. C is the answer key: the engineer-approved rules applied by plain code, so it cannot score anything but full marks; its column shows cost and repeatability. Whether the key is right rests on the rules: each quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
+> **How to read this table.** A is the Propel agent with no Kanini Context: same model, same patient-record tool, and document tools (list, search, read pages) in place of the context layer, so it finds and reads the policy itself for every order. B is the same agent with Kanini Context. C is Kanini Context with no AI. C is the answer key: the engineer-approved rules applied by plain code, so it cannot score anything but full marks; its column shows cost and repeatability. Whether the key is right rests on the rules: each quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). B takes its answer from the rules by design, so its check is that the agent asked the rules the right question; when it asks to record a decision without writing a card, its card is filled in from the rules' answer, while A is graded on the Outcome line of the card it writes itself. A's document tools are a plain library: the documents' own titles, a search over every document with no filter by state, and page reads; working out which contractor's policy governs an order is part of what the context layer does.
 
 | | **A** · same agent, no context | **B** · agent with Kanini Context (reduce) | **C** · Kanini Context, no AI (eliminate) |
 | :-- | :--: | :--: | :--: |
@@ -52,7 +52,7 @@ Two plain LLM applications, each answering in one call from the same 16-document
 | **Against the answer key, first run** | 11 of 30 | 18 of 30 |
 | **Against the answer key, second run** | 16 of 30 | 20 of 30 |
 | **Both runs** | 27 of 60 | 38 of 60 |
-| **Input tokens per order** | 7,605 to 9,343 | 147,525 |
+| **Input tokens per order** | 7,605 to 9,343 | 147,514 to 147,531 |
 | **Answer changed between runs of the same order** | on 3 of 6 orders, then 2 of 6 | on 4 of 6 orders, then 3 of 6 |
 
 The same test, run twice an hour and forty minutes apart, moved by five and by two answers: the score of a method without the context layer depends on the run. Given exactly the pages Kanini Context picked for each order, a single call still matched only 21 of 30 at low reasoning effort and 23 of 30 at medium (`compare-20261112-2210`, `compare-20261112-2238`).
@@ -83,17 +83,17 @@ Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. S
 
 **`maria-tn-egfr52`**: the rules say **Other gate**, resting on LCD L39237, page 7.
 - Same agent, no context: right 4 of 5. 1 run answered No PA: the order does not meet the coverage criteria. 1 of them cited Ohio's policy.
-  - In its own words (No PA): “Claims must report the Hb/Hct and the appropriate non-ESRD ESA modifier (EC for non-chemo/radiation anemia) and medical record documentation must be maintained — these are documentation/claiming requirements, not prior authorization requirements.” Source it cited: LCD L39237 (Erythropoiesis Stimulating Agents) — contractor/jurisdiction and coverage context (pages 1–3; page 6 for required evaluation and exclusions).
+  - In its own words (No PA): “Claims must report the Hb/Hct and the appropriate non-ESRD ESA modifier (EC for non-chemo/radiation anemia) and medical record documentation must be maintained — these are documentation/claiming requirements, not prior authorization requirements.” Source it cited: LCD L39237 (Erythropoiesis Stimulating Agents) — contractor/jurisdiction and coverage context (pages 1–3; page 6 for required evaluation and exclusions).; LCD L34356…
 - Search (RAG): right 5 of 5.
 - Every document: right 5 of 5.
 
 **`maria-oh`**: the rules say **No PA**, resting on LCD L34356, page 8.
-- Same agent, no context: right 1 of 5. 4 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60). 4 of them cited Tennessee's policy.
+- Same agent, no context: right 1 of 5. 4 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60) (4 of 4 runs used it). 4 of them cited Tennessee's policy.
   - In its own words (Other gate): “The Medicare billing/coding guidance for ESAs (A58982 / L39237) requires documentation of CKD-related anemia (D63.1) AND supports ESA use for CKD-not-on-dialysis patients typically when GFR is below ~45 mL/min/1.73 m2; the patient’s eGFR is 52, which does not…” Source it cited: Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6 and 10 — required ICD D63.1 for CKD not on dialysis, EC modifier requirement, and GFR <45…
-- Search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+- Search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60) (4 of 5 runs used it); the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (5 of 5 runs used it).
   - In its own words (Other gate): “Patient has D63.1 (anemia in CKD) but CKD diagnosis is N18.31 (CKD stage 3a) which is not among the covered CKD stage codes required for non-dialysis ESA (N18.32, N18.4, N18.5, etc.); Guidance indicates a GFR <45 mL/min/1.73 m2 is a reasonable threshold to…”
   The deciding page was **not** among the 16 passages retrieved; 12 came from Tennessee's policy and 2 from Ohio's.
-- Every document: right 3 of 5. 1 run answered PA required: no approval is needed for this order. 1 run answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+- Every document: right 3 of 5. 1 run answered PA required: no approval is needed for this order. 1 run answered Other gate: the order meets the coverage criteria that govern it; the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (1 of 1 runs used it).
   - In its own words (PA required): “Patient has CKD not on dialysis with Hgb 9.4 (<10 g/dL) — meets the hemoglobin criterion for non‑ESRD ESA therapy under the CGS (Ohio) LCD; Patient’s eGFR 52 mL/min/1.73m2 meets the CGS LCD cutoff for CKD non‑dialysis coverage (GFR <60 mL/min/1.73m2) and…”
   - In its own words (Other gate): “HCPCS J0885 is for non-ESRD (CKD non-dialysis) ESA use under the CGS (Ohio) LCD (L34356).; Coverage for CKD non-dialysis requires anemia (Hgb <10) AND the required CKD stage documentation per CGS: L34356 requires GFR/Cr thresholds but the related…”
 
@@ -107,7 +107,7 @@ Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. S
 
 **`maria-uhc-esa`**: the rules say **Not known**: the documents do not settle it, so the order goes to staff.
 - Same agent, no context: right 1 of 5. 4 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
-  - In its own words (PA required): “UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa) as requiring prior authorization for outpatient administration (UHC MA prior authorization requirements, page 7).” Source it cited: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7.
+  - In its own words (PA required): “UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa) as requiring prior authorization for outpatient administration (UHC MA prior authorization requirements, page 7).” Source it cited: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7.; CMS Billing and Coding Article A58982, “Erythropoiesis Stimulating…
 - Search (RAG): right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
   - In its own words (PA required): “HCPCS J0885 is listed in UnitedHealthcare Medicare Advantage prior authorization requirements for erythropoiesis stimulating agents; Member has CKD non-dialysis diagnosis (D63.1 and N18.32) which aligns with indications in the ESA billing guidance, but UHC…”
 - Every document: right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
@@ -115,7 +115,7 @@ Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. S
 
 **`maria-nohgb`**: the rules say **Not yet known**, resting on LCD L39237, page 7.
 - Same agent, no context: right 4 of 5. 1 run answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
-  - In its own words (No PA): “Medicare coverage criteria for epoetin alfa (J0885) for CKD not on dialysis are described in the MAC guidance and billing article (requires diagnosis D63.1 plus CKD staging codes, EC modifier and supporting labs) — documentation required but no Medicare-wide…”
+  - In its own words (No PA): “Medicare coverage criteria for epoetin alfa (J0885) for CKD not on dialysis are described in the MAC guidance and billing article (requires diagnosis D63.1 plus CKD staging codes, EC modifier and supporting labs) — documentation required but no Medicare-wide…” Source it cited: Billing & Coding Article A58982, “Erythropoiesis Stimulating Agents (for L39237)”, page 10 (documentation requirements, diagnosis and modifier guidance) — supports…
 - Search (RAG): right 2 of 5. 3 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
   - In its own words (No PA): “Original Medicare Part B coverage policies (LCD L34356 / A58982) do not state a prior authorization requirement for non‑ESRD ESA (J0885).; Order is for non‑dialysis CKD anemia (HCPCS J0885) and the claim includes D63.1 and N18.32, which are the dual diagnoses…”
   The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
@@ -134,7 +134,7 @@ Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. S
 
 ### Scope tests, one by one
 
-The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. Last full run on the engineer's laptop: 69 of 69 passed, 13 Nov 2026.
+The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. Last full run on the engineer's laptop: all tests passed, 13 Nov 2026 (the count is in the badge above).
 
 | # | Scope test | The scope expects | Result | Difference from the scope's example |
 | --: | :-- | :-- | :--: | :-- |
@@ -303,7 +303,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 73 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 75 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090

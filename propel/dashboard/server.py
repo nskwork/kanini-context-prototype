@@ -173,8 +173,14 @@ def compare():
     gave A the pack's pages, so its A is not used. Nothing found: the page shows only live numbers."""
     files = sorted(RESULTS.glob("compare-*.json"), reverse=True) if RESULTS.exists() else []
     out: dict = {"files": {}, "scenarios": {}}
+    hist: dict = {}   # every run of the one-call baselines and of lane A, so the Testing tab can show them all
     for f in files:
         rep = json.loads(f.read_text())
+        for lane, key in (("A", "A_agent"), ("A_rag", "A_rag"), ("A_whole", "A_whole")):
+            sc = [e[key] for e in rep.get("scenarios", {}).values() if e.get(key)]
+            if sc:
+                hist.setdefault(lane, []).append({"file": f.name, "at": rep.get("at"), "right": sum(x["matches_rules"] for x in sc),
+                                                  "runs": sum(x["runs"] for x in sc)})
         for sc, e in rep.get("scenarios", {}).items():
             tgt = out["scenarios"].setdefault(sc, {"patient": e["patient"], "reference_outcome": e.get("reference_outcome")})
             if tgt["patient"] != e["patient"]:
@@ -189,6 +195,7 @@ def compare():
                         out.setdefault("at", {})[lane] = rep.get("at")
     if not out["scenarios"]:
         return {}
+    out["history"] = hist
     out["file"] = out["files"].get("A") or next(iter(out["files"].values()), "")
     try:   # what broke, order by order, for the Testing tab (same text as the README section)
         from propel.baseline import failures

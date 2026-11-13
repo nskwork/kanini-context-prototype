@@ -14,6 +14,7 @@ The README section "What broke in testing" and the dashboard's Testing tab both 
 from __future__ import annotations
 
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -78,14 +79,32 @@ def why_wrong(rules: str, ai: str, ev: dict) -> str:
     return table.get((rules, ai), f"the rules say {LABEL.get(rules, rules)}")
 
 
+def sources(card: str) -> list[str]:
+    """Every source line on a card ("Source: …", "- Source: …", "6) Source: …", and the bullets under a bare heading)."""
+    out, lines = [], (card or "").splitlines()
+    rx = re.compile(r"^\s*(?:\d+[.)]\s*|[-*>]+\s*)?\**Sources?\b[^:]*:\**\s*(.*)$", re.I)
+    for k, ln in enumerate(lines):
+        m = rx.match(ln)
+        if m:
+            if m.group(1).strip():
+                out.append(m.group(1).strip())
+            else:
+                out += [x.strip(" -*") for x in lines[k + 1:k + 4] if x.strip().startswith(("-", "*"))]
+    return out
+
+
 def _quote(run: dict) -> dict:
     """The first reason the AI gave on its card, and the source line it cited, shortened."""
     card = run.get("card") or ""
-    why = next((ln.split("Why:", 1)[1].strip(" -") or "" for ln in card.splitlines() if "Why:" in ln), "")
-    if not why:   # "Why:" on its own line, the reasons as a list below it
-        lines = card.splitlines()
-        i = next((k for k, ln in enumerate(lines) if ln.strip().startswith("Why")), None)
-        why = lines[i + 1].strip(" -") if i is not None and i + 1 < len(lines) else ""
+    lines = card.splitlines()
+    head = lambda word: re.compile(r"^\s*(?:\d+[.)]\s*|[-*>]+\s*)?\**" + word + r"\b[^:]*:\**\s*(.*)$", re.I)   # noqa: E731
+    why_re = head("Why")
+    why = ""
+    for k, ln in enumerate(lines):   # "Why: …", "- Why: …", "4) Why (from the documents):" with bullets below
+        m = why_re.match(ln)
+        if m:
+            why = m.group(1).strip(" -") or next((x.strip(" -*") for x in lines[k + 1:] if x.strip()), "")
+            break
     if run.get("outcome") == "needs_facts":   # what it asked for is what went wrong
         nxt = next((ln.split("Next step:", 1)[1].strip() for ln in card.splitlines() if "Next step:" in ln), "")
         why = nxt or why
@@ -96,7 +115,7 @@ def _quote(run: dict) -> dict:
             hit = [r for r in rs if _re.search(r"missing|not (on file|present|provided|documented|available)|absent|no (documented|record)|obtain|needed|required to", r, _re.I)]
             rs = hit[-1:] or rs[-1:]
         why = "; ".join(rs)
-    src = next((ln.split("Source:", 1)[1].strip() for ln in card.splitlines() if "Source:" in ln), "")
+    src = "; ".join(sources(card))
     cut = lambda t, n: t if len(t) <= n else t[:n].rsplit(" ", 1)[0] + "…"   # noqa: E731
     return {"why": cut(why, 260), "source": cut(src, 170)}
 
@@ -129,10 +148,20 @@ def explain(report: dict) -> dict:
                     item["own_region"] = sum(1 for x in sent if x in REGION_DOCS[state])
                     item["other_region"] = sum(1 for x in sent if x in REGION_DOCS[other])
                     item["other_region_name"] = other
-            if row["plan"] == "original-medicare" and state == "Ohio":   # Tennessee's limit applied to an Ohio order
+            if row["plan"] == "original-medicare" and state == "Ohio":   # what a wrong "Other gate" on the Ohio order rested on
+                runs_o = e.get(f"{key}_runs") or (e.get("A_runs") if key == "A_agent" else None) or []
                 for b in item["broke"]:
-                    if b["answer"] == "other_gate":
-                        b["why"] += "; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60)"
+                    if b["answer"] != "other_gate":
+                        continue
+                    texts = [(r.get("card") or "") + " ".join(map(str, r.get("reasons") or [])) for r in runs_o if r.get("outcome") == "other_gate"]
+                    tn = sum(1 for t in texts if re.search(r"A58982|L39237|<\s*45|below 45|less than 45", t))
+                    st3a = sum(1 for t in texts if re.search(r"N18\.31|3a|IIIa", t, re.I))
+                    if not runs_o or tn:
+                        b["why"] += ("; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60)"
+                                     + (f" ({tn} of {len(texts)} runs used it)" if texts else ""))
+                    if st3a and st3a > tn:
+                        b["why"] += ("; the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 "
+                                     "lists N18.31" + (f" ({st3a} of {len(texts)} runs used it)" if texts else ""))
             runs = e.get(f"{key}_runs") or (e.get("A_runs") if key == "A_agent" else None)
             if runs:   # the AI's own words for each wrong answer, and how many of those runs cited another region's policy
                 other_docs = {"Ohio": ("L39237", "A58982"), "Tennessee": ("L34356", "A56462")}.get(state) if row["plan"] == "original-medicare" else None
@@ -141,7 +170,7 @@ def explain(report: dict) -> dict:
                     if mine:
                         b["quote"] = _quote(mine[0])
                     if other_docs:
-                        b["cited_other_region"] = sum(1 for r in mine if any(d in (r.get("card") or "") for d in other_docs))
+                        b["cited_other_region"] = sum(1 for r in mine if any(d in " ".join(sources(r.get("card") or "")) for d in other_docs))
                         b["other_region_name"] = "Tennessee" if state == "Ohio" else "Ohio"
             row[name] = item
         out["orders"].append(row)

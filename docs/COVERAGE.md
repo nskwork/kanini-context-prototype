@@ -133,7 +133,7 @@ All 23 tests pass. **Met.**
 
 ## 10. Beyond the scope
 
-- **Comparison with and without the context layer** (`propel/baseline/compare.py`): six orders, five runs each. The same agent without Kanini Context, reading the policy documents itself, matched the approved rules 16 of 30 times at about 22,700 tokens an order and changed its answer between runs on all six orders; with Kanini Context it gave the rules' answer 30 of 30 at about 12,000 tokens; Kanini Context with no AI answers with no tokens in about 30 ms and is the answer key. Earlier single-call baselines over the same library: search 11 of 30, every document 18 of 30. What broke, order by order, is in the README and the dashboard's Testing tab.
+- **Comparison with and without the context layer** (`propel/baseline/compare.py`): six orders, five runs each. The same agent without Kanini Context, reading the policy documents itself, matched the approved rules 16 of 30 times at about 22,700 tokens an order and changed its answer between runs on all six orders; with Kanini Context it gave the rules' answer 30 of 30 at about 12,000 tokens; Kanini Context with no AI answers with no tokens in about 30 ms and is the answer key. Single-call baselines over the same library, tested twice: search 11 and 16 of 30, every document 18 and 20 of 30. What broke, order by order, is in the README and the dashboard's Testing tab.
 - **Dashboard** (`propel/dashboard`): live knowledge graph and schema view, decision card, approval step, and the three ways of answering run in turn on the same order.
 - **CMS program screening**: every Original Medicare prior authorization program bound to the state is screened against its saved code list before "No PA" is given.
 

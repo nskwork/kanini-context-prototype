@@ -242,7 +242,7 @@ async def run_a_agent_async(pid: str, model=None) -> dict:
         await ts.close()
     return {"outcome": N.card_outcome("\n".join(texts)) or "no card", "safe_to_act": None, "llm_calls": usage["calls"],
             "tokens_in": usage["in"], "tokens_out": usage["out"], "ms": ms, "setup_ms": setup_ms, "rule": None,
-            "pages_read": usage["reads"], "searches": usage["searches"], "card": "\n".join(texts)[-1200:]}
+            "pages_read": usage["reads"], "searches": usage["searches"], "card": "\n".join(texts)}
 
 
 def run_a_agent(pid: str) -> dict:

@@ -884,8 +884,10 @@
       const ok = sum(k, (s) => s.matches_rules), n = sum(k, (s) => s.runs);
       const head = k === "C" ? "same answer every run" : k === "B" ? `${ok} of ${n} from the rules` : `${ok} of ${n} right`;
       const vary = k.startsWith("A") ? `<div class="t-vary">answer changed between runs on ${varied(k)} of ${cnt(k)} orders</div>` : "";
+      const older = ((cmp.history || {})[k] || []).slice(1);   // earlier tests of the same way, newest first
+      const hist = older.length ? `<div class="t-hist">earlier test${older.length > 1 ? "s" : ""}: ${older.map((h) => `${h.right} of ${h.runs}`).join(", ")}; all: ${[...older, (cmp.history[k] || [])[0]].reduce((t, h) => t + h.right, 0)} of ${[...older, (cmp.history[k] || [])[0]].reduce((t, h) => t + h.runs, 0)}</div>` : "";
       return `<div class="t-tile ${cls}"><div class="t-name">${name}</div><div class="t-sub">${sub}</div><div class="t-big">${head}</div>`
-        + vary + `<div class="t-meta">${fmt(avg(k, (s) => s.tokens_in))} tokens · ${k === "C" ? "0 AI calls" : avg(k, (s) => s.llm_calls).toFixed(1) + " AI calls"} · ${rng(k, (s) => s.seconds, k === "C" ? 2 : 1)} s</div></div>`;
+        + vary + hist + `<div class="t-meta">${fmt(avg(k, (s) => s.tokens_in))} tokens · ${k === "C" ? "0 AI calls" : avg(k, (s) => s.llm_calls).toFixed(1) + " AI calls"} · ${rng(k, (s) => s.seconds, k === "C" ? 2 : 1)} s</div></div>`;
     };
     const hasA = cnt("A") > 0;
     const ord = (pid) => S.orders.find((o) => o.patient === pid) || {};

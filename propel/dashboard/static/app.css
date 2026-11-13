@@ -370,3 +370,4 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .t-q{display:block;margin:3px 0 4px 150px;padding:5px 9px;border-left:2px solid rgba(251,113,133,.5);background:rgba(251,113,133,.06);border-radius:0 6px 6px 0;font-size:var(--s-xs);color:var(--ink2);line-height:1.45} .t-q i{display:block;color:var(--mute);margin-top:2px}
 .t-tiles{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
 .t-tile.old{opacity:.82;border-style:dashed}
+.t-hist{margin-top:2px;font-size:var(--s-xs);color:var(--ink2)}

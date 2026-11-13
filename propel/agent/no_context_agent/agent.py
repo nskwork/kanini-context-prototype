@@ -25,7 +25,7 @@ from google.adk.tools.mcp_tool import McpToolset
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 from kanini_context import env  # noqa: F401,E402  (loads .env)
-from propel.agent.authorization_agent.agent import OUTCOME_LABEL, _journey_params, make_model  # noqa: E402
+from propel.agent.authorization_agent.agent import OUTCOME_LABEL, _journey_params, _payload, make_model  # noqa: E402
 from propel.baseline import library  # noqa: E402
 
 MAX_PAGES = 3          # pages per read_pages call
@@ -83,12 +83,21 @@ _LINE = re.compile(r"^[ \t>*-]*\**Outcome:\**[ \t]*(.*)$", re.M | re.I)
 
 def card_outcome(text: str) -> str | None:
     """The outcome named on the card's Outcome line, as a rules outcome code (None when there is no card)."""
-    m = _LINE.search(text or "")
-    if not m:
+    found = list(_LINE.finditer(text or ""))
+    if not found:
         return None
+    m = found[-1]   # the final card: a model can write an early Outcome line and revise it after reading more
     t = re.sub(r"[*_`]", "", m.group(1)).lower()
     named = [k for k, lab in OUTCOME_LABEL.items() if lab.split(" (")[0].lower() in t]
     return sorted(named, key=lambda k: -len(OUTCOME_LABEL[k].split(" (")[0]))[0] if named else "unparseable"
+
+
+def after_tool(tool, args: dict, tool_context, tool_response):
+    """The patient record reaches the model once, as it does for B: an MCP result carries both text and structured
+    content, and without this the model would read the record twice on every later turn."""
+    if tool.name == "journey_get":
+        return _payload(tool_response) or None
+    return None
 
 
 def build_agent(model=None) -> LlmAgent:
@@ -99,6 +108,7 @@ def build_agent(model=None) -> LlmAgent:
         instruction=INSTRUCTION,
         tools=[McpToolset(connection_params=_journey_params(), tool_filter=["journey_get"]),
                FunctionTool(list_documents), FunctionTool(search_documents), FunctionTool(read_pages)],
+        after_tool_callback=after_tool,
     )
 
 

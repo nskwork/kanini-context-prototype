@@ -394,3 +394,21 @@ def test_what_broke_names_the_wrong_answers_and_the_missing_page():
     assert x["search"]["deciding_page_found"] is False and x["search"]["other_region"] == 1
     md = failures.to_markdown({"at": rep["at"], "orders": [x]})
     assert "13 Nov 2026, 08:42 Central time" in md and "**not** among" in md
+
+
+def test_lane_a_reads_the_patient_record_once_and_is_graded_on_its_last_card():
+    # Lane A gets the same one-copy patient record as B, and a revised card counts, not the first draft.
+    from types import SimpleNamespace
+    from propel.agent.no_context_agent import agent as N
+    assert N.build_agent(model="x").after_tool_callback is N.after_tool
+    record = {"content": [{"type": "text", "text": "{}"}], "structuredContent": {"status": "found", "orders": []}}
+    assert N.after_tool(SimpleNamespace(name="journey_get"), {}, None, record) == {"status": "found", "orders": []}
+    assert N.card_outcome("Outcome: Other gate · not safe to act\n…read page 8…\nOutcome: No PA · safe to act") == "no_pa"
+
+
+def test_what_broke_reads_every_source_line():
+    from propel.baseline import failures
+    card = "Decision card\nOutcome: No PA\n4) Why (from the documents):\n- meets criteria\n- Source: LCD L39237 p. 7\n- Source: LCD L34356 p. 8"
+    assert failures.sources(card) == ["LCD L39237 p. 7", "LCD L34356 p. 8"]
+    q = failures._quote({"outcome": "no_pa", "card": card})
+    assert q["why"] == "meets criteria" and "L34356" in q["source"]
