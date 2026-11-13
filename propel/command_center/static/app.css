@@ -66,7 +66,7 @@ button{font:inherit}
 .seg button[aria-selected="true"]{background:var(--violet2);color:#fff;box-shadow:0 0 16px rgba(124,58,237,.6)}
 .zoom{display:flex;gap:4px}
 .zoom button{min-width:44px;min-height:40px;border-radius:9px;border:1px solid var(--line);background:rgba(15,10,40,.6);color:#c4b5fd;font-family:"JetBrains Mono";cursor:pointer}
-.legend{position:absolute;left:14px;right:14px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10px;color:var(--mute)}
+.legend{position:absolute;left:14px;right:14px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10px;color:var(--mute);padding:6px 10px;border-radius:10px;background:rgba(4,5,12,.72);backdrop-filter:blur(4px);pointer-events:none}
 .legend span{display:flex;align-items:center;gap:5px}
 .legend i{display:inline-block;width:7px;height:7px;border-radius:50%}
 .tip{position:absolute;pointer-events:none;padding:6px 9px;border-radius:8px;background:rgba(10,8,30,.92);border:1px solid var(--line);font-size:11px;color:var(--ink);max-width:280px;z-index:5}
