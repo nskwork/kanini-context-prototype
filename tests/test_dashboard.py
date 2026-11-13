@@ -80,3 +80,23 @@ def test_schema_view_has_classes_fields_kinds_and_relations(client):
     assert {"Rule", "Authority", "Source", "Plan", "Code"} <= set(ent)
     assert len(ent["Rule"]["fields"]) >= 20 and "Lcd" in ent["Authority"]["kinds"]
     assert {"rel": "states", "s": "Authority", "t": "Rule"} in s["relations"]
+
+
+def test_lane_a_is_the_same_agent_without_kanini_context(client, monkeypatch):
+    # Lane A live, with the scripted stand-in model: patient record, document search, page read, a card, and the
+    # card's outcome marked against the rules' answer for the same order.
+    from propel.dashboard import server
+    monkeypatch.setattr(server, "SCRIPTED", True)
+    monkeypatch.setenv("PROPEL_RAG", "bm25")
+    rid = client.post("/api/run", json={"patient": "maria-oh", "mode": "nocontext"}).json()["run"]
+    events = []
+    with client.stream("GET", f"/api/run/{rid}/events") as s:
+        for line in s.iter_lines():
+            if line.startswith("data:"):
+                events.append(json.loads(line[5:]))
+    tools = [e["name"] for e in events if e["kind"] == "tool_call"]
+    assert tools == ["journey_get", "search_documents", "read_pages"], events
+    assert not {"context_applicable_rules", "rules_evaluate", "policy_search"} & set(tools)   # no Kanini Context
+    assert next(e for e in events if e["kind"] == "answer")["answer"] == "unknown"
+    ref = next(e for e in events if e["kind"] == "reference")
+    assert ref["matches"] is (ref["outcome"] == "unknown") and events[-1]["kind"] == "done"

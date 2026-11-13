@@ -374,12 +374,15 @@
   }
 
   /* ---------------------------------------------------------------- the race: every lane fills only from a run made here */
-  // The third number differs by lane on purpose: C is the approved rules applied by plain code, so it is the answer key
-  // (it cannot be "wrong"); A is graded against it; B states the rules' answer by design, so its check is that it used it.
-  const LANES = { A: ["documents", "AI searches the policy library (RAG)", "#fb7185", "Matches the key"],
-    B: ["agent", "AI agent asks Kanini Context", "#22d3ee", "Used the rules"],
-    C: ["workflow", "No AI: the approved rules, applied directly", "#a3e635", "Answer key"] };
-  const MODE_LANE = { documents: "A", agent: "B", workflow: "C" };
+  // A is the same agent without the context layer: it finds and reads the policy documents for every order. B is
+  // the agent with Kanini Context (reduce: short calls, no document text); C is Kanini Context with no AI (eliminate).
+  // Earlier baselines (an LLM application with search, or given every document) are in the Testing tab.
+  const LANES = { A: ["nocontext", "No context: the same agent reads the documents", "#fb7185", "Matches the rules"],
+    B: ["agent", "Reduce: the AI agent asks Kanini Context", "#22d3ee", "From the rules"],
+    C: ["workflow", "Eliminate: Kanini Context answers, no AI", "#a3e635", "From the rules"] };
+  const MODE_LANE = { nocontext: "A", agent: "B", workflow: "C" };
+  const A_STEP = { journey_get: "patient record", list_documents: "lists the documents", search_documents: "searches the documents",
+    read_pages: "reads pages" };
   const lanes = {};
   const blank = () => ({ run: null, es: null, active: false, done: false, t0: 0, ms: null, tin: 0, tout: 0, turns: 0, prompt: 0,
     answer: null, ref: null, ok: null, callMs: null, note: "" });
@@ -409,15 +412,14 @@
       const st = lanes[L].st;
       let ans = null, ok = null;
       if (L === "A") { ans = st.answer; ok = st.ok; }
-      else if (st.ok) { ans = rules; ok = L === "B" ? true : null; }
+      else if (st.ok) { ans = rules; ok = true; }
       const label = st.skipped ? "not run (no API key)" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : "not run";
-      const mark = L === "C" && ans ? '<span class="key">key</span>'
-        : L === "B" && ans && st.cardFixed ? '<span class="ok" title="The AI wrote a different outcome on its card; the card was set from the rules">✓ card fixed</span>'
+      const mark = L === "B" && ans && st.cardFixed ? '<span class="ok" title="The AI wrote a different outcome on its card; the card was set from the rules">✓ card fixed</span>'
         : ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       return `<div class="ans" style="--lc:${LANES[L][2]}"><b>${L}</b><span class="nm">${name}</span><span class="av">${esc(label)}</span>${mark}</div>`;
     };
-    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "AI + RAG, no Kanini Context") + row("B", "AI agent + Kanini Context") + row("C", "No AI (answer key)")
-      + `<div class="ans-note">C is the approved rules applied directly: the answer key. A is checked against it; B can only state the rules' answer.</div>`;
+    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "Same agent, no Kanini Context") + row("B", "AI agent + Kanini Context") + row("C", "No AI, Kanini Context directly")
+      + `<div class="ans-note">B and C answer from the same approved rules: the agent explains, the direct lookup needs no AI. A reads the documents again for every order.</div>`;
   }
   function laneNumbers() {
     renderAnswers();
@@ -434,34 +436,32 @@
         + `${m === "B" ? "" : "right "}${ok} of ${n} times in testing</small>`;
     };
     const tick = (b) => (b == null ? "–" : b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>');
-    // A: the policy documents go to the AI, now
-    const a = lanes.A.st;
-    $("sA").textContent = a.note || (a.done ? `AI: ${OUTCOME[a.answer]?.[0] || a.answer} · rules: ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
-      + (a.ok ? " · right this time, not every time" : "") + (a.whole ? ` · library: ${fmt(a.whole)} tokens` : "")
-      : a.active ? `Sending the ${a.docs ? a.docs.length : ""} best-matching passages from the library (${fmt(a.prompt)} tokens)…`
-      : "No Kanini Context: the AI searches the policy library");
-    $("sA").title = a.whole ? `A uses no part of Kanini Context. It ranked every passage of the policy library (${fmt(a.whole)} tokens read whole) against this order by ${a.method || "similarity"} and sent the best ${a.docs ? a.docs.length : ""} (${fmt(a.prompt)} tokens):\n` + (a.docs || []).join("\n") : "";
-    const ran = (a.active || a.done) && !a.skipped;
-    $("nA1").innerHTML = ran && (a.tin || a.prompt) ? fmt(a.tin || a.prompt) : "–";
-    $("nA2").innerHTML = ran ? `1 · ${secs(a)}<small> s</small>` : "–";
-    $("nA3").innerHTML = a.done ? tick(a.ok) + overall("A") : "–";   // the testing score shows with this run's mark, never before
-    lanes.A.target = ran ? (a.tin || a.prompt) / 900 : 0;
+    // A: the same agent without Kanini Context, counted from its own model calls
+    const a = lanes.A.st, aScripted = S.scripted && (a.active || a.done) && !a.tin;
+    const reads = () => [a.searches ? `${a.searches} search${a.searches > 1 ? "es" : ""}` : "", a.pages ? `${a.pages} page${a.pages > 1 ? "s" : ""} read` : ""].filter(Boolean).join(", ");
+    $("sA").textContent = a.note || (a.done ? `AI: ${OUTCOME[a.answer]?.[0] || a.answer || "no card"} · rules: ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
+        + (reads() ? ` · ${reads()}` : "") + (aScripted ? " · scripted stand-in" : "")
+      : a.active ? (a.step || "Starting…") : "No Kanini Context: for every order it finds and reads the policy again");
+    $("nA1").innerHTML = aScripted ? "–" : a.active || a.done ? fmt(a.tin) : "–";
+    $("nA2").innerHTML = a.active || a.done ? `${a.turns} · ${secs(a)}<small> s</small>` : "–";
+    $("nA3").innerHTML = a.done && a.answer ? tick(a.ok) + overall("A") : "–";
+    lanes.A.target = a.active || a.done ? a.tin / 900 : 0;
     // B: the agent, counted from its own model calls
     const b = lanes.B.st, scripted = S.scripted && (b.active || b.done) && !b.tin;
     $("sB").textContent = scripted ? "Rehearsal: scripted stand-in, no AI and no tokens"
       : b.done && b.timing ? `This run: AI ${b.timing.ai_s.toFixed(1)} s · tools ${b.timing.tools_s.toFixed(1)} s · start-up ${b.timing.setup_s.toFixed(1)} s · between steps ${b.timing.between_s.toFixed(1)} s`
-      : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : "The AI asks Kanini Context for the checked rules";
+      : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : "Short AI calls: the facts come from the context, not from re-reading documents";
     $("nB1").innerHTML = scripted ? "–" : b.active || b.done ? fmt(b.tin) : "–";
     $("nB2").innerHTML = b.active || b.done ? `${b.turns} · ${secs(b)}<small> s</small>` : "–";
     $("nB3").innerHTML = b.done ? tick(b.ok) + overall("B") : "–";   // marked when the agent has finished, with its final time
     lanes.B.target = b.active || b.done ? b.tin / 900 : 0;
     // C: plain code, timed
     const c = lanes.C.st;
-    $("sC").textContent = c.done ? "This run: no AI · the answer key A is checked against"
-      : c.active ? "Looking up…" : "The answer key: the approved rules, applied by code";
+    $("sC").textContent = c.done ? "This run: no AI, no tokens · the approved rules, applied by code"
+      : c.active ? "Looking up…" : "The information is already in the context: no AI call at all";
     $("nC1").innerHTML = c.done ? "0" : "–";
     $("nC2").innerHTML = c.done && c.callMs != null ? `0 · ${c.callMs}<small> ms</small>` : "–";
-    $("nC3").innerHTML = c.done ? '<span class="key">key</span>' : "–";
+    $("nC3").innerHTML = c.done ? '<span class="ok">✓</span><small class="overall">same answer every run</small>' : "–";
   }
   function lanesTick(dt) {
     Object.values(lanes).forEach((ln) => {
@@ -533,7 +533,6 @@
     } else if (e.kind === "model") {
       // B's numbers stop at the decision card: the model's reply after staff approve is not part of answering
       if (!(L === "B" && st.confirmed)) { st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out; }
-      if (L === "A") st.answer = e.answer;
       if (L === "B") {
         chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
         if (e.text && e.text.includes("(Outcome line set from rules_evaluate.)")) st.cardFixed = true;
@@ -541,10 +540,19 @@
       }
     } else if (e.kind === "timing") {
       st.timing = e;
+    } else if (e.kind === "answer") {
+      st.answer = e.answer;
     } else if (e.kind === "reference") {
       st.ref = e.outcome; st.ok = e.matches;
     } else if (e.kind === "unavailable") {
       st.note = "Not run: " + e.message; st.skipped = true;
+    } else if (e.kind === "tool_call" && L === "A") {
+      const a = e.args || {};
+      st.steps = (st.steps || 0) + 1;
+      if (e.name === "read_pages") st.pages = (st.pages || 0) + ((a.pages || []).length || 1);
+      if (e.name === "search_documents") st.searches = (st.searches || 0) + 1;
+      st.step = `AI step ${st.turns || 1}: ${A_STEP[e.name] || e.name}` + (e.name === "read_pages" ? ` ${a.source_id || ""} p. ${(a.pages || []).join(", ")}`
+        : e.name === "search_documents" ? ` "${String(a.query || "").slice(0, 60)}"` : "");
     } else if (e.kind === "tool_call") {
       const lbl = TOOL_LABEL[e.name] || e.name;
       if (L === "B" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.textContent === lbl))) chip(lbl, "tool", e.name);
@@ -841,10 +849,67 @@
     (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
 
+  /* ---------------------------------------------------------------- the Testing tab
+     Results from repeated testing (propel/baseline/compare.py), never from a live run: an LLM application without
+     Kanini Context answering the same six orders five times each, beside Kanini Context's two ways. Every number is
+     read from the latest comparison report. */
+  function renderTesting() {
+    const box = $("testing"), cmp = S.compare || {}, scs = Object.values(cmp.scenarios || {});
+    if (!scs.length) { box.innerHTML = '<p class="t-empty">No comparison report yet. Run <code>python -m propel.baseline.compare --runs 5</code>.</p>'; return; }
+    const sum = (k, f) => scs.filter((e) => e[k]).reduce((t, e) => t + f(e[k]), 0);
+    const cnt = (k) => scs.filter((e) => e[k]).length;
+    const avg = (k, f) => (cnt(k) ? sum(k, f) / cnt(k) : 0);
+    const rng = (k, f, d = 1) => { const v = scs.filter((e) => e[k]).map((e) => f(e[k])); if (!v.length) return "–"; const lo = Math.min(...v).toFixed(d), hi = Math.max(...v).toFixed(d); return lo === hi ? lo : `${lo} to ${hi}`; };
+    const tile = (k, name, sub, cls) => {
+      if (!cnt(k)) return "";
+      const ok = sum(k, (s) => s.matches_rules), n = sum(k, (s) => s.runs);
+      const head = k === "C" ? "same answer every run" : k === "B" ? `${ok} of ${n} from the rules` : `${ok} of ${n} right`;
+      const vary = k.startsWith("A") ? `<div class="t-vary">answer changed between runs on ${varied(k)} of ${cnt(k)} orders</div>` : "";
+      return `<div class="t-tile ${cls}"><div class="t-name">${name}</div><div class="t-sub">${sub}</div><div class="t-big">${head}</div>`
+        + vary + `<div class="t-meta">${fmt(avg(k, (s) => s.tokens_in))} tokens · ${k === "C" ? "0 AI calls" : avg(k, (s) => s.llm_calls).toFixed(1) + " AI calls"} · ${rng(k, (s) => s.seconds, k === "C" ? 2 : 1)} s</div></div>`;
+    };
+    const hasA = cnt("A") > 0;
+    const ord = (pid) => S.orders.find((o) => o.patient === pid) || {};
+    const cell = (s) => (s ? `<span class="t-c ${s.matches_rules === s.runs ? "good" : s.matches_rules === 0 ? "bad" : "mid"}">${s.matches_rules}/${s.runs}</span>` : "–");
+    const rows = scs.map((e) => { const o = ord(e.patient);
+      return `<tr><td><b>${esc(e.patient)}</b><span>${esc([o.code, o.plan_name, o.state_name].filter(Boolean).join(" · "))}</span></td>`
+        + `<td>${esc(OUTCOME[e.reference_outcome]?.[0] || e.reference_outcome)}</td>${hasA ? `<td>${cell(e.A)}</td>` : ""}<td>${cell(e.A_rag)}</td><td>${cell(e.A_whole)}</td><td>${cell(e.B)}</td><td>${e.C ? `<span class="t-c good" title="The same answer on every run">${Math.max(...Object.values(e.C.outcomes))}/${e.C.runs} same</span>` : "–"}</td></tr>`; }).join("");
+    // findings, worked out from the report
+    const oh = scs.find((e) => e.patient === "maria-oh"), esa = scs.find((e) => e.patient === "maria-uhc-esa");
+    const tn = (oh && oh.A_sent ? oh.A_sent.passages : []).filter((p) => /A58982|L39237/.test(p.title)).length;
+    const ohio = (oh && oh.A_sent ? oh.A_sent.passages : []).filter((p) => /A56462|L34356/.test(p.title)).length;
+    const lucky = scs.filter((e) => e.A_rag && e.A_rag.matches_rules === e.A_rag.runs).map((e) => e.patient);
+    const varied = (k) => scs.filter((e) => e[k] && Object.keys(e[k].outcomes || {}).length > 1).length;
+    const find = [];
+    if (hasA) find.push(`<b>The same agent without the context layer.</b> For every order it searched and read the policy documents again: ${avg("A", (s) => s.llm_calls).toFixed(1)} AI calls and about ${fmt(avg("A", (s) => s.tokens_in))} tokens an order, against ${avg("B", (s) => s.llm_calls).toFixed(1)} calls and ${fmt(avg("B", (s) => s.tokens_in))} tokens with Kanini Context, and none without AI. It matched the rules ${sum("A", (s) => s.matches_rules)} of ${sum("A", (s) => s.runs)} times, and gave more than one answer to the same question on ${varied("A")} of ${cnt("A")} orders.`);
+    if (cnt("A_rag")) find.push(`<b>Repeated calls, different answers.</b> Without the context layer, every order sends the AI back to the documents to work out the same information again: about ${fmt(avg("A_rag", (s) => s.tokens_in))} tokens a question with search, ${fmt(avg("A_whole", (s) => s.tokens_in))} reading everything. Asked the same question five times, it gave more than one answer on ${varied("A_rag")} of ${cnt("A_rag")} orders with search${cnt("A_whole") ? ` and ${varied("A_whole")} of ${cnt("A_whole")} reading everything` : ""}. Kanini Context gave one answer per order, every time.`);
+    if (oh && oh.A_rag) find.push(`<b>The wrong region.</b> For the Ohio order, retrieval sent ${tn} passages from Tennessee's policy and ${ohio} from Ohio's. The AI applied Tennessee's limit to an Ohio patient: right ${oh.A_rag.matches_rules} of ${oh.A_rag.runs} times with search. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.`);
+    if (esa && esa.A_rag) find.push(`<b>Silence read as a rule.</b> The UnitedHealthcare list names the anemia drug only with a cancer diagnosis. Without Kanini Context the AI answered "PA required" or "No PA"; right ${esa.A_rag.matches_rules} of ${esa.A_rag.runs} with search${esa.A_whole ? `, ${esa.A_whole.matches_rules} of ${esa.A_whole.runs} reading everything` : ""}. Kanini Context says what the documents support: not known, route to staff.`);
+    if (lucky.length) find.push(`<b>Right only sometimes.</b> On ${lucky.map(esc).join(", ")} the AI with search was right every run, with fewer tokens than the agent. Nothing tells which orders those are, so every answer it gives has to be checked by a person.`);
+    find.push(`<b>Reduce or eliminate.</b> The documents are read once, when the rules are drafted and approved. After that, the agent needs only short calls (B, about ${fmt(avg("B", (s) => s.tokens_in))} tokens, no document text), and a workflow needs none (C: no tokens, the same answer every time), each answer with its source, rule edition and safe-to-act flag.`);
+    const when = (cmp.at && (cmp.at.A || cmp.at.A_rag)) ? new Date(cmp.at.A || cmp.at.A_rag).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+    const whole = scs.find((e) => e.A_whole_tokens)?.A_whole_tokens;
+    box.innerHTML = `<div class="t-head"><h3>Testing: the same orders with and without the context layer</h3>`
+      + `<p>Each of the ${scs.length} demo orders answered ${scs[0].C ? scs[0].C.runs : 5} times by each method${when ? ", " + esc(when) : ""}, GPT-5 mini. Without Kanini Context, the AI answers from the same ${whole ? fmt(whole) + "-token" : ""} policy library: as the same agent reading it itself (lane A)${hasA ? "" : ", not yet tested"}, by search (RAG), or given every document. These are repeated runs, not a live demo: one answer can land either way by chance.</p></div>`
+      + `<div class="t-tiles">${tile("A", "A · same agent, no Kanini Context", "finds and reads the documents itself", "a")}${tile("A_rag", "AI searches the documents", "no Kanini Context (RAG)", "a")}${tile("A_whole", "AI reads every document", "no Kanini Context", "a")}`
+      + `${tile("B", "B · AI agent asks Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}</div>`
+      + `<table class="t-table"><thead><tr><th>Order</th><th>The rules say</th>${hasA ? "<th>A · same agent, no context</th>" : ""}<th>Search (RAG)</th><th>Read all</th><th>B · agent</th><th>C · no AI</th></tr></thead><tbody>${rows}</tbody></table>`
+      + `<ul class="t-find">${find.map((f) => `<li>${f}</li>`).join("")}</ul>`
+      + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.</p>`;
+  }
+
   async function setView(v) {
     S.view = v;
     $("view-inst").setAttribute("aria-selected", String(v === "inst"));
     $("view-onto").setAttribute("aria-selected", String(v === "onto"));
+    $("view-test").setAttribute("aria-selected", String(v === "test"));
+    const testing = v === "test";
+    $("testing").classList.toggle("hidden", !testing);
+    $("graph").style.visibility = testing ? "hidden" : "";
+    document.querySelector(".graph-panel .zoom").style.visibility = testing ? "hidden" : "";
+    $("legend").style.visibility = testing ? "hidden" : "";
+    document.querySelector(".graph-panel .eyebrow").textContent = testing ? "Testing" : "Knowledge graph";
+    if (testing) { renderTesting(); return; }
     if (v === "onto" && !S.onto) S.onto = await (await fetch("/api/ontology")).json();
     $("detail").classList.add("hidden");
     if (v === "onto") { renderSchema(S.onto); return; }
@@ -854,6 +919,7 @@
   }
   $("view-inst").onclick = () => setView("inst");
   $("view-onto").onclick = () => setView("onto");
+  $("view-test").onclick = () => setView("test");
   $("run-agent").onclick = () => race(["B"]);
   $("run-flow").onclick = () => race(["C"]);
   $("run-race").onclick = () => race(["A", "B", "C"]);

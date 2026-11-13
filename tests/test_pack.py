@@ -364,3 +364,17 @@ def test_lane_a_reads_the_library_without_the_pack(monkeypatch):
     assert "kc:rule" not in prompt and "rule_ref" not in prompt
     whole, sent_whole = compare.prompt_for("maria-uhc-esa", "whole")
     assert len(sent_whole["documents"]) == len(library.documents()) and len(whole) > 5 * len(prompt)
+
+
+def test_no_context_agent_tools_and_card(monkeypatch):
+    # Lane A's agent: the same model and patient tool as B, document tools instead of Kanini Context.
+    monkeypatch.setenv("PROPEL_RAG", "bm25")
+    from propel.agent.no_context_agent import agent as N
+    names = {getattr(t, "name", None) or getattr(getattr(t, "func", None), "__name__", "") for t in N.build_agent(model="x").tools}
+    assert {"list_documents", "search_documents", "read_pages"} <= names
+    assert not any("rules" in n or "context" in n for n in names if n)
+    assert len(N.read_pages("mcd-lcd-l39237", [1, 2, 3, 4, 5])["pages"]) == N.MAX_PAGES
+    assert N.search_documents("ESA hemoglobin Tennessee")["passages"]
+    assert N.card_outcome("Decision card · ord-1\n**Outcome:** No PA – safe to act") == "no_pa"
+    assert N.card_outcome("Outcome: Not yet known (facts needed) · not safe to act") == "needs_facts"
+    assert N.card_outcome("no card here") is None

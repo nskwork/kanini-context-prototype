@@ -179,11 +179,14 @@ def compare():
             tgt = out["scenarios"].setdefault(sc, {"patient": e["patient"], "reference_outcome": e.get("reference_outcome")})
             if tgt["patient"] != e["patient"]:
                 continue
-            lanes = {"A": e.get("A_rag"), "B": e.get("B"), "C": e.get("C")}
+            lanes = {"A": e.get("A_agent"), "A_rag": e.get("A_rag"), "A_whole": e.get("A_whole"), "B": e.get("B"), "C": e.get("C"),
+                     "A_sent": e.get("A_rag_sent"), "A_whole_tokens": e.get("A_whole_prompt_tokens")}
             for lane, v in lanes.items():
                 if v and lane not in tgt:
                     tgt[lane] = v
                     out["files"].setdefault(lane, f.name)
+                    if lane in ("A", "A_rag"):
+                        out.setdefault("at", {})[lane] = rep.get("at")
     if not out["scenarios"]:
         return {}
     out["file"] = out["files"].get("A") or next(iter(out["files"].values()), "")
@@ -310,7 +313,7 @@ async def run_documents(run: Run):
 # The agent and its MCP connections (the journey server and Kanini Context) are made once and kept open, so a run
 # starts at its first model call. Each run has its own ADK session; the callbacks find the run by its session id.
 
-AGENT: dict = {"agent": None, "own": None}
+AGENT: dict = {"agent": None, "own": None, "nocontext": None}
 SESSIONS: dict[str, Run] = {}
 
 
@@ -358,14 +361,14 @@ def _install(agent):
         if run:
             _lap(run, "tool_start", tool.name)
             _fire(run, "tool_call", name=tool.name, args=dict(args), turn=run.usage["turn"])
-        return own_before(tool, args, tool_context)
+        return own_before(tool, args, tool_context) if own_before else None
 
     def after_tool(tool, args, tool_context, tool_response):
         run = _run_of(tool_context)
         if run:
             _lap(run, "tool_end", tool.name)
             _fire(run, "tool_result", name=tool.name, payload=A._payload(tool_response))   # the full result, before trimming
-        return own_after(tool, args, tool_context, tool_response)
+        return own_after(tool, args, tool_context, tool_response) if own_after else None
 
     def before_model(callback_context, llm_request):
         run = _run_of(callback_context)
@@ -376,7 +379,7 @@ def _install(agent):
         return own_before_model(callback_context, llm_request) if own_before_model else None
 
     def after_model(callback_context, llm_response):
-        out = own_model(callback_context, llm_response)   # the card guard first, so the page shows the corrected card
+        out = own_model(callback_context, llm_response) if own_model else None   # the card guard first (B), so the page shows the corrected card
         run = _run_of(callback_context)
         if not run or run.stale:
             return out
@@ -398,8 +401,20 @@ def _install(agent):
     return agent
 
 
-async def shared_agent():
-    """The server's one agent (real model), with its MCP connections opened ahead of the first run."""
+async def shared_agent(kind: str = "agent"):
+    """The server's agent (real model) for lane B, or for lane A the same agent without Kanini Context, with its
+    connections opened ahead of the first run."""
+    if kind == "nocontext":
+        if AGENT["nocontext"] is None:
+            from propel.agent.no_context_agent import agent as N
+            agent = _install(N.build_agent())
+            for ts in [t for t in agent.tools or [] if hasattr(t, "get_tools")]:
+                try:
+                    await ts.get_tools()
+                except Exception as ex:
+                    print(f"[dashboard] tool connection not ready yet ({ex}); it opens on the first run", flush=True)
+            AGENT["nocontext"] = agent
+        return AGENT["nocontext"]
     if AGENT["agent"] is None:
         from propel.agent.authorization_agent import agent as A
         agent = _install(A.build_agent(model=A.make_model()))
@@ -428,6 +443,7 @@ def library_tokens() -> int:
 async def _warm():
     if not SCRIPTED and os.environ.get("OPENAI_API_KEY"):
         await shared_agent()
+        await shared_agent("nocontext")
         from propel.baseline import library   # embed the library once, so lane A's first run does not wait for it
         await asyncio.to_thread(library.retrieve, "prior authorization")
         await asyncio.to_thread(library_tokens)
@@ -435,15 +451,17 @@ async def _warm():
 
 @app.on_event("shutdown")
 async def _close():
-    for ts in (AGENT["agent"].tools if AGENT["agent"] else []) or []:
+    for ts in [t for a in (AGENT["agent"], AGENT["nocontext"]) if a for t in (a.tools or []) if hasattr(t, "close")]:
         try:
             await ts.close()
         except Exception:
             pass
 
 
-async def run_agent(run: Run):
-    """Mode B: the authorization agent; the page sees each step as it happens."""
+async def run_agent(run: Run, kind: str = "agent"):
+    """Mode B: the authorization agent, or mode A (kind "nocontext"): the same agent without Kanini Context, which
+    reads the policy documents itself. The page sees each step as it happens. Lane A is marked against the rules'
+    answer for the same order when it finishes."""
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
@@ -455,18 +473,28 @@ async def run_agent(run: Run):
         sys.path.insert(0, str(ROOT / "tests"))
         from scripted_model import ScriptedModel
         from propel.agent.authorization_agent import agent as A
-        agent = _install(A.build_agent(model=ScriptedModel(patient_id=run.patient)))
+        if kind == "nocontext":
+            from scripted_nocontext import ScriptedNoContextModel
+            from propel.agent.no_context_agent import agent as N
+            agent = _install(N.build_agent(model=ScriptedNoContextModel(patient_id=run.patient)))
+        else:
+            agent = _install(A.build_agent(model=ScriptedModel(patient_id=run.patient)))
     else:
-        agent = await shared_agent()
+        agent = await shared_agent(kind)
     svc = InMemorySessionService()
     runner = Runner(app_name="dashboard", agent=agent, session_service=svc)
     s = await svc.create_session(app_name="dashboard", user_id="staff")
     SESSIONS[s.id] = run
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {run.patient}.")])
+    from google.adk.agents.run_config import RunConfig
+    from propel.agent.no_context_agent import agent as N
+    cfg = RunConfig(max_llm_calls=N.MAX_CALLS) if kind == "nocontext" else RunConfig()
+    texts: list[str] = []
     try:
         for _ in range(3):
             confirm_id = None
-            async for ev in runner.run_async(user_id="staff", session_id=s.id, new_message=msg):
+            async for ev in runner.run_async(user_id="staff", session_id=s.id, new_message=msg, run_config=cfg):
+                texts.extend(p.text for p in (ev.content.parts if ev.content else []) or [] if getattr(p, "text", None))
                 for part in (ev.content.parts if ev.content else []) or []:
                     if part.function_call and part.function_call.name == "adk_request_confirmation":
                         confirm_id = part.function_call.id
@@ -485,6 +513,11 @@ async def run_agent(run: Run):
                 id=confirm_id, name="adk_request_confirmation", response={"confirmed": approved}))])
         if not any(e["kind"] == "timing" for e in run.events):
             await run.emit("timing", **_timing(run))
+        if kind == "nocontext" and not run.stale:   # lane A: its card's outcome against the rules' answer for the order
+            ans = N.card_outcome("\n".join(texts))
+            ref = await asyncio.to_thread(_rules_answer, run.patient)
+            await run.emit("answer", answer=ans or "no card")
+            await run.emit("reference", outcome=ref["outcome"], matches=ans == ref["outcome"])
         if run.stale:
             await run.emit("abandoned")
         await asyncio.sleep(0)
@@ -504,10 +537,19 @@ async def run_agent(run: Run):
         run.done = True
 
 
+def _rules_answer(pid: str) -> dict:
+    """The rules' answer for a patient's open order: what lane A is marked against."""
+    p, o = _order(pid)
+    f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
+    with db() as c:
+        return c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)", (p["coverage"]["plan"], p["coverage"]["state"],
+                         "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f))).fetchone()[0]
+
+
 @app.post("/api/run")
 async def start(body: dict):
     pid, mode = body.get("patient"), body.get("mode", "agent")
-    if pid not in PATIENTS or mode not in ("agent", "workflow", "documents"):
+    if pid not in PATIENTS or mode not in ("agent", "nocontext", "workflow", "documents"):
         raise HTTPException(400, "patient must be a known patient id and mode agent, workflow or documents")
     for old in [x for x in RUNS.values() if x.mode == mode]:   # a new run of a mode replaces the last one of that mode
         if old.confirm and not old.confirm.done():
@@ -519,7 +561,8 @@ async def start(body: dict):
     run = Run(pid, mode)
     RUNS[run.id] = run
     await run.emit("start", patient=pid, mode=mode, order=PATIENTS[pid]["orders"][0]["order_id"])
-    run.task = asyncio.create_task({"agent": run_agent, "workflow": run_workflow, "documents": run_documents}[mode](run))
+    run.task = asyncio.create_task({"agent": run_agent, "nocontext": lambda r: run_agent(r, "nocontext"), "workflow": run_workflow,
+                                    "documents": run_documents}[mode](run))
     return {"run": run.id}
 
 

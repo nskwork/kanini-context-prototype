@@ -1,7 +1,7 @@
 """How many LLM calls and tokens Kanini Context saves, and whether answers repeat.
 
 Each demo scenario is answered three ways, several times:
-  A  LLM + policy library   GPT-5 mini answers from the whole policy library, by RAG or read whole (no Kanini Context)
+  A  agent, no context     the same agent and model, reading the policy documents itself (no Kanini Context)
   B  agent with Kanini        the Propel agent calls the Kanini Context tools; the outcome comes from rules_evaluate
   C  workflow with Kanini     Propel calls rules_evaluate directly; no LLM at all
 
@@ -19,10 +19,11 @@ What "matches the rules" means in each lane:
     python -m propel.baseline.compare --offline          # C only, plus the size of A's prompts (no API key needed)
     python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY and the Kanini server)
 
-Mode A uses no part of Kanini Context. It answers from the whole policy library (every saved document) in one of
-two ways, each reported as its own line: "rag" ranks the library's passages against the order and sends the best
-16 (what most LLM applications do), and "whole" sends every document whole (long-context reading). The dashboard
-shows the RAG version. See propel/baseline/library.py.
+Mode A uses no part of Kanini Context. By default it is the same agent as B without the context layer
+(propel/agent/no_context_agent): same model, same patient-record tool, and document tools in place of Kanini
+Context, so it finds and reads the policy itself for every order. This is the dashboard's lane A. Two earlier
+baselines can be run beside it (--a-docs agent,rag,whole): "rag" ranks the library's passages against the order and
+sends the best 16, and "whole" sends every document whole. See propel/baseline/library.py.
 """
 from __future__ import annotations
 
@@ -52,7 +53,7 @@ SCENARIOS = [(str(i), pid) for i, pid in enumerate(PATIENTS, 1)]   # every patie
 # What any application knows about its own plans and states; the pack is not consulted.
 PLAN_NAMES = {"original-medicare": "Original Medicare (Part B)", "uhc-ma": "UnitedHealthcare Medicare Advantage"}
 STATE_NAMES = {"TN": "Tennessee", "OH": "Ohio", "CA": "California", "TX": "Texas"}
-A_MODES = {"rag": "A: AI + RAG over the library", "whole": "A': AI reads the whole library"}
+A_MODES = {"agent": "A: same agent, no Kanini Context", "rag": "AI + RAG over the library", "whole": "AI reads the whole library"}
 A_EFFORT = ""   # --a-effort: run A at another reasoning effort, to check A is not held back by the low setting
 OUTCOMES = ["pa_required", "no_pa", "exempt", "other_gate", "needs_facts", "unknown"]
 
@@ -196,6 +197,58 @@ async def run_b_async(pid: str) -> dict:
             "card_lines": lines}
 
 
+async def run_a_agent_async(pid: str, model=None) -> dict:
+    """A, the same agent without Kanini Context (propel/agent/no_context_agent): it finds and reads the policy
+    documents itself. Counted like B; its card's Outcome line is the answer graded against the rules."""
+    from google.adk.agents.run_config import RunConfig
+    from google.adk.runners import Runner
+    from google.adk.sessions import InMemorySessionService
+    from google.genai import types
+    from propel.agent.no_context_agent import agent as N
+
+    usage = {"calls": 0, "in": 0, "out": 0, "reads": 0, "searches": 0}
+    texts: list[str] = []
+
+    def count(callback_context, llm_response):
+        um = llm_response.usage_metadata
+        parts = (llm_response.content.parts if llm_response.content else None) or []
+        texts.extend(p.text for p in parts if getattr(p, "text", None))
+        for p in parts:
+            if p.function_call and p.function_call.name == "read_pages":
+                usage["reads"] += len((p.function_call.args or {}).get("pages") or [1])
+            if p.function_call and p.function_call.name == "search_documents":
+                usage["searches"] += 1
+        if um:
+            usage["calls"] += 1
+            usage["in"] += um.prompt_token_count or 0
+            usage["out"] += um.candidates_token_count or 0
+        return None
+
+    agent = N.build_agent(model=model)
+    agent.after_model_callback = count
+    svc = InMemorySessionService()
+    runner = Runner(app_name="compare", agent=agent, session_service=svc)
+    s = await svc.create_session(app_name="compare", user_id="staff")
+    t0 = time.perf_counter()
+    for ts in [t for t in agent.tools or [] if hasattr(t, "get_tools")]:
+        await ts.get_tools()
+    setup_ms = (time.perf_counter() - t0) * 1000
+    msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {pid}.")])
+    t = time.perf_counter()
+    async for _ in runner.run_async(user_id="staff", session_id=s.id, new_message=msg, run_config=RunConfig(max_llm_calls=N.MAX_CALLS)):
+        pass
+    ms = (time.perf_counter() - t) * 1000
+    for ts in [t for t in agent.tools or [] if hasattr(t, "close")]:
+        await ts.close()
+    return {"outcome": N.card_outcome("\n".join(texts)) or "no card", "safe_to_act": None, "llm_calls": usage["calls"],
+            "tokens_in": usage["in"], "tokens_out": usage["out"], "ms": ms, "setup_ms": setup_ms, "rule": None,
+            "pages_read": usage["reads"], "searches": usage["searches"]}
+
+
+def run_a_agent(pid: str) -> dict:
+    return asyncio.run(run_a_agent_async(pid))
+
+
 def run_b(pid: str) -> dict:
     os.environ["PROPEL_DECISION_LOG"] = str(OUT / "compare_decisions.jsonl")
     return asyncio.run(run_b_async(pid))
@@ -209,9 +262,9 @@ def summarise(runs: list[dict], ref: str) -> dict:
             "llm_calls": statistics.mean(r["llm_calls"] for r in runs),
             "tokens_in": statistics.mean(r["tokens_in"] for r in runs), "tokens_out": statistics.mean(r["tokens_out"] for r in runs),
             "seconds": statistics.mean(r["ms"] for r in runs) / 1000,
-            **({"setup_seconds": statistics.mean(r["setup_ms"] for r in runs) / 1000,
-                "card_written": sum(1 for r in runs if r["card_by_model"] is not None),
-                "card_right_by_model": sum(1 for r in runs if r["card_by_model"])} if runs and "setup_ms" in runs[0] else {})}
+            **({"setup_seconds": statistics.mean(r["setup_ms"] for r in runs) / 1000} if runs and "setup_ms" in runs[0] else {}),
+            **({"card_written": sum(1 for r in runs if r["card_by_model"] is not None),
+                "card_right_by_model": sum(1 for r in runs if r["card_by_model"])} if runs and "card_by_model" in runs[0] else {})}
 
 
 def _server_up() -> bool:
@@ -229,7 +282,8 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--a-effort", default="", help="reasoning effort for A only (e.g. medium); default: same as B")
-    ap.add_argument("--a-docs", default="rag,whole", help="how A gets its documents: rag, whole, or both (default)")
+    ap.add_argument("--a-docs", default="agent", help="lane A: agent (the same agent without Kanini Context, default), "
+                    "rag, whole, or a comma list such as agent,rag,whole")
     ap.add_argument("--only", choices=["A", "B"], help="run one of the model lanes only (C always runs: it is the key)")
     ap.add_argument("--offline", action="store_true", help="mode C and A's prompt sizes only; no LLM calls")
     args = ap.parse_args(argv)
@@ -250,21 +304,25 @@ def main(argv: list[str]) -> int:
         c_runs = [run_c(pid) for _ in range(args.runs)]
         ref = c_runs[0]["outcome"]
         entry = {"patient": pid, "reference_outcome": ref, "rule": c_runs[0]["rule"], "C": summarise(c_runs, ref)}
-        for m in a_modes:
+        for m in [m for m in a_modes if m != "agent"]:   # the agent finds its own documents: no prompt to size
             prompt, sent = prompt_for(pid, m)
             entry[f"A_{m}_prompt_tokens"] = litellm.token_counter(model=MODEL.split("/")[-1], text=prompt)
             entry[f"A_{m}_sent"] = sent
         if not args.offline:
             if args.only != "B":
                 for m in a_modes:
-                    entry[f"A_{m}"] = summarise([run_a(pid, m) for _ in range(args.runs)], ref)
+                    runs_m = [run_a_agent(pid) if m == "agent" else run_a(pid, m) for _ in range(args.runs)]
+                    entry[f"A_{m}"] = summarise(runs_m, ref)
+                    if m == "agent":
+                        entry["A_agent"]["pages_read"] = statistics.mean(r["pages_read"] for r in runs_m)
+                        entry["A_agent"]["searches"] = statistics.mean(r["searches"] for r in runs_m)
             if args.only != "A":
                 b_runs = [run_b(pid) for _ in range(args.runs)]
                 entry["B"] = summarise(b_runs, ref)
                 entry["B_card_lines"] = [r["card_lines"] for r in b_runs]   # what the model wrote, for checking
         report["scenarios"][sc] = entry
         print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt "
-              + ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes) + " tokens"
+              + ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes if f"A_{m}_prompt_tokens" in entry) + " tokens"
               + "".join(f" | A {m} {entry[f'A_{m}']['matches_rules']}/{args.runs} match, {dict(entry[f'A_{m}']['outcomes'])}"
                         for m in a_modes if f"A_{m}" in entry)
               + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, own card right"
@@ -284,7 +342,7 @@ def main(argv: list[str]) -> int:
     for sc, e in report["scenarios"].items():
         def cell(m):
             if m not in e:
-                return f"{e[m + '_prompt_tokens']:,} input tokens per call (not run)" if m.startswith("A_") else "not run"
+                return f"{e[m + '_prompt_tokens']:,} input tokens per call (not run)" if m + "_prompt_tokens" in e else "not run"
             s = e[m]
             cost = f"{s['llm_calls']:.1f} LLM calls; {s['tokens_in']:,.0f} in / {s['tokens_out']:,.0f} out tokens; {s['seconds']:.2f} s"
             if m == "C":
@@ -294,6 +352,9 @@ def main(argv: list[str]) -> int:
                         if s["card_written"] else "no card before approval (written after staff approve)")
                 return (f"{s['matches_rules']}/{s['runs']} used the rules' answer; {card}; "
                         f"{cost} (+{s['setup_seconds']:.2f} s one-off connection, not counted)")
+            if m == "A_agent":
+                return (f"{s['matches_rules']}/{s['runs']} match the key; {cost}; {s.get('searches', 0):.1f} searches, "
+                        f"{s.get('pages_read', 0):.1f} pages read (+{s['setup_seconds']:.2f} s one-off connection, not counted)")
             return f"{s['matches_rules']}/{s['runs']} match the key; {cost}"
         lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | "
                      + " | ".join(cell(f"A_{m}") for m in a_modes) + f" | {cell('B')} | {cell('C')} |")
@@ -302,7 +363,9 @@ def main(argv: list[str]) -> int:
             lines += ["", f"{A_MODES[m]}, answers per scenario: "
                       + "; ".join(f"{sc} {dict(e[f'A_{m}']['outcomes'])}" for sc, e in report["scenarios"].items())]
     lines += ["", "Notes:",
-              "- A's library is every saved document (" + str(len(__import__("propel.baseline.library", fromlist=["x"]).documents()))
+              "- A (agent) is the same Propel agent and model as B, with the patient-record tool and three document tools "
+              "(list, search, read up to 3 pages) in place of Kanini Context: it finds and reads the policy itself for every order.",
+              "- The policy library is every saved document (" + str(len(__import__("propel.baseline.library", fromlist=["x"]).documents()))
               + " documents). RAG ranks its passages (about 600 tokens each) against the order and sends the best "
               + str(__import__("propel.baseline.library", fromlist=["x"]).TOP_K) + "; ranking: "
               + ", ".join(sorted({e[f"A_rag_sent"]["method"] for e in report["scenarios"].values() if "A_rag_sent" in e}) or {"not run"})

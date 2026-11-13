@@ -43,6 +43,7 @@
         <div class="seg" role="tablist" aria-label="Graph view">
           <button type="button" role="tab" aria-selected="true" id="view-inst">Knowledge</button>
           <button type="button" role="tab" aria-selected="false" id="view-onto">Schema</button>
+          <button type="button" role="tab" aria-selected="false" id="view-test">Testing</button>
         </div>
         <div class="zoom">
           <button type="button" aria-label="Zoom in" id="zin">+</button>
@@ -54,6 +55,7 @@
       <div class="graph-wrap">
         <svg id="graph" role="img" aria-label="Knowledge graph of the release"></svg>
         <div class="tip hidden" id="tip"></div>
+        <div class="testing hidden" id="testing" aria-label="Testing results without Kanini Context"></div>
       </div>
       <div class="panel-foot legend" id="legend"></div>
     </section>
@@ -69,7 +71,7 @@
 
   <section class="panel band" aria-labelledby="band-title">
     <div class="panel-head">
-      <h2 id="band-title">Same order, three ways to answer it</h2>
+      <h2 id="band-title">Same order, without and with Kanini Context</h2>
       <button type="button" class="btn btn-race" id="run-race">Run A, B, C in turn</button>
       <div class="trace" id="trace" aria-label="Agent trace"></div>
     </div>

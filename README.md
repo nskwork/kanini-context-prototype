@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-70%20of%2070%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-72%20of%2072%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -135,7 +135,8 @@ flowchart LR
 | **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
 | **Schema** | The ontology as a class diagram, read from `kanini-context.ttl` at every release: one box per class with its fields and its kinds (53 classes, 93 fields), the Terminology and Coverage groups as frames, and the 17 relations as named arrows. Click a class to see all its fields and zoom to its neighbours; after an answer, the classes it passed through glow. |
 | **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
-| **The race** | All three run live on the chosen order, in turn ("Run A, B, C in turn", each lane on its own so its time is its own) or one at a time. A is a plain LLM application with no Kanini Context: it ranks the whole policy library against the order, sends the best 16 passages to the AI (hover the lane to see them) and marks its answer against the rules; B counts the agent's model calls; C times the lookup with no AI. Nothing is shown before a run except the last comparison, labelled as such. |
+| **Without and with Kanini Context** | Three lanes run live on the chosen order, in turn or one at a time. **A** is the same agent and model with no Kanini Context: it searches and reads the policy documents itself for every order (each search and page shows as it happens) and its answer is marked against the rules. **B** is the agent with Kanini Context (reduce: short calls, no document text). **C** is Kanini Context with no AI (eliminate). Nothing shows before a run; after it, each mark comes with how often that way was right in testing. |
+| **Testing** | The same six orders over repeated runs, from `propel/baseline/results/`: the agent without the context layer, and earlier baselines (an LLM application with search, or with every document), with how often each was right, how often its answer changed between runs, tokens and calls, and the reasons it went wrong. |
 
 `--scripted` runs a scripted stand-in model, for a rehearsal with no API key; the page says so.
 
@@ -235,7 +236,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 70 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 72 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
