@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-66%20of%2066%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-67%20of%2067%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -20,39 +20,38 @@ Prepared by NANDHU S K
 
 ## Latest results · 12 Nov 2026
 
-Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full report: `propel/baseline/results/compare-20261112-1854.md`.
+Six synthetic orders, five runs each, GPT-5 mini. B at reasoning effort low; A at low, then again at medium. Reports: `propel/baseline/results/compare-20261112-2210.md` (A low) and `compare-20261112-2238.md` (A medium).
 
 > **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A is the AI deciding on its own and is graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
 
 | | **A** · AI reads the policy documents | **B** · AI agent asks Kanini Context | **C** · no AI: the approved rules, applied directly |
 | :-- | :--: | :--: | :--: |
-| **Against the answer key** | 20 of 30 match | 30 of 30 used the rules' answer | *is the key* |
-| **Model calls per order** | 1 | 4 to 4.8 | **0** |
-| **Input tokens per order** | 22,455 to 39,313, given only the pages Kanini Context picked for the order | 10,512 to 13,124 | **0** |
+| **Against the answer key** | 21 of 30 at low effort; 23 of 30 at medium | 30 of 30 used the rules' answer | *is the key* |
+| **Model calls per order** | 1 | 4 to 5 | **0** |
+| **Input tokens per order** | 22,455 to 39,313, given only the pages Kanini Context picked for the order | 10,512 to 13,671 | **0** |
 | **Input tokens if A reads the documents whole** | 39,193 to 74,580 | not needed | not needed |
-| **Time per order** | 5.5 to 11 s | 10 to 13 s, about 3 s of it opening the tool connections (now timed separately) | **0.03 s** |
+| **Time per order** | 6.7 to 9.1 s at low; 15 to 22 s at medium | 8.3 to 23 s, once the tool connections are open (about 3 s, once per service start) | **0.03 s** |
 | **Same answer every run** | no | yes | yes |
 
 **In plain words**
 
 - **C is the point.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time. C is not "more accurate" than A; it is the reviewed answer, delivered with no model call.
-- **B is the assistant.** When staff want an explanation, the agent uses a third to a half of A's tokens and can only ever state what the rules returned. The report also counts how often the model wrote the right outcome on its own card; a guard sets it from the rules otherwise.
+- **B is the assistant.** When staff want an explanation, the agent uses about a third of A's tokens and can only ever state what the rules returned. It is not faster than A: four short model calls take about as long as one long one, or longer.
+- **More reasoning does not fix A.** At medium effort A takes twice as long and gets the missing-hemoglobin case right 4 times in 5 instead of 2, but still says "PA required" for the anemia drug under UnitedHealthcare in all 5 runs, where the list is silent and the right answer is "route to staff". It also answered "needs facts" once on the IV iron order, which needs PA, in both runs.
+- **A was given only the pages Kanini Context selected**, which favours A: without the pack it would also have to find the right documents and pages. Read whole, the same documents are 39,193 to 74,580 tokens per order.
 - **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
-- **A guesses where the documents are silent.**
-  - For an anemia drug under UnitedHealthcare with a kidney (not cancer) diagnosis, the list is silent, so the right answer is "route to staff". A said "PA required" in all 5 runs.
-  - With the hemoglobin result missing, A said "No PA" 3 times and "Other gate" 2 times, on the same input. Kanini Context says "get the hemoglobin" every time.
-- A was given only the pages Kanini Context selected, which favours A: without the pack it would also have to find the right documents and pages. Read whole, the same documents are 39,193 to 74,580 tokens per order (second token row above).
+- **How often the model writes the right outcome on its own card** is being measured again: the first count compared the card's wording character for character, so a different dash or capital counted as wrong.
 
 ### Scenario by scenario
 
-| Order | Answer key (rules say) | A | B | C |
-| :-- | :-- | :--: | :--: | :--: |
-| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ✅ 5/5 used it | key |
-| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 0/5 | ✅ 5/5 used it | key |
+| Order | Answer key (rules say) | A, low | A, medium | B | C |
+| :-- | :-- | :--: | :--: | :--: | :--: |
+| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ⚠️ 4/5 | ⚠️ 4/5 | ✅ 5/5 used it | key |
+| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ❌ 0/5 | ✅ 5/5 used it | key |
+| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 2/5 | ⚠️ 4/5 | ✅ 5/5 used it | key |
 
 ### Tests
 
@@ -202,7 +201,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 66 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 67 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090

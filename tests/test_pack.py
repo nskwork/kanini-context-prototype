@@ -322,3 +322,15 @@ def test_l34356_wording_is_recorded_as_written_and_flagged(db):
     [(note,)] = db.execute("""SELECT payload->>'wording_note' FROM kc_core.rule
                               WHERE rule_key = 'kc:rule/esa-ckd-nd/L34356' AND status = 'active' AND upper_inf(recorded)""").fetchall()
     assert "Anemia of ESRD" in note and "flagged for the reviewer" in note
+
+
+def test_card_check_compares_meaning_not_wording():
+    from propel.agent.authorization_agent.agent import outcome_line_agrees
+    ev = {"outcome": "no_pa", "safe_to_act": True}
+    assert outcome_line_agrees("**Outcome:** No PA – Safe to act (LCD L39237)", ev)
+    assert not outcome_line_agrees("Outcome: No PA · not safe to act", ev)
+    assert not outcome_line_agrees("Outcome: PA required · safe to act", ev)
+    held = {"outcome": "unknown", "safe_to_act": False}
+    assert outcome_line_agrees("Outcome: Not known (route to staff) · not safe to act", held)
+    assert not outcome_line_agrees("Outcome: Not yet known · not safe to act", held)
+    assert outcome_line_agrees("Outcome: Other gate · not safe to act", {"outcome": "other_gate", "safe_to_act": False})

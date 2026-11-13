@@ -169,8 +169,9 @@ async def run_b_async(pid: str) -> dict:
     guard = agent.after_model_callback   # keep the agent's own decision-card guard, and count usage after it
 
     def guarded(callback_context, llm_response):
-        guard(callback_context, llm_response)
+        # the model's own words, kept before the guard sets the Outcome line from the rules
         texts.extend(p.text for p in ((llm_response.content.parts if llm_response.content else None) or []) if getattr(p, "text", None))
+        guard(callback_context, llm_response)
         return count(callback_context, llm_response)
     agent.after_model_callback = guarded
     svc = InMemorySessionService()
@@ -183,7 +184,7 @@ async def run_b_async(pid: str) -> dict:
         await ts.get_tools()
     setup_ms = (time.perf_counter() - t0) * 1000
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {pid}.")])
-    outcome, t = None, time.perf_counter()
+    outcome, ev_result, t = None, None, time.perf_counter()
     # The run ends with the decision card, and with the staff confirmation prompt when the agent proposes a record.
     # Nothing is confirmed, so nothing is written; the staff member's click and the model's reply to it are not counted.
     async for ev in runner.run_async(user_id="staff", session_id=s.id, new_message=msg):
@@ -191,14 +192,17 @@ async def run_b_async(pid: str) -> dict:
             if part.function_response and part.function_response.name == "rules_evaluate":
                 r = part.function_response.response or {}
                 r = r.get("structuredContent") or (json.loads(r["content"][0]["text"]) if r.get("content") else r)
-                outcome = r.get("outcome")
+                outcome, ev_result = r.get("outcome"), r
     ms = (time.perf_counter() - t) * 1000
-    card = [x for x in texts if "Outcome:" in x]
+    from propel.agent.authorization_agent.agent import outcome_line_agrees
+    lines = [ln for x in texts for ln in x.splitlines() if "outcome:" in ln.lower()]
     for ts in agent.tools:
         await ts.close()
     return {"outcome": outcome, "safe_to_act": None, "llm_calls": usage["calls"], "tokens_in": usage["in"],
             "tokens_out": usage["out"], "ms": ms, "setup_ms": setup_ms, "rule": None,
-            "card_by_model": bool(card) and not any("(Outcome line set from rules_evaluate.)" in x for x in card)}
+            # the model's card states the rules' outcome and safe-to-act flag in its own words (before any correction)
+            "card_by_model": bool(lines) and all(outcome_line_agrees(ln, ev_result) for ln in lines),
+            "card_lines": lines}
 
 
 def run_b(pid: str) -> dict:
@@ -233,6 +237,7 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--a-effort", default="", help="reasoning effort for A only (e.g. medium); default: same as B")
+    ap.add_argument("--only", choices=["A", "B"], help="run one of the model lanes only (C always runs: it is the key)")
     ap.add_argument("--offline", action="store_true", help="mode C and A's prompt sizes only; no LLM calls")
     args = ap.parse_args(argv)
     global A_EFFORT
@@ -254,13 +259,17 @@ def main(argv: list[str]) -> int:
                  "A_prompt_tokens": litellm.token_counter(model=MODEL.split("/")[-1], text=prompt_for(pid)),
                  "A_full_docs_tokens": full_docs_tokens(pid)}
         if not args.offline:
-            entry["A"] = summarise([run_a(pid) for _ in range(args.runs)], ref)
-            entry["B"] = summarise([run_b(pid) for _ in range(args.runs)], ref)
+            if args.only != "B":
+                entry["A"] = summarise([run_a(pid) for _ in range(args.runs)], ref)
+            if args.only != "A":
+                b_runs = [run_b(pid) for _ in range(args.runs)]
+                entry["B"] = summarise(b_runs, ref)
+                entry["B_card_lines"] = [r["card_lines"] for r in b_runs]   # what the model wrote, for checking
         report["scenarios"][sc] = entry
         print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt {entry['A_prompt_tokens']:>7,} tokens"
-              + ("" if args.offline else f" | A {entry['A']['matches_rules']}/{args.runs} match, {dict(entry['A']['outcomes'])}"
-                                         f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, card right by the model"
-                                         f" {entry['B']['card_right_by_model']}/{args.runs}, {entry['B']['llm_calls']:.1f} calls"))
+              + (f" | A {entry['A']['matches_rules']}/{args.runs} match, {dict(entry['A']['outcomes'])}" if "A" in entry else "")
+              + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, card right by the model"
+                 f" {entry['B']['card_right_by_model']}/{args.runs}, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else ""))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
     (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2))
@@ -284,7 +293,7 @@ def main(argv: list[str]) -> int:
             return (f"{s['matches_rules']}/{s['runs']} match the key; {cost} (only the pages the pack picked; "
                     f"the whole documents are {e['A_full_docs_tokens']:,} tokens)")
         lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | {cell('A')} | {cell('B')} | {cell('C')} |")
-    if not args.offline:
+    if any("A" in e for e in report["scenarios"].values()):
         lines += ["", "A's answers per scenario: " + "; ".join(f"{sc} {e['A']['outcomes']}" for sc, e in report["scenarios"].items())]
     lines += ["", "Notes:",
               "- A reads only the documents the pack binds to the order, with licensed billing articles cut to the cited pages. "
@@ -292,6 +301,8 @@ def main(argv: list[str]) -> int:
               + " tokens per scenario. Without the pack, A would also have to find them among every payer's documents.",
               "- B counts the model calls up to the decision card and the staff confirmation prompt; the staff click is not counted. "
               "B's first call looks up the patient record, which A is handed in its prompt.",
+              "- \"Card right by the model\": the Outcome line the model wrote, before the guard sets it from the rules, names "
+              "the rules' outcome and safe-to-act flag. Wording and punctuation do not count. The lines are kept in the JSON report.",
               "- B's time starts once its tool connections are open, as in a running service; the connection time is shown separately.",
               "- C is the same rules_evaluate call made by plain code: no model. It is the answer key, so its lane shows cost and "
               "repeatability, not accuracy. Its time is the database call alone.",

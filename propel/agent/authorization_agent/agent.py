@@ -265,6 +265,20 @@ def card_outcome_line(ev: dict | None) -> str:
     return f"Outcome: {OUTCOME_LABEL.get(ev['outcome'], ev['outcome'])} · {'safe to act' if ev['safe_to_act'] else 'not safe to act'}"
 
 
+def outcome_line_agrees(line: str, ev: dict | None) -> bool:
+    """Whether a model-written Outcome line states the same outcome and the same safe-to-act flag as rules_evaluate.
+    Wording, dashes, capitals and anything added after the flag do not matter; the meaning does."""
+    if not ev or not line:
+        return False
+    t = re.sub(r"[*_`]", "", line).lower().split("outcome:", 1)[-1]
+    named = [k for k, lab in OUTCOME_LABEL.items() if lab.split(" (")[0].lower() in t]
+    # "Not yet known" also contains no other label, and "No PA" is not inside "PA required": keep the longest match
+    named = sorted(named, key=lambda k: -len(OUTCOME_LABEL[k].split(" (")[0]))[:1]
+    says_not_safe = "not safe" in t or "unsafe" in t
+    says_safe = "safe to act" in t and not says_not_safe
+    return named == [ev["outcome"]] and (says_safe if ev["safe_to_act"] else says_not_safe)
+
+
 def after_model(callback_context, llm_response):
     """If the reply holds a decision card, its Outcome line is set from the rules_evaluate result for that order,
     so neither the log nor the reply can state an outcome the rules did not return."""
@@ -283,8 +297,10 @@ def after_model(callback_context, llm_response):
         line = _OUTCOME_LINE.search(text)
         got = re.sub(r"\*+", "", line.group(0)).strip().lstrip("-•> ").strip() if line else ""
         if line and got != want:
-            part.text = text[:line.start()] + line.group(1) + want + text[line.end():] \
-                + "\n(Outcome line set from rules_evaluate.)"
+            # the line is always set to the rules' wording; the note is added only when the model's line meant
+            # something else (another outcome, or the wrong safe-to-act flag), not for a different dash or capital
+            fixed = text[:line.start()] + line.group(1) + want + text[line.end():]
+            part.text = fixed if outcome_line_agrees(got, ev) else fixed + "\n(Outcome line set from rules_evaluate.)"
     return None
 
 
