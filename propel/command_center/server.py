@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT))
 from kanini_context import env  # noqa: E402  (loads .env)
 
 import psycopg  # noqa: E402
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
@@ -77,8 +77,9 @@ def orders():
     return out
 
 
-def _graph_name(c) -> str:
-    return c.execute("SELECT name FROM ag_catalog.ag_graph WHERE name LIKE 'ref_%' ORDER BY name DESC LIMIT 1").fetchone()[0]
+def _graph_name(c) -> str | None:
+    row = c.execute("SELECT name FROM ag_catalog.ag_graph WHERE name LIKE 'ref_%' ORDER BY name DESC LIMIT 1").fetchone()
+    return row[0] if row else None
 
 
 @app.get("/api/graph")
@@ -88,6 +89,8 @@ def graph():
         c.execute("LOAD 'age'")
         c.execute('SET search_path = ag_catalog, "$user", public')
         g = _graph_name(c)
+        if not g:   # a release built without the graph (--no-graph): the page still loads, with an empty sky
+            return {"graph": None, "nodes": [], "edges": []}
         nodes = [{**{("rule_kind" if k == "kind" else k): v for k, v in json.loads(str(p)).items() if k != "quote"},
                   "gid": str(i), "kind": json.loads(str(lbl))}
                  for i, lbl, p in c.execute(f"SELECT * FROM cypher('{g}', $$ MATCH (n) RETURN id(n), label(n), properties(n) $$)"
@@ -172,11 +175,17 @@ class Run:
         self.done = False
         self.t0 = time.perf_counter()
 
-    async def emit(self, kind: str, **data):
-        ev = {"seq": len(self.events), "kind": kind, "ms": round((time.perf_counter() - self.t0) * 1000), **data}
+    def push(self, kind: str, **data):
+        """Events are appended in the order they happen, synchronously, so the stream never reorders them."""
+        self.events.append({"seq": len(self.events), "kind": kind, "ms": round((time.perf_counter() - self.t0) * 1000), **data})
+
+    async def wake(self):
         async with self.cond:
-            self.events.append(ev)
             self.cond.notify_all()
+
+    async def emit(self, kind: str, **data):
+        self.push(kind, **data)
+        await self.wake()
 
 
 RUNS: dict[str, Run] = {}
@@ -199,6 +208,7 @@ async def run_workflow(run: Run):
                       (args["plan"], args["state"], "HCPCS|" + o["code"], args["date_of_service"], json.dumps(f))).fetchone()[0]
     await run.emit("tool_result", name="rules_evaluate", payload=r, call_ms=round((time.perf_counter() - t) * 1000, 1))
     await run.emit("done", llm_calls=0, tokens_in=0, tokens_out=0)
+    run.done = True
 
 
 async def run_agent(run: Run):
@@ -219,8 +229,9 @@ async def run_agent(run: Run):
     usage = {"turn": 0, "in": 0, "out": 0}
     own_before, own_after, own_model = agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback
 
-    def fire(kind, **data):
-        loop.create_task(run.emit(kind, **data))
+    def fire(kind, **data):   # called from the agent's synchronous callbacks
+        run.push(kind, **data)
+        loop.create_task(run.wake())
 
     def before_tool(tool, args, tool_context):
         fire("tool_call", name=tool.name, args=dict(args), turn=usage["turn"])
@@ -259,7 +270,11 @@ async def run_agent(run: Run):
                 break
             run.confirm = loop.create_future()
             await run.emit("confirm_request", llm_calls=usage["turn"], tokens_in=usage["in"], tokens_out=usage["out"])
-            approved = await run.confirm
+            try:
+                approved = await asyncio.wait_for(run.confirm, timeout=600)
+            except (asyncio.TimeoutError, asyncio.CancelledError):   # left waiting, or a new run started: nothing is recorded
+                await run.emit("abandoned")
+                break
             await run.emit("confirm", approved=approved)
             msg = types.Content(role="user", parts=[types.Part(function_response=types.FunctionResponse(
                 id=confirm_id, name="adk_request_confirmation", response={"confirmed": approved}))])
@@ -283,6 +298,11 @@ async def start(body: dict):
     pid, mode = body.get("patient"), body.get("mode", "agent")
     if pid not in PATIENTS or mode not in ("agent", "workflow"):
         raise HTTPException(400, "patient must be a known patient id and mode agent or workflow")
+    for old in list(RUNS.values()):   # a new run releases any run still waiting for approval
+        if old.confirm and not old.confirm.done():
+            old.confirm.cancel()
+    for rid in [r for r, x in RUNS.items() if x.done][:-20]:   # keep the last runs only
+        RUNS.pop(rid, None)
     run = Run(pid, mode)
     RUNS[run.id] = run
     await run.emit("start", patient=pid, mode=mode, order=PATIENTS[pid]["orders"][0]["order_id"])
@@ -300,13 +320,14 @@ async def confirm(rid: str, body: dict):
 
 
 @app.get("/api/run/{rid}/events")
-async def events(rid: str):
+async def events(rid: str, request: Request):
     run = RUNS.get(rid)
     if not run:
         raise HTTPException(404, "no such run")
+    last = request.headers.get("last-event-id")   # a reconnecting browser resumes after the last event it saw
 
     async def stream():
-        i = 0
+        i = int(last) + 1 if last and last.isdigit() else 0
         while True:
             async with run.cond:
                 while i >= len(run.events):
@@ -320,8 +341,9 @@ async def events(rid: str):
                 continue
             for ev in batch:
                 i += 1
-                yield f"data: {json.dumps(ev, default=str)}\n\n"
+                yield f"id: {ev['seq']}\ndata: {json.dumps(ev, default=str)}\n\n"
                 if ev["kind"] in ("done", "error"):
+                    yield "retry: 86400000\n\n"   # the run is over: the browser should not reconnect
                     return
 
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})

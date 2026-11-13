@@ -69,9 +69,9 @@
     const [w, h] = size();
     const shell = (n) => (mode === "onto" ? n.shell : SHELL[n.kind] ?? 300);
     sim = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).distance(mode === "onto" ? 60 : 38).strength(0.12))
-      .force("charge", d3.forceManyBody().strength(mode === "onto" ? -90 : -55))
-      .force("collide", d3.forceCollide((n) => (n.on ? 30 : n.prog ? 18 : 9)))
+      .force("link", d3.forceLink(links).distance(mode === "onto" ? 72 : 46).strength(0.12))
+      .force("charge", d3.forceManyBody().strength(mode === "onto" ? -120 : -65))
+      .force("collide", d3.forceCollide((n) => (mode === "onto" ? 26 : n.on ? 42 : n.prog ? 22 : 10)))
       .force("radial", d3.forceRadial(shell, 0, 0).strength(0.55))
       .force("drift", () => {   // slow breathing so the sky never freezes
         const t = (performance.now() - t0) / 1000;
@@ -105,12 +105,13 @@
     nodes.forEach((n) => {
       let d = 0, r = n;
       while (parent.has(r) && d < 6) { r = parent.get(r); d++; }
-      n.root = r.id; n.depth = d; n.shell = d === 0 ? 70 : d === 1 ? 190 : 290;
+      n.root = r.id; n.depth = d; n.shell = d === 0 ? 110 : d === 1 ? 220 : 330;
     });
   }
 
   function nodeColor(n) {
     if (S.view === "onto") return ROOT_COLOR[n.root] || "#a78bfa";
+    if (n.unscr) return "#fb7185";
     if (n.prog) return "#fb923c";
     return KIND_COLOR[n.kind] || "#94a3b8";
   }
@@ -121,6 +122,7 @@
     if (n.kind === "Source") return "source · " + (n.doc || id);
     if (n.kind === "Concept") return n.label || id;
     if (n.kind === "Authority" && n.prog) return id.replace(/^CMS-/, "");   // the screened programs: short names
+    if (n.kind === "DataElement" && n.name) return n.name.length > 24 ? n.name.slice(0, 22) + "…" : n.name;
     if (n.name) return n.name;
     if (n.kind === "Code" || n.kind === "DataElement") return id.split("|").slice(1).join(" ") || id;
     return id;
@@ -128,8 +130,8 @@
   function paint() {
     const any = nodes.some((n) => n.on || n.cand);
     root.classed("dim", any);
-    gNodes.selectAll("g").attr("class", (n) => "node" + (n.on ? " on" : "") + (n.prog ? " prog" : "") + (n.cand ? " cand" : ""));
-    gNodes.selectAll("circle.core").attr("r", (n) => (n.on ? 7 : n.prog || n.cand ? 5.5 : S.view === "onto" ? 5 : 3.6))
+    gNodes.selectAll("g").attr("class", (n) => "node" + (n.on ? " on" : "") + (n.prog || n.unscr ? " prog" : "") + (n.cand ? " cand" : ""));
+    gNodes.selectAll("circle.core").attr("r", (n) => (n.on ? 7 : n.prog || n.cand || n.unscr ? 5.5 : S.view === "onto" ? 5 : 3.6))
       .attr("fill", nodeColor).style("filter", (n) => `drop-shadow(0 0 ${n.on ? 8 : n.prog ? 6 : 3}px ${nodeColor(n)})`);
     gNodes.selectAll("circle.halo").attr("r", (n) => (n.on && n.primary ? 16 : 0)).attr("stroke", nodeColor);
     gEdges.selectAll("line").attr("class", (l) => "edge" + (l.source.on && l.target.on ? " on" : "")
@@ -140,7 +142,8 @@
   function labelPass() {
     const big = new Set(["Plan", "Payer", "Authority", "Concept", "Class"]);
     gNodes.selectAll("text").style("opacity", (n) =>
-      n.on || n.cand || (n.prog && n.kind !== "Rule") ? 1 : n.prog ? 0 : zoomK >= 2.1 ? 0.85 : zoomK >= 1.25 && big.has(n.kind) ? 0.75 : S.view === "onto" && (n.depth <= 1 || zoomK >= 1.3) ? 0.75 : 0);
+      n.kind === "Source" && n.on && zoomK < 2.1 ? 0   // its authority carries the same name; the source shows on hover or deep zoom
+      : n.on || n.cand || n.unscr || (n.prog && n.kind !== "Rule") ? 1 : n.prog ? 0 : zoomK >= 2.1 ? 0.85 : zoomK >= 1.25 && big.has(n.kind) ? 0.75 : S.view === "onto" && (n.depth <= 1 || zoomK >= 1.3) ? 0.75 : 0);
   }
   function legend(mode) {
     const counts = {};
@@ -161,7 +164,7 @@
     if (!pts.length) return;
     const [w, h] = size();
     const x0 = d3.min(pts, (n) => n.x), x1 = d3.max(pts, (n) => n.x), y0 = d3.min(pts, (n) => n.y), y1 = d3.max(pts, (n) => n.y);
-    const k = Math.min(4, 0.82 / Math.max((x1 - x0 + 60) / w, (y1 - y0 + 60) / h));
+    const k = Math.min(2.4, 0.74 / Math.max((x1 - x0 + 90) / w, (y1 - y0 + 90) / h));
     const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
     (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
@@ -195,6 +198,7 @@
       if (c.t < 0 || c.t > 1) return;
       const seg = c.chain.length - 1, f = c.t * seg, i = Math.min(seg - 1, Math.floor(f)), u = f - i;
       const a = c.chain[i], b = c.chain[i + 1];
+      if (!Number.isFinite(a?.x) || !Number.isFinite(b?.x)) return;
       dots.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, color: c.color });
     });
     gFx.selectAll("circle").data(dots).join("circle").attr("r", 3.4).attr("cx", (d) => d.x).attr("cy", (d) => d.y)
@@ -207,16 +211,16 @@
   /* focus: involved nodes pulled to the middle, the rest drift outward, camera follows */
   function focus() {
     if (!sim) return;
-    const on = (n) => n.on || n.prog;
+    const on = (n) => n.on || n.prog || n.unscr;
     sim.force("fx", d3.forceX(0).strength((n) => (on(n) ? 0.07 : 0)))
       .force("fy", d3.forceY(0).strength((n) => (on(n) ? 0.07 : 0)))
       .force("radial", d3.forceRadial((n) => (on(n) ? (SHELL[n.kind] ?? 300) * 0.6 : (SHELL[n.kind] ?? 300) + 120), 0, 0).strength((n) => (on(n) ? 0.25 : 0.5)))
-      .force("collide", d3.forceCollide((n) => (n.on ? 30 : n.prog ? 18 : 9)))
+      .force("collide", d3.forceCollide((n) => (n.on ? 42 : n.prog ? 22 : 10)))
       .alpha(0.6).restart();
     setTimeout(() => fitTo(nodes.filter(on), 1300), 900);
   }
   function unfocus() {
-    nodes.forEach((n) => { n.on = n.prog = n.cand = n.primary = false; });
+    nodes.forEach((n) => { n.on = n.prog = n.cand = n.primary = n.unscr = false; });
     comets.length = 0;
     if (sim) sim.force("fx", null).force("fy", null).force("radial", d3.forceRadial((n) => SHELL[n.kind] ?? 300, 0, 0).strength(0.55)).alpha(0.4).restart();
     paint();
@@ -234,7 +238,8 @@
   }
   function lightAnswer(p) {
     if (S.view !== "inst" || !p) return;
-    nodes.forEach((n) => { n.cand = false; });
+    // nothing reviewed decides it: keep the rules the pack considered visible, so it is clear what was looked at
+    if (p.reason !== "no_reviewed_rule_in_scope") nodes.forEach((n) => { n.cand = false; });
     const cov = p.coverage || {};
     const set = new Set(), prog = new Set();
     const add = (n) => n && set.add(n);
@@ -250,10 +255,17 @@
       const screen = r.basis === "stated_by_exhaustion";
       (screen ? prog : set).add(r);
       inn(r, "STATES").forEach((a) => (screen ? prog : set).add(a));
-      if (!screen) { out(r, "SOURCED_FROM").forEach(add); if (r.rule_kind === "coverage_criteria") out(r, "REQUIRES").forEach(add); }
+      if (!screen) { out(r, "SOURCED_FROM").forEach(add); out(r, "REQUIRES").forEach(add); out(r, "ABOUT").forEach(add); }
     });
+    if (p.route) { const py = node("Payer", String(cov.payer || "").toLowerCase()); if (py) out(py, "EXPOSES").forEach(add); }
+    // programs the answer names as not screened: "not screened against: A; B" lists their citations
+    const unscr = new Set();
+    ((p.prior_authorization || {}).notes || []).filter((t) => t.startsWith("not screened against:"))
+      .forEach((t) => t.replace("not screened against:", "").split(";").map((x) => x.trim()).forEach((cit) => {
+        nodes.filter((n) => n.kind === "Authority" && n.name === cit).forEach((n) => unscr.add(n));
+      }));
     if (prog.size) { const us = node("Jurisdiction", "US"); if (us) prog.add(us); }
-    nodes.forEach((n) => { n.on = set.has(n); n.prog = !n.on && prog.has(n); n.primary = n === prim; });
+    nodes.forEach((n) => { n.on = set.has(n); n.prog = !n.on && prog.has(n); n.unscr = unscr.has(n); n.primary = n === prim; });
     paint();
     comets.length = 0;
     const allowed = new Set([...set, ...prog]);
@@ -262,9 +274,9 @@
     addComets(bfs(node("Plan", cov.plan), prim, allowed)?.concat(src ? [src] : []), "#a3e635", 4);
     addComets(bfs(code, prim, allowed), "#22d3ee", 3);
     addComets(bfs(st, primAuth, allowed), "#a3e635", 3);
-    [...prog].filter((n) => n.kind === "Authority").forEach((a) => {
+    [...prog, ...unscr].filter((n) => n.kind === "Authority").forEach((a) => {
       const via = (adj.get(a) || []).map(([m]) => m).find((m) => m === st || (m.kind === "Jurisdiction" && m.id === "US"));
-      if (via) addComets([via, a], "#fb923c", 1);
+      if (via) addComets([via, a], a.unscr ? "#fb7185" : "#fb923c", 1);
     });
     focus();
   }
@@ -307,6 +319,7 @@
     c.innerHTML = `<h3>Decision card · ${esc(S.order?.order_id || "")}</h3>
       <div style="font-family:Outfit;font-weight:800;font-size:26px;color:${color};text-shadow:0 0 14px ${color};margin-top:6px">${esc(label)}</div>
       <div style="font-size:12.5px;color:${color}">${p.safe_to_act ? "safe to act" : "not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.join(", ")) : ""}</div>
+      <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
       <div class="k">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
       ${clock ? `<div class="k">Deadline</div><div class="v">${esc(clock)}</div>` : ""}
@@ -316,14 +329,14 @@
       <div class="k">Rule</div><div class="rule">${esc(prim.rule_ref || "none")} · ${esc(prim.citation || "")}</div>
       ${quote && quote.quote ? `<div class="quote"><mark>${esc(quote.quote)}</mark><span class="ref">${esc(quote.citation || "")}${quote.page ? " · page " + esc(quote.page) : ""}</span></div>` : ""}
       <div class="k">Pack</div><div class="v mono" style="font-size:11px">${esc(p.pack_release)} · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
-      <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
       <div class="agent-text hidden" id="agent-text"></div>`;
     $("ok").onclick = () => confirm(true);
     $("nok").onclick = () => confirm(false);
     const o = $("outcome");
     o.classList.remove("hidden"); o.style.setProperty("--oc", color);
     $("o-label").textContent = label;
-    $("o-sub").textContent = (p.safe_to_act ? "safe to act" : "not safe to act") + (prim.citation ? " · " + prim.citation : "");
+    const why = p.outcome === "unknown" ? (p.reason_text || (p.not_safe_because || [])[0] || p.reason) : prim.citation;
+    $("o-sub").textContent = (p.safe_to_act ? "safe to act" : "not safe to act") + (why ? " · " + why : "");
   }
 
   /* ---------------------------------------------------------------- the race: A from the report, B and C live */
@@ -356,12 +369,14 @@
     lanes.A.target = A && S.run ? A.tokens_in / 900 : 0;
     const bl = live.mode === "agent";
     $("sB").textContent = bl ? (live.done ? "this run" : "live: this run") : B ? `last comparison ${when}: ${B.llm_calls.toFixed(1)} calls` : "press Ask the agent";
-    $("nB1").innerHTML = bl ? fmt(live.tin) : B ? fmt(B.tokens_in) : "–";
+    const scripted = bl && S.scripted && !live.tin;
+    if (scripted) $("sB").textContent = "scripted stand-in: no model, no tokens";
+    $("nB1").innerHTML = scripted ? "–" : bl ? fmt(live.tin) : B ? fmt(B.tokens_in) : "–";
     $("nB2").innerHTML = bl ? `${live.turns} · ${((live.ms ?? (performance.now() - live.t0)) / 1000).toFixed(1)}<small> s</small>` : B ? `${B.llm_calls.toFixed(1)} · ${B.seconds.toFixed(1)}<small> s</small>` : "–";
     $("nB3").innerHTML = B ? `${B.matches_rules}/${B.runs}` : "–";
     lanes.B.target = bl ? live.tin / 900 : 0;
     const cl = live.mode === "workflow";
-    $("sC").textContent = cl ? "this run" : "press Run without AI";
+    $("sC").textContent = cl ? "this run" : C ? `last comparison ${when} · press Run without AI` : "press Run without AI";
     $("nC1").innerHTML = "0";
     $("nC2").innerHTML = cl && live.callMs != null ? `0 · ${live.callMs}<small> ms</small>` : C ? `0 · ${(C.seconds * 1000).toFixed(0)}<small> ms</small>` : "0";
     $("nC3").innerHTML = C ? `${C.matches_rules}/${C.runs}` : "–";
@@ -391,11 +406,13 @@
     if (last && last.textContent === text) return;   // a confirmed call is reported again when it resumes
     const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; t.appendChild(s);
   }
-  function setBusy(b) { $("run-agent").disabled = b; $("run-flow").disabled = b; }
+  function setBusy(b) {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
+    $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (press to restart)" : "Ask the agent";
+  }
 
   async function start(mode) {
     if (!S.order) return;
-    if (S.es) S.es.close();
+    if (S.es) { S.es.close(); S.es = null; }
     if (S.view !== "inst") await setView("inst");
     unfocus(); card(null); $("outcome").classList.add("hidden"); $("trace").innerHTML = ""; $("detail").classList.add("hidden");
     S.live = { mode, turns: 0, tin: 0, tout: 0, t0: performance.now(), ms: null, eval: null, quote: null, done: false, callMs: null };
@@ -436,11 +453,15 @@
     } else if (e.kind === "confirm") {
       chip(e.approved ? "approved by staff" : "rejected by staff", "tool");
       setTimeout(loadLog, 800);
+    } else if (e.kind === "abandoned") {
+      chip("not approved: left waiting", "tool");
     } else if (e.kind === "done") {
+      if (S.es) { S.es.close(); S.es = null; }
       if (L.ms == null) L.ms = performance.now() - L.t0;
       L.done = true; setBusy(false); laneNumbers(); loadLog();
       if ($("ok") && L.mode === "workflow") { $("ok").remove(); $("nok").remove(); }
     } else if (e.kind === "error") {
+      if (S.es) { S.es.close(); S.es = null; }
       chip("error: " + e.message, "tool"); setBusy(false);
     }
   }
@@ -483,7 +504,9 @@
   $("run-flow").onclick = () => start("workflow");
 
   (async function init() {
-    const [st, orders, g, cmp] = await Promise.all(["/api/status", "/api/orders", "/api/graph", "/api/compare"].map((u) => fetch(u).then((r) => r.json())));
+    const get = (u, fb) => fetch(u).then((r) => (r.ok ? r.json() : fb)).catch(() => fb);
+    const [st, orders, g, cmp] = await Promise.all([get("/api/status", {}), get("/api/orders", []), get("/api/graph", { nodes: [], edges: [] }), get("/api/compare", {})]);
+    S.scripted = !!st.scripted;
     $("status").innerHTML = `release <b>${esc(st.release)}</b> · ${st.rules} rules · ${st.sources} sources<br>model <b>${esc(st.model)}</b>`;
     S.orders = orders; S.inst = g; S.compare = cmp || {};
     $("orders").innerHTML = orders.map((o) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.plan === "original-medicare" ? "Medicare" : o.plan)} · ${esc(o.state)}</span></button>`).join("");
