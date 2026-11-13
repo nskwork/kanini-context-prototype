@@ -190,18 +190,28 @@ def _when(at: str | None) -> str:
     return t.strftime("%d %b %Y, %H:%M Central time")
 
 
-def to_markdown(x: dict, report_name: str = "", when: dict | None = None) -> str:
+def to_markdown(x: dict, report_name: str = "", when: dict | None = None, collapsible: bool = False) -> str:
+    """The report as markdown; collapsible puts each order in a <details> block, its scores in the summary line."""
     if when:   # baselines tested in different runs: one line each
         lines = ["Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. "
                  + " ".join(f"{k}: test run started {v}." for k, v in when.items()), ""]
     else:
         lines = [f"Test run started {_when(x['at'])}" + (f" (`propel/baseline/results/{report_name}`)" if report_name else "")
                  + ". Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.", ""]
+    mark = lambda it: ("✅" if it["right"] == it["runs"] else "⚠️" if it["right"] >= 3 else "❌") + f" {it['right']}/{it['runs']}"   # noqa: E731
     for r in x["orders"]:
         dp = r["deciding"]
-        lines.append(f"**`{r['order']}`**: the rules say **{LABEL.get(r['rules'], r['rules'])}**"
-                     + (f", resting on {dp['citation']}, page {dp['page']}." if dp
-                        else ": the documents do not settle it, so the order goes to staff." if r["rules"] == "unknown" else "."))
+        if collapsible:
+            scores = " · ".join(f"{n} {mark(r[k])}" for k, n in (("agent", "A"), ("search", "search"), ("whole", "every doc")) if r.get(k))
+            lines += [f"<details><summary><code>{r['order']}</code> · rules say <b>{LABEL.get(r['rules'], r['rules'])}</b> · {scores}</summary>", ""]
+        why = (f"resting on {dp['citation']}, page {dp['page']}." if dp
+               else "the documents do not settle it, so the order goes to staff." if r["rules"] == "unknown" else "")
+        if collapsible:   # the summary line already names the order and the answer
+            if why:
+                lines.append(f"The rules' answer rests on {dp['citation']}, page {dp['page']}." if dp else why[0].upper() + why[1:])
+        else:
+            lines.append(f"**`{r['order']}`**: the rules say **{LABEL.get(r['rules'], r['rules'])}**"
+                         + (f", {why}" if dp else f": {why}" if why else "."))
         for key, name in (("agent", "Same agent, no context"), ("search", "Search (RAG)"), ("whole", "Every document")):
             it = r.get(key)
             if not it:
@@ -223,6 +233,8 @@ def to_markdown(x: dict, report_name: str = "", when: dict | None = None) -> str
                            if "other_region" in it else "") + ".")
                 lines.append(note)
         lines.append("")
+        if collapsible:
+            lines += ["</details>", ""]
     return "\n".join(lines)
 
 
@@ -245,9 +257,9 @@ def merged(paths: list[Path]) -> tuple[dict, dict]:
 
 
 if __name__ == "__main__":
-    paths = [Path(p) for p in sys.argv[1:]]
+    paths = [Path(p) for p in sys.argv[1:] if not p.startswith("--")]
     if len(paths) == 1:
         print(to_markdown(explain(json.loads(paths[0].read_text())), paths[0].name))
     else:
         rep, when = merged(paths)
-        print(to_markdown(explain(rep), when=when))
+        print(to_markdown(explain(rep), when=when, collapsible="--collapsible" in sys.argv))

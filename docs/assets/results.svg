@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="486" viewBox="0 0 1200 486" role="img" aria-label="Results: the same agent with and without Kanini Context">
+<defs><linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140d33"/><stop offset="1" stop-color="#0b0820"/></linearGradient></defs>
+<rect width="1200" height="486" rx="20" fill="url(#bg2)"/><rect x="1" y="1" width="1198" height="484" rx="19" fill="none" stroke="#ffffff" stroke-opacity=".1"/>
+<text x="40" y="48" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#9d97c4" letter-spacing="2.5">SAME SIX ORDERS · FIVE RUNS EACH · GPT-5 MINI</text>
+<rect x="300" y="70" width="268" height="58" rx="12" fill="#fb7185" fill-opacity=".1" stroke="#fb7185" stroke-opacity=".5"/><text x="316" y="106" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#fb7185">A</text><text x="348" y="95" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ede9fe">Same agent, no context</text><text x="348" y="115" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">reads the policy documents itself</text>
+<rect x="590" y="70" width="268" height="58" rx="12" fill="#22d3ee" fill-opacity=".1" stroke="#22d3ee" stroke-opacity=".5"/><text x="606" y="106" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#22d3ee">B</text><text x="638" y="95" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ede9fe">Agent + Kanini Context</text><text x="638" y="115" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">reduce: short calls, no document text</text>
+<rect x="880" y="70" width="268" height="58" rx="12" fill="#a3e635" fill-opacity=".1" stroke="#a3e635" stroke-opacity=".5"/><text x="896" y="106" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#a3e635">C</text><text x="928" y="95" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ede9fe">Kanini Context, no AI</text><text x="928" y="115" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">eliminate: the approved rules, by code</text>
+<line x1="40" y1="150" x2="1160" y2="150" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="192" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">Right against the rules</text>
+<rect x="300" y="168" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="300" y="168" width="161" height="12" rx="6" fill="#fb7185"/>
+<text x="300" y="204" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">18 of 30</text>
+<rect x="590" y="168" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="590" y="168" width="268" height="12" rx="6" fill="#22d3ee"/>
+<text x="590" y="204" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">30 of 30</text>
+<rect x="880" y="168" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="880" y="168" width="268" height="12" rx="6" fill="#a3e635"/>
+<text x="880" y="204" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">the answer key</text>
+<line x1="40" y1="224" x2="1160" y2="224" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="266" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">Input tokens per order</text>
+<rect x="300" y="242" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="300" y="242" width="268" height="12" rx="6" fill="#fb7185"/>
+<text x="300" y="278" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">22,685</text>
+<rect x="590" y="242" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="590" y="242" width="136" height="12" rx="6" fill="#22d3ee"/>
+<text x="590" y="278" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">11,506</text>
+<rect x="880" y="242" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<text x="880" y="278" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">0</text>
+<line x1="40" y1="298" x2="1160" y2="298" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="340" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">AI calls per order</text>
+<rect x="300" y="316" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="300" y="316" width="268" height="12" rx="6" fill="#fb7185"/>
+<text x="300" y="352" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">5.5</text>
+<rect x="590" y="316" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="590" y="316" width="203" height="12" rx="6" fill="#22d3ee"/>
+<text x="590" y="352" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">4.2</text>
+<rect x="880" y="316" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<text x="880" y="352" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">0.0</text>
+<line x1="40" y1="372" x2="1160" y2="372" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="414" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">Answer changed between runs</text>
+<rect x="300" y="390" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<rect x="300" y="390" width="179" height="12" rx="6" fill="#fb7185"/>
+<text x="300" y="426" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">on 4 of 6 orders</text>
+<rect x="590" y="390" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<text x="590" y="426" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">never</text>
+<rect x="880" y="390" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
+<text x="880" y="426" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">never</text>
+<text x="40" y="470" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">C is the approved rules applied by plain code: the answer key the other lanes are checked against. Bars for tokens and calls are scaled to lane A. Figures from propel/baseline/results/.</text>
+</svg>

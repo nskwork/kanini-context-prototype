@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330" role="img" aria-label="Kanini Context: read the rules once, answer every order from them">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a1040"/><stop offset="1" stop-color="#0b0820"/></linearGradient><radialGradient id="g1" cx=".15" cy=".2" r=".5"><stop offset="0" stop-color="#a78bfa" stop-opacity=".45"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient><radialGradient id="g2" cx=".9" cy=".85" r=".45"><stop offset="0" stop-color="#22d3ee" stop-opacity=".22"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></radialGradient><linearGradient id="t" x1="0" x2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c4b5fd"/></linearGradient></defs>
+<rect width="1200" height="330" rx="22" fill="url(#bg)"/><rect width="1200" height="330" rx="22" fill="url(#g1)"/><rect width="1200" height="330" rx="22" fill="url(#g2)"/>
+<rect x="1" y="1" width="1198" height="328" rx="21" fill="none" stroke="#ffffff" stroke-opacity=".12"/>
+<line x1="960" y1="70" x2="1010" y2="52" stroke="#a78bfa" stroke-opacity=".35"/>
+<line x1="1010" y1="52" x2="1060" y2="88" stroke="#a78bfa" stroke-opacity=".35"/>
+<line x1="1060" y1="88" x2="1110" y2="60" stroke="#a78bfa" stroke-opacity=".35"/>
+<line x1="1110" y1="60" x2="1035" y2="128" stroke="#a78bfa" stroke-opacity=".35"/>
+<line x1="1035" y1="128" x2="985" y2="112" stroke="#a78bfa" stroke-opacity=".35"/>
+<line x1="985" y1="112" x2="1135" y2="120" stroke="#a78bfa" stroke-opacity=".35"/>
+<line x1="1135" y1="120" x2="960" y2="70" stroke="#a78bfa" stroke-opacity=".35"/>
+<circle cx="960" cy="70" r="3.5" fill="#a3e635"/><circle cx="960" cy="70" r="11" fill="#a3e635" opacity=".15"/>
+<circle cx="1010" cy="52" r="5" fill="#22d3ee"/><circle cx="1010" cy="52" r="11" fill="#22d3ee" opacity=".15"/>
+<circle cx="1060" cy="88" r="3.5" fill="#a78bfa"/><circle cx="1060" cy="88" r="11" fill="#a78bfa" opacity=".15"/>
+<circle cx="1110" cy="60" r="5" fill="#fb7185"/><circle cx="1110" cy="60" r="11" fill="#fb7185" opacity=".15"/>
+<circle cx="1035" cy="128" r="3.5" fill="#a3e635"/><circle cx="1035" cy="128" r="11" fill="#a3e635" opacity=".15"/>
+<circle cx="985" cy="112" r="5" fill="#22d3ee"/><circle cx="985" cy="112" r="11" fill="#22d3ee" opacity=".15"/>
+<circle cx="1135" cy="120" r="3.5" fill="#a78bfa"/><circle cx="1135" cy="120" r="11" fill="#a78bfa" opacity=".15"/>
+<rect x="56" y="58" width="26" height="26" rx="7" fill="none" stroke="#a78bfa" stroke-width="3"/><circle cx="69" cy="71" r="4.5" fill="#a3e635"/>
+<text x="96" y="81" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#a78bfa" letter-spacing="3">KANINI CONTEXT · PROTOTYPE</text>
+<text x="56" y="146" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="46" font-weight="800" fill="url(#t)">Read the rules once.</text>
+<text x="56" y="198" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="46" font-weight="800" fill="url(#t)">Answer every order from them.</text>
+<text x="56" y="232" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="18" fill="#cfc9ef">A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP.</text>
+<rect x="56" y="254" width="265" height="54" rx="12" fill="#fb7185" fill-opacity=".1" stroke="#fb7185" stroke-opacity=".55"/><text x="74" y="279" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="20" font-weight="700" fill="#fb7185">18 of 30</text><text x="74" y="298" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12.5" fill="#cfc9ef">right without the context layer</text>
+<rect x="335.4" y="254" width="295" height="54" rx="12" fill="#22d3ee" fill-opacity=".1" stroke="#22d3ee" stroke-opacity=".55"/><text x="353.4" y="279" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="20" font-weight="700" fill="#22d3ee">30 of 30</text><text x="353.4" y="298" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12.5" fill="#cfc9ef">from the rules, with Kanini Context</text>
+<rect x="644.4" y="254" width="266" height="54" rx="12" fill="#a3e635" fill-opacity=".1" stroke="#a3e635" stroke-opacity=".55"/><text x="662.4" y="279" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="20" font-weight="700" fill="#a3e635">22.7k → 11.5k → 0</text><text x="662.4" y="298" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12.5" fill="#cfc9ef">input tokens per order: A, B, C</text>
+</svg>
