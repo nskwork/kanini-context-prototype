@@ -25,7 +25,7 @@
 
 <img src="docs/assets/results.svg" alt="The same agent without Kanini Context, with it, and Kanini Context with no AI" width="100%">
 
-<sub>Drawn from the reports in <code>propel/baseline/results/</code> by <code>docs/assets/make_figures.py</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines). Every run, order by order: <a href="#-every-test-every-run">Every test, every run</a>.</sub>
+<sub>Drawn from the reports in <code>propel/baseline/results/</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines). Every run, order by order: <a href="#-every-test-every-run">Every test, every run</a>.</sub>
 
 | | **A** · same agent, no context | **B** · agent with Kanini Context (reduce) | **C** · Kanini Context, no AI (eliminate) |
 | :-- | :--: | :--: | :--: |
@@ -333,7 +333,7 @@ The database is the specification's schema. The release also writes it out as an
 
 <img src="docs/assets/schema.svg" alt="The Kanini Context schema: coverage, authorities and rules, provenance, terminology, and the facts a rule needs" width="100%">
 
-<sub>Drawn from the release's ontology file by <code>docs/assets/make_figures.py</code>, so it shows the classes, fields and relations as built. The dashboard's Schema tab shows the same model interactively, with every field.</sub>
+<sub>Drawn from the release's ontology file (<code>kanini-context.ttl</code>), so it shows the classes, fields and relations as built. The dashboard's Schema tab shows the same model interactively, with every field.</sub>
 
 **How an order travels through it:** the order's plan and state select a **Plan** and its **Jurisdiction** (coverage) → the **Authorities** that *bind* them → the **Rules** they *state* that are *about* the order's **Code** (directly or through a **ValueSet**), in force on the date of service → each rule's **DataElements** are checked against the order's facts → the answer carries the rule's **source quote and locator**, and the **Snapshot** it was read from.
 
@@ -365,9 +365,6 @@ Section by section, with the reasons: `docs/PROTOTYPE_NOTES.md`. Every scope ite
 | **Sources** | 16 saved public documents, each with URL, edition, SHA-256 and dated checks (`kanini_context/sources/manifest.json`) |
 | **Rules** | 19, each with its page, exact quote, conditions and tests, approved by one engineer |
 | **CMS programs** | Every Original Medicare PA program bound to each state is screened against its own code list, including three found during the build (ASC demonstration, DMEPOS probationary, IRF expansion) |
-
-> [!WARNING]
-> **Before the demo:** recheck any source whose last check is older than 14 days, rebuild, and run `pytest` with no override; the status bar must read "Release 2026.11.0 · 19 rules · 16 sources". Steps in `docs/DEMO_SCRIPT.md`.
 
 <br>
 

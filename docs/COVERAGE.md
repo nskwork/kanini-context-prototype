@@ -99,7 +99,7 @@ The scope tests are strict by default: on a release that is not full (a CMS prog
 
 ## 7. Scope, section 7: demo script
 
-`docs/DEMO_SCRIPT.md` follows the seven steps in order (source to rule, scenario 1, scenarios 2 and 2b, scenario 3, scenario 4, approve and audit, close) and adds one step: the same order answered three ways (the model reading the documents, the agent with Kanini Context, and a lookup with no model), which shows the model calls Kanini Context removes.
+The dashboard (`propel/dashboard`) carries the seven steps in order: source to rule (Knowledge tab), scenario 1, scenarios 2 and 2b, scenario 3, scenario 4, approve and audit, and close. It adds one: the same order answered three ways (the agent reading the documents, the agent with Kanini Context, and the rules with no model), which shows the model calls Kanini Context removes.
 
 ## 8. Scope, section 8: done when
 
@@ -140,9 +140,3 @@ All 23 tests pass. **Met.**
 ## 11. Not built, as the scope or spec leaves for later
 
 Automated source watching, the change summary agent, two-pass extraction, formal two-person review, signed releases, the REST form of the tools, the HCPCS, ICD-10-CM and LOINC files, and an ingestion agent that drafts rules from new documents. The full list is in `PROTOTYPE_NOTES.md`, section 6.
-
-## 12. Before the demo
-
-- **Full release.** Every CMS program copy saved, approved and built: the dashboard reads "Release 2026.11.0 · 19 rules · 16 sources". With a copy missing, scenarios 1, 2b and 4 answer "Not known", and the strict scope tests fail and name it.
-- **Freshness.** Article A56462 was last confirmed on 15 Oct 2026, past its 14-day limit, so Ohio answers are held for staff until it is rechecked against the CMS page. The other sources were confirmed on 9 to 12 Nov 2026 and stay within their limits through 23 Nov 2026.
-- **Run** `pytest` with no `KC_ALLOW_UNSCREENED`: all must pass.
