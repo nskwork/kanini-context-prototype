@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-69%20of%2069%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-70%20of%2070%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -66,7 +66,7 @@ Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Report
 
 ### Scope tests, one by one
 
-The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. Last run: 69 of 69 passed, 13 Nov 2026.
+The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. Last full run on the engineer's laptop: 69 of 69 passed, 13 Nov 2026.
 
 | # | Scope test | The scope expects | Result | Difference from the scope's example |
 | --: | :-- | :-- | :--: | :-- |
@@ -132,7 +132,7 @@ flowchart LR
 | | |
 | :-- | :-- |
 | **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
-| **Schema** | The same view of the ontology: 53 classes and 17 relations from `kanini-context.ttl`. |
+| **Schema** | The ontology as a class diagram, read from `kanini-context.ttl` at every release: one box per class with its fields and its kinds (53 classes, 93 fields), the Terminology and Coverage groups as frames, and the 17 relations as named arrows. Click a class to see all its fields and zoom to its neighbours; after an answer, the classes it passed through glow. |
 | **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
 | **The race** | All three run live on the chosen order, in turn ("Run A, B, C in turn", each lane on its own so its time is its own) or one at a time. A is a plain LLM application with no Kanini Context: it ranks the whole policy library against the order, sends the best 16 passages to the AI (hover the lane to see them) and marks its answer against the rules; B counts the agent's model calls; C times the lookup with no AI. Nothing is shown before a run except the last comparison, labelled as such. |
 
@@ -234,7 +234,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 69 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 70 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090

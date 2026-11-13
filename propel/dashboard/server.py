@@ -146,7 +146,23 @@ def ontology():
             for r in g.objects(p, RDFS.range):
                 edges.append({"s": name(d), "t": name(r), "rel": name(p)})
     props = sum(1 for _ in g.subjects(RDF.type, OWL.DatatypeProperty))
+    # the schema diagram: each class that holds fields or relations, its fields, and its kinds (subclasses)
+    parent = {name(a): name(b) for a, b in g.subject_objects(RDFS.subClassOf) if name(b) in classes}
+    comment = {name(s): str(o) for s, o in g.subject_objects(RDFS.comment)}
+    fields: dict[str, list[dict]] = {}
+    for p in sorted(g.subjects(RDF.type, OWL.DatatypeProperty), key=name):
+        rng = next((name(r) for r in g.objects(p, RDFS.range)), "")
+        for d in g.objects(p, RDFS.domain):
+            fields.setdefault(name(d), []).append({"name": name(p), "type": rng})
+    kinds: dict[str, list[str]] = {}
+    for c, b in parent.items():
+        kinds.setdefault(b, []).append(c)
+    rels = [{"s": e["s"], "t": e["t"], "rel": e["rel"]} for e in edges if e["rel"] != "subClassOf"]
+    used = {r["s"] for r in rels} | {r["t"] for r in rels} | set(fields)
+    entities = [{"name": c, "fields": fields.get(c, []), "kinds": sorted(kinds.get(c, [])), "about": comment.get(c, ""),
+                 "parent": parent.get(c)} for c in classes if c in used]
     return {"nodes": [{"gid": c, "kind": "Class", "id": c} for c in classes], "edges": edges,
+            "schema": {"entities": entities, "relations": rels},
             "counts": {"classes": len(classes), "relations": len(set(g.subjects(RDF.type, OWL.ObjectProperty))), "attributes": props}}
 
 

@@ -55,6 +55,7 @@
   const zoom = d3.zoom().scaleExtent([0.25, 6]).on("zoom", (e) => {
     root.attr("transform", e.transform);
     zoomK = e.transform.k;
+    if (S.view === "onto") return;   // the schema diagram scales as one drawing
     gNodes.selectAll("text").attr("transform", `scale(${Math.min(1.6, Math.max(0.75, 1 / Math.sqrt(zoomK)))})`);
     labelPass();
   });
@@ -183,8 +184,8 @@
   }
   $("zin").onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.4);
   $("zout").onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1 / 1.4);
-  $("zfit").onclick = () => { const f = nodes.filter((n) => n.on || n.prog || n.unscr || n.cand); fitTo(f.length ? f : nodes); };
-  $("zall").onclick = () => fitTo(nodes);
+  $("zfit").onclick = () => { if (S.view === "onto") return fitSchema(); const f = nodes.filter((n) => n.on || n.prog || n.unscr || n.cand); fitTo(f.length ? f : nodes); };
+  $("zall").onclick = () => (S.view === "onto" ? fitSchema() : fitTo(nodes));
 
   function bfs(a, b, allowed) {
     if (!a || !b) return null;
@@ -610,13 +611,238 @@
     Object.values(lanes).forEach((l) => { l.st = blank(); l.parts.length = 0; });
     setBusy(); laneNumbers();
   }
+  /* ---------------------------------------------------------------- schema diagram (the Schema tab)
+     The release's ontology drawn as a class diagram: one box per class with its fields and its kinds
+     (subclasses), the two class groups that relations point at as frames, and every relation as a named arrow.
+     After an answer, the classes it passed through glow. */
+  // Two rows: what a rule is and where it comes from on top; who pays, below. Columns are fixed so the diagram
+  // reads the same way every time.
+  const SCHEMA_TOP = [
+    { title: "Provenance", items: ["Source", "Snapshot"] },
+    { title: "Authorities", items: ["Authority"] },
+    { title: "Rules", items: ["Rule", "DataElement", "KnowledgeArtifact"] },
+    { title: "Terminology", frame: "TerminologyItem", items: ["Concept", "Code", "ValueSet"] }
+  ];
+  const SCHEMA_BOTTOM = { title: "Coverage", frame: "CoverageItem", items: ["Payer", "Plan", "Program", "Jurisdiction"], before: ["Endpoint"] };
+  const SCHEMA_COLOR = { Source: "#fde68a", Snapshot: "#e7d8a0", Authority: "#c084fc", Rule: "#a78bfa", DataElement: "#2dd4bf",
+    KnowledgeArtifact: "#2dd4bf", Concept: "#34d399", Code: "#94a3b8", ValueSet: "#94a3b8", Payer: "#f472b6", Plan: "#60a5fa",
+    Program: "#60a5fa", Jurisdiction: "#fbbf24", Endpoint: "#f472b6", TerminologyItem: "#34d399", CoverageItem: "#fbbf24" };
+  const BOX_W = 224, COL_GAP = 120, ROW_GAP = 40, FIELD_H = 15, MAX_FIELDS = 9, BAND_GAP = 120;
+  let schemaBox = null;
+
+  function schemaLit(p) {   // the classes an answer passes through, from the answer itself
+    const lit = new Set();
+    if (!p) return lit;
+    ["Plan", "Payer", "Program", "Jurisdiction", "Code", "Concept"].forEach((c) => lit.add(c));
+    if ((p.rule_refs || []).length || p.primary_rule) ["Rule", "Authority", "Source", "Snapshot"].forEach((c) => lit.add(c));
+    if ((p.missing_facts || []).length || ((p.coverage_criteria || {}).policies || []).length) lit.add("DataElement");   // facts the rules test
+    if (p.route) lit.add("Endpoint");
+    return lit;
+  }
+
+  function renderSchema(data) {
+    if (sim) sim.stop();
+    gEdges.selectAll("*").remove(); gNodes.selectAll("*").remove(); gFx.selectAll("*").remove();
+    comets.length = 0; nodes = []; links = [];
+    const sc = data.schema, ent = new Map(sc.entities.map((e) => [e.name, e]));
+    const strip = (cls, f) => { const n = f.replace(new RegExp("^" + cls.charAt(0).toLowerCase() + cls.slice(1)), ""); return n.charAt(0).toLowerCase() + n.slice(1) || f; };
+    const lit = schemaLit(S.eval);
+    const selfRel = {};   // a class's relations to itself are listed inside its box
+    sc.relations.filter((r) => r.s === r.t).forEach((r) => (selfRel[r.s] = (selfRel[r.s] || []).concat(words(r.rel).toLowerCase())));
+    const kindLines = (e) => {
+      const out = []; let line = "";
+      e.kinds.map(words).forEach((k) => { if ((line + " · " + k).length > 33 && line) { out.push(line); line = k; } else line = line ? line + " · " + k : k; });
+      if (line) out.push(line);
+      return out;
+    };
+    const selfLines = (name) => {   // "↻ defers to · preempts · supersedes another authority", wrapped to the box
+      const parts = ["↻", ...selfRel[name].map((r, i) => (i ? "· " : "") + r), `another ${words(name).toLowerCase()}`];
+      const out = []; let line = "";
+      parts.forEach((w) => { if ((line + " " + w).length > 32 && line) { out.push(line); line = "  " + w; } else line = line ? line + " " + w : w; });
+      return out.concat(line);
+    };
+    const heightOf = (name) => {
+      const e = ent.get(name) || { fields: [], kinds: [] };
+      const nf = Math.min(e.fields.length, MAX_FIELDS) + (e.fields.length > MAX_FIELDS ? 1 : 0);
+      const kl = kindLines(e).length;
+      return 38 + nf * FIELD_H + (kl ? 16 + kl * 14 : 0) + (selfRel[name] ? 8 + selfLines(name).length * 14 : 0) + 8;
+    };
+    const box = new Map();
+    // top row: columns, each centred on the tallest
+    let topH = 0;
+    SCHEMA_TOP.forEach((col, ci) => {
+      let y = col.frame ? 40 : 0;
+      col.items.forEach((name) => { const h = heightOf(name); box.set(name, { e: ent.get(name) || { name, fields: [], kinds: [] }, x: ci * (BOX_W + COL_GAP), y, w: BOX_W, h }); y += h + ROW_GAP; });
+      col.h = y - ROW_GAP; topH = Math.max(topH, col.h);
+    });
+    SCHEMA_TOP.forEach((col) => { const dy = (topH - col.h) / 2; col.items.forEach((n) => (box.get(n).y += dy)); });
+    // bottom row: the coverage group side by side, the routes before it
+    const y2 = topH + BAND_GAP;
+    const row2 = [...SCHEMA_BOTTOM.before, ...SCHEMA_BOTTOM.items];
+    const rowH = d3.max(row2, heightOf);
+    row2.forEach((name, i) => box.set(name, { e: ent.get(name) || { name, fields: [], kinds: [] }, x: i * (BOX_W + COL_GAP) - (BOX_W + COL_GAP) / 2,
+      y: y2 + 40 + (rowH - heightOf(name)) / 2, w: BOX_W, h: heightOf(name) }));
+    const frames = new Map();
+    const frameOf = (key, title, items) => {
+      const bs = items.map((n) => box.get(n));
+      const x0 = d3.min(bs, (b) => b.x) - 16, x1 = d3.max(bs, (b) => b.x + b.w) + 16, y0 = d3.min(bs, (b) => b.y) - 38, y1 = d3.max(bs, (b) => b.y + b.h) + (key === "CoverageItem" ? 46 : 16);
+      frames.set(key, { x: x0, y: y0, w: x1 - x0, h: y1 - y0, title });
+    };
+    frameOf("TerminologyItem", "Terminology", SCHEMA_TOP[3].items);
+    frameOf("CoverageItem", "Coverage", SCHEMA_BOTTOM.items);
+    const at = (name) => box.get(name) || frames.get(name);
+    const all = [...box.values(), ...frames.values()];
+    schemaBox = [d3.min(all, (b) => b.x) - 40, d3.min(all, (b) => b.y) - 50, d3.max(all, (b) => b.x + b.w) + 40, d3.max(all, (b) => b.y + b.h) + 40];
+
+    let defs = svg.select("defs.schema");
+    if (defs.empty()) {
+      defs = svg.insert("defs", ":first-child").attr("class", "schema");
+      [["arrow", "#8b85b8"], ["arrow-on", "#a3e635"]].forEach(([id, c]) => defs.append("marker").attr("id", id).attr("viewBox", "0 0 10 10")
+        .attr("refX", 9).attr("refY", 5).attr("markerWidth", 7).attr("markerHeight", 7).attr("orient", "auto-start-reverse")
+        .append("path").attr("d", "M0,0 L10,5 L0,10 z").attr("fill", c));
+    }
+    SCHEMA_TOP.forEach((col, ci) => {
+      if (col.frame) return;
+      gNodes.append("text").attr("class", "sc-col").attr("x", ci * (BOX_W + COL_GAP) + BOX_W / 2).attr("y", d3.min(col.items, (n) => box.get(n).y) - 14)
+        .attr("text-anchor", "middle").text(col.title);
+    });
+    { const b = box.get("Endpoint"); gNodes.append("text").attr("class", "sc-col").attr("x", b.x + b.w / 2).attr("y", b.y - 14).attr("text-anchor", "middle").text("Routes"); }
+    frames.forEach((f, name) => {
+      const g = gNodes.append("g").attr("class", "sc-frame" + (lit.has(name === "CoverageItem" ? "Plan" : "Code") ? " on" : "")).attr("data-cls", name).style("--c", SCHEMA_COLOR[name]);
+      g.append("rect").attr("x", f.x).attr("y", f.y).attr("width", f.w).attr("height", f.h).attr("rx", 16);
+      g.append("text").attr("class", "sc-col").attr("x", f.x + f.w / 2).attr("y", f.y + 22).attr("text-anchor", "middle").text(`${f.title} · ${words(name)}`);
+      g.on("click", (ev) => { ev.stopPropagation(); schemaSelect(name); });
+    });
+
+    // relations: straight between neighbours, around the side when a box is in the way
+    const rels = [];
+    const groups = new Map();
+    sc.relations.filter((r) => r.s !== r.t).forEach((r) => { const k = r.s + ">" + r.t; (groups.get(k) || groups.set(k, []).get(k)).push(r); });
+    groups.forEach((list, k) => {
+      const [s, t] = k.split(">"), A = at(s), B = at(t);
+      if (!A || !B) return;
+      list.forEach((r, i) => {
+        const off = (i - (list.length - 1) / 2) * 18;
+        const ov = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0);
+        let d, lx, ly, anchor = "middle", rot = false;
+        const hov = ov(A.y, A.y + A.h, B.y, B.y + B.h), vov = ov(A.x, A.x + A.w, B.x, B.x + B.w);
+        if (vov > 40) {   // one above the other
+          const down = B.y > A.y, x = Math.max(A.x, B.x) + Math.min(vov, A.w, B.w) / 2 + off;
+          const y1 = down ? A.y + A.h : A.y, y2 = down ? B.y : B.y + B.h;
+          const between = [...box.values()].some((o) => o !== A && o !== B && o.x < x && x < o.x + o.w && Math.min(y1, y2) < o.y && o.y + o.h < Math.max(y1, y2));
+          if (between) {   // skip over the box between them on the left
+            const lxx = Math.min(A.x, B.x) - 46, ya = A.y + 26, yb = B.y + 26;
+            d = `M${A.x},${ya} C${lxx},${ya} ${lxx},${yb} ${B.x},${yb}`; lx = lxx + 6; ly = (ya + yb) / 2 + 30; anchor = "middle"; rot = true;
+          } else { d = `M${x},${y1} L${x},${y2}`; lx = x + 8; ly = (y1 + y2) / 2 + 4; anchor = "start"; }
+        } else if (hov > 30) {   // side by side
+          const right = B.x > A.x, y = Math.max(A.y, B.y) + Math.min(hov, 80) / 2 + off;
+          const x1 = right ? A.x + A.w : A.x, x2 = right ? B.x : B.x + B.w;
+          const between = [...box.values()].some((o) => o !== A && o !== B && Math.min(x1, x2) < o.x && o.x + o.w < Math.max(x1, x2) && o.y < y && y < o.y + o.h);
+          if (between) {   // go under the boxes between them
+            const under = [...box.values()].filter((o) => o.x + o.w > Math.min(A.x, B.x) && o.x < Math.max(A.x + A.w, B.x + B.w));
+            const yy = d3.max(under, (o) => o.y + o.h) + 26, xa = A.x + A.w / 2, xb = B.x + B.w / 2;
+            d = `M${xa},${A.y + A.h} L${xa},${yy - 10} Q${xa},${yy} ${xa + 10},${yy} L${xb - 10},${yy} Q${xb},${yy} ${xb},${yy - 10} L${xb},${B.y + B.h}`;
+            lx = (xa + xb) / 2; ly = yy - 5;
+          } else { d = `M${x1},${y} L${x2},${y}`; lx = (x1 + x2) / 2; ly = y - 6; }
+        } else {   // diagonal: leave from the nearer side, arrive from above or below
+          const right = B.x > A.x, down = B.y > A.y;
+          const x1 = right ? A.x + A.w : A.x, y1 = A.y + Math.min(A.h / 2, 40) + off;
+          const x2 = B.x + B.w / 2 + off, y2 = down ? B.y : B.y + B.h;
+          d = `M${x1},${y1} C${x2},${y1} ${x2},${y1} ${x2},${y2}`; lx = (x1 + x2) / 2; ly = y1 - 6;
+        }
+        rels.push({ s, t, label: words(r.rel).toLowerCase(), d, lx, ly, anchor, rot });
+      });
+    });
+    const relOn = (r) => lit.size && (lit.has(r.s) || frames.has(r.s)) && (lit.has(r.t) || frames.has(r.t));
+    const eg = gEdges.selectAll("g").data(rels).join("g").attr("class", (r) => "sc-rel" + (relOn(r) ? " on" : ""));
+    eg.append("path").attr("d", (r) => r.d).attr("marker-end", (r) => (relOn(r) ? "url(#arrow-on)" : "url(#arrow)"));
+    eg.append("text").attr("x", (r) => r.lx).attr("y", (r) => r.ly).attr("text-anchor", (r) => r.anchor)
+      .attr("transform", (r) => (r.rot ? `rotate(-90 ${r.lx} ${r.ly})` : null)).text((r) => r.label);
+
+    box.forEach((b, name) => {
+      const e = b.e, c = SCHEMA_COLOR[name] || "#a78bfa";
+      const g = gNodes.append("g").attr("class", "sc-box" + (lit.has(name) ? " on" : "")).attr("data-cls", name)
+        .attr("transform", `translate(${b.x},${b.y})`).style("--c", c);
+      g.append("rect").attr("class", "body").attr("width", b.w).attr("height", b.h).attr("rx", 10);
+      g.append("path").attr("class", "band").attr("d", `M0,10 a10,10 0 0 1 10,-10 h${b.w - 20} a10,10 0 0 1 10,10 v20 h${-b.w} z`);
+      g.append("text").attr("class", "name").attr("x", 12).attr("y", 20).text(words(name));
+      g.append("text").attr("class", "count").attr("x", b.w - 12).attr("y", 20).attr("text-anchor", "end")
+        .text(`${e.fields.length} field${e.fields.length === 1 ? "" : "s"}`);
+      let y = 48;
+      e.fields.slice(0, MAX_FIELDS).forEach((f) => {
+        const t = g.append("text").attr("class", "field").attr("x", 12).attr("y", y);
+        t.append("tspan").text(strip(name, f.name));
+        t.append("tspan").attr("class", "type").attr("x", b.w - 12).attr("text-anchor", "end").text(f.type);
+        y += FIELD_H;
+      });
+      if (e.fields.length > MAX_FIELDS) { g.append("text").attr("class", "more").attr("x", 12).attr("y", y).text(`+ ${e.fields.length - MAX_FIELDS} more · click to see all`); y += FIELD_H; }
+      if (selfRel[name]) { selfLines(name).forEach((l, i) => g.append("text").attr("class", "self").attr("x", 12).attr("y", y + 4 + i * 14).text(l)); y += 8 + selfLines(name).length * 14; }
+      const kl = kindLines(e);
+      if (kl.length) {
+        g.append("line").attr("x1", 10).attr("x2", b.w - 10).attr("y1", y - 6).attr("y2", y - 6).attr("class", "sep");
+        g.append("text").attr("class", "kinds-h").attr("x", 12).attr("y", y + 8).text("KINDS");
+        kl.forEach((l, i) => g.append("text").attr("class", "kinds").attr("x", 12).attr("y", y + 22 + i * 14).text(l));
+      }
+      g.on("click", (ev) => { ev.stopPropagation(); schemaSelect(name); });
+    });
+    svg.on("click.schema", () => schemaSelect(null));
+
+    const kindsN = sc.entities.reduce((a, e) => a + e.kinds.length, 0);
+    $("legend").innerHTML = `<span>${data.counts.classes} classes (${box.size} boxes, 2 groups, ${kindsN} listed as kinds) · ${data.counts.relations} relations · ${data.counts.attributes} fields ·</span>`
+      + (lit.size ? `<span><i style="background:var(--lime)"></i>classes the last answer passed through</span>` : `<span>answer an order to light up the classes it passes through</span>`);
+    fitSchema(0);
+  }
+
+  function schemaSelect(name) {
+    const boxes = gNodes.selectAll(".sc-box,.sc-frame"), rels = gEdges.selectAll(".sc-rel");
+    if (!name) { boxes.classed("dim", false).classed("sel", false); rels.classed("dim", false).classed("sel", false); $("detail").classList.add("hidden"); return; }
+    const near = new Set([name]);
+    rels.each((r) => { if (r.s === name || r.t === name) { near.add(r.s); near.add(r.t); } });
+    boxes.classed("dim", function () { return !near.has(this.dataset.cls); }).classed("sel", function () { return this.dataset.cls === name; });
+    rels.classed("dim", (r) => r.s !== name && r.t !== name).classed("sel", (r) => r.s === name || r.t === name);
+    const bb = []; gNodes.selectAll(".sc-frame").each(function () { if (near.has(this.dataset.cls)) bb.push(this.getBBox()); });
+    gNodes.selectAll(".sc-box").each(function () {   // getBBox ignores the group's translate: add it back
+      if (!near.has(this.dataset.cls)) return;
+      const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(this.getAttribute("transform")), b = this.getBBox();
+      bb.push({ x: b.x + +m[1], y: b.y + +m[2], width: b.width, height: b.height });
+    });
+    const pts = bb.filter((b) => b && b.width && !Number.isNaN(b.x));
+    if (pts.length) fitRect(d3.min(pts, (b) => b.x), d3.min(pts, (b) => b.y), d3.max(pts, (b) => b.x + b.width), d3.max(pts, (b) => b.y + b.height));
+    const e = (S.onto.schema.entities.find((x) => x.name === name)) || { name, fields: [], kinds: [], about: "" };
+    const strip = (f) => { const n = f.replace(new RegExp("^" + name.charAt(0).toLowerCase() + name.slice(1)), ""); return n.charAt(0).toLowerCase() + n.slice(1) || f; };
+    const relLines = S.onto.schema.relations.filter((r) => r.s === name || r.t === name)
+      .map((r) => (r.s === name ? `${words(r.rel).toLowerCase()} → ${words(r.t)}` : `← ${words(r.rel).toLowerCase()} · ${words(r.s)}`));
+    const d = $("detail");
+    d.classList.remove("hidden");
+    d.innerHTML = `<div class="panel-head"><span class="eyebrow">Class${e.parent ? " · kind of " + esc(words(e.parent)) : ""}</span><button type="button" class="close" aria-label="Close">Close</button></div>`
+      + `<div class="panel-body"><h4>${esc(words(name))}</h4><div>${esc(e.about)}</div>`
+      + (e.fields.length ? `<div class="meta">${e.fields.map((f) => `<span class="code">${esc(strip(f.name))}</span> ${esc(f.type)}`).join("<br>")}</div>` : "")
+      + (e.kinds.length ? `<div class="meta"><b>Kinds:</b> ${e.kinds.map((k) => esc(words(k))).join(", ")}</div>` : "")
+      + (relLines.length ? `<div class="links">${relLines.map(esc).join("<br>")}</div>` : "") + "</div>";
+    d.querySelector(".close").onclick = () => schemaSelect(null);
+  }
+
+  function fitSchema(ms = 700) {
+    if (schemaBox) fitRect(...schemaBox, ms);
+  }
+  function fitRect(x0, y0, x1, y1, ms = 700) {
+    const [w, h] = size();
+    x0 -= 30; y0 -= 30; x1 += 30; y1 += 30;
+    const k = Math.min(1.6, 0.96 / Math.max((x1 - x0) / w, (y1 - y0) / h));
+    const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
+  }
+
   async function setView(v) {
     S.view = v;
     $("view-inst").setAttribute("aria-selected", String(v === "inst"));
     $("view-onto").setAttribute("aria-selected", String(v === "onto"));
     if (v === "onto" && !S.onto) S.onto = await (await fetch("/api/ontology")).json();
-    setGraph(v === "inst" ? S.inst : S.onto, v);
-    if (v === "inst" && S.eval) lightAnswer(S.eval);
+    $("detail").classList.add("hidden");
+    if (v === "onto") { renderSchema(S.onto); return; }
+    svg.on("click.schema", null);
+    setGraph(S.inst, v);
+    if (S.eval) lightAnswer(S.eval);
   }
   $("view-inst").onclick = () => setView("inst");
   $("view-onto").onclick = () => setView("onto");

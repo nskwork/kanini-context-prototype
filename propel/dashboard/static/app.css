@@ -221,3 +221,30 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
   .lane{grid-template-columns:24px 1fr}
   .lane .track,.lane .nums{grid-column:1/-1}
 }
+
+/* schema diagram (the Schema tab) */
+.sc-box{cursor:pointer}
+.sc-box .body{fill:rgba(16,11,42,.92);stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:1.2}
+.sc-box .band{fill:color-mix(in srgb,var(--c) 22%,rgba(16,11,42,.95))}
+.sc-box .name{font-family:var(--display);font-size:14px;font-weight:600;fill:var(--ink)}
+.sc-box .count{font-family:var(--code);font-size:10px;fill:var(--mute)}
+.sc-box .field{font-family:var(--code);font-size:11px;fill:var(--ink2)}
+.sc-box .field .type{fill:var(--mute);font-size:10px}
+.sc-box .more{font-family:var(--text);font-size:10.5px;fill:var(--violet);font-style:italic}
+.sc-box .sep{stroke:rgba(167,139,250,.16)}
+.sc-box .kinds-h{font-family:var(--text);font-size:9.5px;font-weight:700;letter-spacing:.14em;fill:var(--mute)}
+.sc-box .kinds{font-family:var(--text);font-size:11px;fill:color-mix(in srgb,var(--c) 70%,var(--ink2))}
+.sc-box.on .body{stroke:var(--lime);stroke-width:2;filter:drop-shadow(0 0 10px rgba(163,230,53,.45))}
+.sc-box.sel .body{stroke:var(--c);stroke-width:2.4;filter:drop-shadow(0 0 12px color-mix(in srgb,var(--c) 70%,transparent))}
+.sc-frame rect{fill:color-mix(in srgb,var(--c) 5%,transparent);stroke:color-mix(in srgb,var(--c) 35%,transparent);stroke-dasharray:6 5;cursor:pointer}
+.sc-frame.on rect{stroke:color-mix(in srgb,var(--lime) 60%,transparent)}
+.sc-col{font-family:var(--text);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;fill:var(--mute)}
+.sc-rel path{fill:none;stroke:#6f6a9c;stroke-width:1.3;opacity:.8}
+.sc-rel text{font-family:var(--code);font-size:10.5px;fill:var(--ink2);paint-order:stroke;stroke:#0b0820;stroke-width:4px;stroke-linejoin:round}
+.sc-rel.on path{stroke:var(--lime);stroke-width:1.8;opacity:1;stroke-dasharray:6 6;animation:sc-flow 1.2s linear infinite}
+.sc-rel.sel path{stroke:var(--ink);opacity:1;stroke-width:1.8}
+.sc-box.dim,.sc-frame.dim,.sc-rel.dim{opacity:.18}
+.sc-box,.sc-frame,.sc-rel{transition:opacity .25s}
+@keyframes sc-flow{to{stroke-dashoffset:-24}}
+@media (prefers-reduced-motion:reduce){.sc-rel.on path{animation:none}}
+.sc-box .self{font-family:var(--code);font-size:10.5px;fill:var(--violet)}

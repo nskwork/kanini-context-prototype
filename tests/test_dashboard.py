@@ -72,3 +72,11 @@ def test_documents_run_marks_the_ai_answer_against_the_rules(client, monkeypatch
     assert start["method"] == "BM25 keyword ranking" and len(start["documents"]) == 16   # RAG over the whole library
     ref = next(e for e in events if e["kind"] == "reference")
     assert ref["outcome"] == "unknown" and ref["matches"] is False   # the AI said PA required; the rules say route to staff
+
+
+def test_schema_view_has_classes_fields_kinds_and_relations(client):
+    s = client.get("/api/ontology").json()["schema"]
+    ent = {e["name"]: e for e in s["entities"]}
+    assert {"Rule", "Authority", "Source", "Plan", "Code"} <= set(ent)
+    assert len(ent["Rule"]["fields"]) >= 20 and "Lcd" in ent["Authority"]["kinds"]
+    assert {"rel": "states", "s": "Authority", "t": "Rule"} in s["relations"]
