@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-64%20of%2064%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-66%20of%2066%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
