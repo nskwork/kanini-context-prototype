@@ -168,18 +168,26 @@ def ontology():
 
 @app.get("/api/compare")
 def compare():
-    """The latest comparison report written by propel/baseline/compare.py (none: the page shows only live numbers)."""
-    files = sorted(RESULTS.glob("compare-*.json")) if RESULTS.exists() else []
-    if not files:
+    """The latest comparison, lane by lane: each lane (A, B, C) from the newest report in which it ran, since a
+    report can hold one lane only (--only A). A is RAG over the whole library; a report from before that change
+    gave A the pack's pages, so its A is not used. Nothing found: the page shows only live numbers."""
+    files = sorted(RESULTS.glob("compare-*.json"), reverse=True) if RESULTS.exists() else []
+    out: dict = {"files": {}, "scenarios": {}}
+    for f in files:
+        rep = json.loads(f.read_text())
+        for sc, e in rep.get("scenarios", {}).items():
+            tgt = out["scenarios"].setdefault(sc, {"patient": e["patient"], "reference_outcome": e.get("reference_outcome")})
+            if tgt["patient"] != e["patient"]:
+                continue
+            lanes = {"A": e.get("A_rag"), "B": e.get("B"), "C": e.get("C")}
+            for lane, v in lanes.items():
+                if v and lane not in tgt:
+                    tgt[lane] = v
+                    out["files"].setdefault(lane, f.name)
+    if not out["scenarios"]:
         return {}
-    rep = json.loads(files[-1].read_text())
-    for e in rep.get("scenarios", {}).values():
-        # lane A is RAG over the whole library; a report from before that change gave A the pack's pages, so its
-        # A numbers are not shown against the RAG lane
-        e.pop("A", None)
-        if "A_rag" in e:
-            e["A"] = e["A_rag"]
-    return {"file": files[-1].name, **rep}
+    out["file"] = out["files"].get("A") or next(iter(out["files"].values()), "")
+    return out
 
 
 @app.get("/api/log")

@@ -425,18 +425,26 @@
     const last = (m) => (e && e[m] ? `last comparison: ${fmt(e[m].tokens_in)} tokens, ${e[m].matches_rules}/${e[m].runs} `
       + (m === "B" ? "used the rules' answer" : "matched the key") : "");
     const secs = (st) => (((st.ms ?? (performance.now() - st.t0)) / 1000).toFixed(1));
+    // one run on one order says little about accuracy: every mark comes with the lane's score over all six orders
+    // in the latest comparison (five runs each)
+    const overall = (m) => {
+      const sc = Object.values(S.compare.scenarios || {}).filter((x) => x[m]);
+      if (!sc.length) return "";
+      const ok = sc.reduce((t, x) => t + x[m].matches_rules, 0), n = sc.reduce((t, x) => t + x[m].runs, 0);
+      return `<small class="overall" title="Latest comparison: all ${sc.length} orders, ${n / sc.length} runs each">${ok} of ${n} overall</small>`;
+    };
     const tick = (b) => (b == null ? "–" : b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>');
     // A: the policy documents go to the AI, now
     const a = lanes.A.st;
     $("sA").textContent = a.note || (a.done ? `AI: ${OUTCOME[a.answer]?.[0] || a.answer} · rules: ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
-      + (a.whole ? ` · library: ${fmt(a.whole)} tokens` : "")
+      + (a.ok ? " · right this time, not every time (see overall)" : "") + (a.whole ? ` · library: ${fmt(a.whole)} tokens` : "")
       : a.active ? `Sending the ${a.docs ? a.docs.length : ""} best-matching passages from the library (${fmt(a.prompt)} tokens)…`
       : `No Kanini Context: best passages from the whole library go to the AI · ${last("A") || "press Run A"}`);
     $("sA").title = a.whole ? `A uses no part of Kanini Context. It ranked every passage of the policy library (${fmt(a.whole)} tokens read whole) against this order by ${a.method || "similarity"} and sent the best ${a.docs ? a.docs.length : ""} (${fmt(a.prompt)} tokens):\n` + (a.docs || []).join("\n") : "";
     const ran = (a.active || a.done) && !a.skipped;
     $("nA1").innerHTML = ran && (a.tin || a.prompt) ? fmt(a.tin || a.prompt) : "–";
     $("nA2").innerHTML = ran ? `1 · ${secs(a)}<small> s</small>` : "–";
-    $("nA3").innerHTML = a.done ? tick(a.ok) : "–";
+    $("nA3").innerHTML = (a.done ? tick(a.ok) : "") + overall("A") || "–";
     lanes.A.target = ran ? (a.tin || a.prompt) / 900 : 0;
     // B: the agent, counted from its own model calls
     const b = lanes.B.st, scripted = S.scripted && (b.active || b.done) && !b.tin;
@@ -445,7 +453,7 @@
       : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : `The AI gets short answers from checked rules · ${last("B") || "press Run B"}`;
     $("nB1").innerHTML = scripted ? "–" : b.active || b.done ? fmt(b.tin) : "–";
     $("nB2").innerHTML = b.active || b.done ? `${b.turns} · ${secs(b)}<small> s</small>` : "–";
-    $("nB3").innerHTML = b.done ? tick(b.ok) : "–";   // marked when the agent has finished, with its final time
+    $("nB3").innerHTML = (b.done ? tick(b.ok) : "") + overall("B") || "–";   // marked when the agent has finished, with its final time
     lanes.B.target = b.active || b.done ? b.tin / 900 : 0;
     // C: plain code, timed
     const c = lanes.C.st;
