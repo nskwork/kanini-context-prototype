@@ -113,10 +113,25 @@ def unscreened_programs(db, state: str, dos: str = DOS) -> list[str]:
     return sorted(b["citation"] for b in bound if b["authority_id"] not in screened)
 
 
+# The scope tests prove the scope's answers only on a full release, with every CMS program list saved and screened.
+# By default a release that is not full fails them, naming what is missing. KC_ALLOW_UNSCREENED=1 runs the
+# held-for-staff branch instead, for a workspace that does not hold the saved CMS copies; that run does not prove
+# scenarios 1, 2b and 4.
+STRICT = os.environ.get("KC_ALLOW_UNSCREENED") != "1"
+
+
 @pytest.fixture(scope="session")
 def screened(db):
-    """screened("TN") is true when every program bound to Original Medicare in that state has an ESA screen."""
-    return lambda state: not unscreened_programs(db, state)
+    """screened("TN") is true when every program bound to Original Medicare in that state has an ESA screen.
+    On a strict run (the default) an unscreened state fails the test instead of returning False."""
+    def check(state):
+        missing = unscreened_programs(db, state)
+        if missing and STRICT:
+            pytest.fail(f"not a full release: {state} programs not screened ({'; '.join(missing)}). Save their copies "
+                        "(python -m kanini_context.sources.place --record), approve and build; or set KC_ALLOW_UNSCREENED=1 "
+                        "to run the held-for-staff branch, which does not prove the scope's scenarios.")
+        return not missing
+    return check
 
 
 @pytest.fixture(scope="session")

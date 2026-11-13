@@ -23,8 +23,8 @@ Status key: **Done** (built as written), **Done, adjusted** (built, with a docum
 | # | Scope expects | Prototype answer | Status |
 | --- | --- | --- | --- |
 | 1 | No PA; criteria met; safe to act | No PA, L39237 criteria met, safe to act, after every CMS program bound to Tennessee is screened | Done |
-| 2 | Other gate: Tennessee needs GFR below 45 | Other gate, "eGFR 52 is not < 45", not safe to act | Done |
-| 2b | No PA: Ohio accepts GFR below 60 | No PA, L34356 criteria met | Done |
+| 2 | Other gate: Tennessee needs GFR below 45 | Other gate, "eGFR 52 is not < 45", not safe to act. The Tennessee article A58982 also lists CKD stage 3b to 5 only (N18.32 to N18.5), so a stage 3a diagnosis (N18.31) fails its diagnosis check too; the Ohio article A56462 lists N18.31 | Done |
+| 2b | No PA: Ohio accepts GFR below 60 | No PA, L34356 criteria met. Safe to act only while every source is within its freshness limit: Article A56462 was last confirmed on 15 Oct 2026, past its 14-day limit, so it must be rechecked before the demo (section 12) | Done, recheck due |
 | 3 | PA required, evidence list and Part B drug clock | Run with IV iron J1439 under the same plan: PA required, step-therapy evidence, 72 h standard and 24 h expedited, plan portal | Done, adjusted: UnitedHealthcare requires PA for an ESA only with a cancer diagnosis (findings, section 2) |
 | 3b | (added) | ESA under UnitedHealthcare, CKD: no rule found, route to staff | Extra, from the findings |
 | 4 | Not yet known; not safe; "obtain Hgb" | Not yet known, not safe, "Obtain Hematocrit or Hemoglobin" | Done, adjusted: L39237 accepts Hb < 10 or HCT < 30%, so either result settles it |
@@ -35,7 +35,7 @@ Status key: **Done** (built as written), **Done, adjusted** (built, with a docum
 | --- | --- | --- |
 | `journey.get` | `journey_get` on the journey MCP server (`propel/journey`) | Done |
 | `context.applicable_rules` | `context_applicable_rules` on the Kanini Context server | Done |
-| `rules.evaluate` | `rules_evaluate`: outcome, reasons, missing facts, plus coverage criteria, evidence, clock, route, sources | Done |
+| `rules.evaluate` | `rules_evaluate`: outcome, reasons, missing facts, plus coverage criteria, evidence, clock, route, sources | Done, adjusted: it takes the order (plan, state, code, date of service, facts), not one rule id, because an answer combines several rules: the LCD, the billing article, the program screens and the federal clocks. The answer names the deciding rule as `rule_key@edition` |
 | `policy.search` | `policy_search`: the cited passage with page and quote | Done |
 | `journey.record` | `journey_record`, after staff approval; its fields are overwritten from the evaluation before it runs | Done |
 
@@ -59,15 +59,17 @@ Tool names use underscores because model function names cannot contain dots. Pat
 | LCD L39237, effective 17 Sep 2026 | Done | Coverage Criteria B, page 7 |
 | LCD L34356, effective 4 Oct 2026 | Done | Coverage Criteria B, page 8 |
 | UnitedHealthcare MA 2026 PA list and step therapy | Done | PA requirements (effective 1 Oct 2026), IAP.001.30 |
-| 42 CFR 422.568 and 422.572 | Done | 422.568(b)(3) and 422.572(a)(2), saved from eCFR |
+| 42 CFR 422.568 and 422.572 | Done | 422.568(b)(3) saved from eCFR (up to date as of 9 Nov 2026); 422.572(a)(2) saved as a printed CFR page with no edition date shown. The manifest records an open item to replace it with an eCFR export |
 | One service concept with J0881, J0885 and biosimilars from the billing articles | Done | J0881, J0885, Q5106 and J0888 (J0888 is in A58982 only); ESRD codes excluded |
 | Confirm billing articles A58982 and A56462 | Done | Both saved and loaded; diagnosis lists are requirement tests |
 | Confirm the 72 h and 24 h Part B clocks from eCFR | Done | Confirmed; the clock in the answer cites both sections |
-| Record the L34356 "Anemia of ESRD" wording as written and flag it | Done | Rule carries a `wording_note`; flagged in findings, section 1 |
+| Record the L34356 "Anemia of ESRD" wording as written and flag it | Done | The rule keeps the wording and carries a `wording_note`, loaded with the rule and shown to the engineer by `approve.py`; flagged in findings, section 1; tested in `test_pack.py` |
 
 ## 6. Scope, section 6: the 23 tests
 
-All in `tests/test_scope.py`, named by number. Tests 9 and 21 to 23 also run with GPT-5 mini in `tests/test_agent_live.py` when a key is set. Last full run on the engineer's laptop: 64 passed (all suites).
+All in `tests/test_scope.py`, named by number. Tests 9 and 21 to 23 also run with GPT-5 mini in `tests/test_agent_live.py` when a key is set. Pack-level checks the scope relies on (rule checks, approval, freshness, audit rows, documentation form, the ESA under UnitedHealthcare) are in `tests/test_pack.py`.
+
+The scope tests are strict by default: on a release that is not full (a CMS program list not saved and screened, or a source past its freshness limit) they fail and name what is missing. Setting `KC_ALLOW_UNSCREENED=1` runs the held-for-staff branch instead, for a workspace without the saved CMS copies; such a run does not prove scenarios 1, 2b and 4, and is not the demo check.
 
 | Test | Result | Difference from the scope example, if any |
 | --- | --- | --- |
@@ -75,7 +77,7 @@ All in `tests/test_scope.py`, named by number. Tests 9 and 21 to 23 also run wit
 | 2 Region, Tennessee | Pass | Source reads "LCD L39237, Coverage Criteria B" (the scope example says "2") |
 | 3 Region, Ohio | Pass | |
 | 4 Date before the edition | Pass | `next_step` is the code `human_review` ("route to staff" in words) |
-| 5 Evaluate, four calls | Pass (5a to 5d) | 5d asks for Hb or HCT, as L39237 is written |
+| 5 Evaluate, four calls | Pass (5a to 5d) | Called with the order rather than a rule id (section 3). 5d asks for Hb or HCT, as L39237 is written |
 | 6 Medicare Advantage plan | Pass | Run with J1439 (scenario 3 change) |
 | 7 Unknown payer | Pass | |
 | 8 Input guard | Pass | Nothing is written to the audit table |
@@ -92,7 +94,7 @@ All in `tests/test_scope.py`, named by number. Tests 9 and 21 to 23 also run wit
 | 19 Stale lab | Pass | Tennessee only: L34356 sets no creatinine time limit |
 | 20 Overlapping rule version | Pass | |
 | 21 Context Service unavailable | Pass | |
-| 22 Instruction to skip checks | Pass, plus 22b | 22b: a card that contradicts the rules is corrected from `rules_evaluate` |
+| 22 Instruction to skip checks | Pass, plus 22b | The trace check runs with GPT-5 mini (`test_agent_live.py`), on `maria-uhc` so the prompt's "no PA" contradicts the rules' "PA required". The scripted test covers a model that does obey the prompt: its record call is blocked and nothing is logged. 22b: a card that contradicts the rules is corrected from `rules_evaluate` |
 | 23 Staff rejects the decision | Pass | |
 
 ## 7. Scope, section 7: demo script
@@ -115,14 +117,19 @@ All 23 tests pass. **Met.**
 | 4.5 Diagnosis rules | Done, adjusted | Billing-article diagnosis lists are tests, not conditions, so a missing diagnosis is reported, not silently skipped |
 | 4.6 When no approval is needed | Done, adjusted | Adds `stated_by_exhaustion` for screened closed lists (findings, section 3) |
 | 5.1 to 5.3 Dates, fields, never stored | Done | Four date bounds and record time; no patient data stored |
+| 5.4 When a new edition arrives | Partly | Change alerts are built: the UnitedHealthcare step therapy policy has an open alert for its 1 Jan 2027 edition, so the release covers dates of service through 31 Dec 2026 and later dates are "unavailable" (scope test 15). The resolver's "pending review" answer is as specified (spec tests Q15, Q16, T05). Automated watching and the merge of a new edition are not built |
 | 5.5 Privacy and security | Done | Server runs as role `kc_agent`; audit rows hold no question or facts |
-| 6.1 and 6.2 Ontology file | Done | Generated at every build (`release/owl.py`) |
+| 6.1 Ontology file | Done | Generated at every build (`release/owl.py`) |
+| 6.2 Where each kind of data lives | Done, adjusted | Source copies are kept on disk (`kanini_context/sources/raw/`) with their SHA-256 in the manifest, not in write-once blob storage. AI drafts are rule files in Git, not `kc_stage` tables; the `kc_stage` schema exists and is empty |
+| 6.3 Tables and keys | Done | As specified (`schema.sql`); additions listed at the top of the file |
+| 6.4 How the database is divided | Done, adjusted | `kc_core`, `kc_gov`, `kc_api` and `kc_client` as specified; `kc_stage` empty (6.2); the client copy is a second database (6.6) |
 | 6.5 What the database refuses | Done, adjusted | Approval by one engineer with a recorded `review_exception`, as the scope sets it |
-| 6.6 Client copy and freshness | Done, adjusted | Second database `kc_client` instead of a signed read-only schema |
+| 6.6 Client copy and freshness | Done, adjusted | Second database `kc_client` instead of a signed read-only schema. Source freshness limits are 14 and 45 days per source (proposal appendix B.3), where the spec's sample data used 2 and 7 days for the insurer list |
 | 7.1 Curation steps | Partly | Watch, draft, map, check, approve and release built; compare and two-pass extraction not built |
 | 7.2 Tools and resolver | Done | Seven tools and ten resolver steps over MCP; REST form not built |
-| 7.3 to 7.5 Answer, documentation form, runtime writes | Done | Feedback counts not built |
-| 8 Testing | Done | The 61 spec tests give the same verdicts (`kanini_context/db/spec_regression/`); the differences are added columns and the order of rows listed in a conflict, all listed in that folder's README |
+| 7.3 to 7.5 Answer, documentation form, runtime writes | Done | The documentation form also lists `coverage_criteria` items when no documentation rule applies (for J0885, the L39237 and A58982 items). Feedback counts not built |
+| 7.6 Use by other agents and other use cases | Done | Spec tests N20 and N21 (denial management) and N22 (care gaps) pass as data only. In the prototype, the same pack is used by the agent (B) and by plain code with no model (C) |
+| 8 Testing | Done | The 61 spec tests give the same verdicts (`kanini_context/db/spec_regression/`); the differences are added columns and the order of rows listed in a conflict, all listed in that folder's README. Of the spec's other checks: field schemas and the ontology file are checked at every load and build; the speed run on generated rules and the reverse load order run were not repeated |
 
 ## 10. Beyond the scope
 
@@ -133,3 +140,9 @@ All 23 tests pass. **Met.**
 ## 11. Not built, as the scope or spec leaves for later
 
 Automated source watching, the change summary agent, two-pass extraction, formal two-person review, signed releases, the REST form of the tools, the HCPCS, ICD-10-CM and LOINC files, and an ingestion agent that drafts rules from new documents. The full list is in `PROTOTYPE_NOTES.md`, section 6.
+
+## 12. Before the demo
+
+- **Full release.** Every CMS program copy saved, approved and built: the dashboard reads "Release 2026.11.0 · 19 rules · 16 sources". With a copy missing, scenarios 1, 2b and 4 answer "Not known", and the strict scope tests fail and name it.
+- **Freshness.** Article A56462 was last confirmed on 15 Oct 2026, past its 14-day limit, so Ohio answers are held for staff until it is rechecked against the CMS page. The other sources were confirmed on 9 to 12 Nov 2026 and stay within their limits through 23 Nov 2026.
+- **Run** `pytest` with no `KC_ALLOW_UNSCREENED`: all must pass.

@@ -12,7 +12,9 @@ import sys
 
 import psycopg
 
-from conftest import DOS, ROOT, assert_held_for_unscreened_program, facts, read_log
+import pytest
+
+from conftest import DOS, ROOT, STRICT, assert_held_for_unscreened_program, facts, read_log
 
 OM_TN = {"plan": "original-medicare", "state": "TN", "date_of_service": DOS}
 
@@ -92,6 +94,9 @@ def test_05c_ohio_egfr_52(kc, screened):
     # 2026-10-15; past 14 days the answer is held for staff and names the source (see test_freshness_names_source).
     if out["aging_sources"]:
         assert out["safe_to_act"] is False and out["not_safe_because"] == ["source_aging"]
+        if STRICT:   # the scope expects safe to act: a source past its limit has to be rechecked before the demo
+            pytest.fail("Ohio's answer is held because a source is past its freshness limit: " + "; ".join(out["aging_sources"])
+                        + ". Recheck it (python -m kanini_context.sources.place --checked SOURCE_ID \"note\") and build.")
     else:
         assert out["safe_to_act"] is True
 

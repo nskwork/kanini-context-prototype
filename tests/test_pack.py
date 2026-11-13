@@ -305,3 +305,20 @@ def test_model_sees_a_trimmed_single_copy_of_rules_evaluate(db):
     assert slim["primary_rule"]["rule_ref"] == full["primary_rule"]["rule_ref"] and slim["primary_rule"].get("quote")
     assert "sources" not in slim and "rule_refs" not in slim
     assert len(json.dumps(slim)) < len(json.dumps(full)) / 2
+
+
+def test_audit_row_holds_no_question_or_facts(kc, db):
+    # Spec 5.5: a valid call writes one audit row, and the audit table has no column that could hold the question or facts.
+    before = db.execute("SELECT count(*) FROM kc_client.tool_audit").fetchone()[0]
+    ev(kc, hgb_g_dl=9.4)
+    assert db.execute("SELECT count(*) FROM kc_client.tool_audit").fetchone()[0] == before + 1
+    cols = {r[0] for r in db.execute("""SELECT column_name FROM information_schema.columns
+                                        WHERE table_schema = 'kc_client' AND table_name = 'tool_audit'""").fetchall()}
+    assert cols == {"audit_id", "called_at", "tool", "release_id", "status", "rule_ids", "duration_ms"}
+
+
+def test_l34356_wording_is_recorded_as_written_and_flagged(db):
+    # Scope, section 5: L34356 labels its CKD hemoglobin criterion "Anemia of ESRD"; the rule keeps it, with a note.
+    [(note,)] = db.execute("""SELECT payload->>'wording_note' FROM kc_core.rule
+                              WHERE rule_key = 'kc:rule/esa-ckd-nd/L34356' AND status = 'active' AND upper_inf(recorded)""").fetchall()
+    assert "Anemia of ESRD" in note and "flagged for the reviewer" in note

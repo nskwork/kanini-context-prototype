@@ -4,8 +4,8 @@ Prepared by NANDHU S K. Follows section 7 of the prototype scope, with scenario 
 
 **Before the demo**
 
-1. Recheck any source whose last check is older than 14 days (`python -m kanini_context.sources.place --checked SOURCE_ID "note"`), then `python -m kanini_context.release.build`.
-2. On the day: `docker compose up -d db`, `python -m kanini_context.release.sync`, `pytest` (all must pass).
+1. Recheck any source whose last check is older than 14 days (`python -m kanini_context.sources.place --checked SOURCE_ID "note"`), then `python -m kanini_context.release.build`. As of 12 Nov this is Article A56462 (`mcd-article-a56462`, last confirmed 15 Oct): open its CMS page, confirm the version is still the saved one, and record the check. Until then the Ohio answer is held for staff. The status bar must read "Release 2026.11.0 · 19 rules · 16 sources".
+2. On the day: `docker compose up -d db`, `python -m kanini_context.release.sync`, `pytest` with no `KC_ALLOW_UNSCREENED` set (all must pass; the scope tests fail and name the gap if a program list is unscreened or a source is past its limit).
 3. Start the Kanini Context server (`python -m kanini_context.server.mcp_server --http 8765`) and the dashboard (`python -m propel.dashboard.server`), and open http://127.0.0.1:8090. `adk web propel/agent` stays available as a fallback.
 4. Clear the log: delete `propel/journey/decisions.jsonl`.
 
