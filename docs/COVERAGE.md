@@ -126,7 +126,7 @@ All 23 tests pass. **Met.**
 
 ## 10. Beyond the scope
 
-- **Comparison of three ways to answer** (`propel/baseline/compare.py`): on six orders, five runs each, the model reading the documents was right 20 of 30 times; the agent with Kanini Context and the lookup with no model were right 30 of 30. The lookup uses no model call. Results are in the README.
+- **Comparison of three ways to answer** (`propel/baseline/compare.py`): on six orders, five runs each, the lookup with no model is the answer key (the approved rules applied directly), so it scores full marks by definition and its lane measures cost: no model call, about 30 ms. Graded against that key, the model reading the documents matched 20 of 30 times. The agent with Kanini Context used the rules' answer in 30 of 30, which checks that it asked the rules correctly rather than its own judgment. Results and how to read them are in the README.
 - **Dashboard** (`propel/dashboard`): live knowledge graph and schema view, decision card, approval step, and the three ways of answering run in turn on the same order.
 - **CMS program screening**: every Original Medicare prior authorization program bound to the state is screened against its saved code list before "No PA" is given.
 

@@ -373,8 +373,11 @@
   }
 
   /* ---------------------------------------------------------------- the race: every lane fills only from a run made here */
-  const LANES = { A: ["documents", "AI reads the policy documents", "#fb7185"], B: ["agent", "AI agent asks Kanini Context", "#22d3ee"],
-    C: ["workflow", "No AI: direct lookup in Kanini Context", "#a3e635"] };
+  // The third number differs by lane on purpose: C is the approved rules applied by plain code, so it is the answer key
+  // (it cannot be "wrong"); A is graded against it; B states the rules' answer by design, so its check is that it used it.
+  const LANES = { A: ["documents", "AI reads the policy documents", "#fb7185", "Matches the key"],
+    B: ["agent", "AI agent asks Kanini Context", "#22d3ee", "Used the rules"],
+    C: ["workflow", "No AI: the approved rules, applied directly", "#a3e635", "Answer key"] };
   const MODE_LANE = { documents: "A", agent: "B", workflow: "C" };
   const lanes = {};
   const blank = () => ({ run: null, es: null, active: false, done: false, t0: 0, ms: null, tin: 0, tout: 0, turns: 0, prompt: 0,
@@ -384,13 +387,13 @@
   }
   function buildLanes() {
     const box = $("lanes"); box.innerHTML = "";
-    Object.entries(LANES).forEach(([L, [mode, title, color]]) => {
+    Object.entries(LANES).forEach(([L, [mode, title, color, third]]) => {
       const el = document.createElement("div");
       el.className = "lane"; el.style.setProperty("--lc", color);
       el.innerHTML = `<span class="L">${L}</span><div class="lt"><div class="t">${title}</div><div class="s" id="s${L}"></div></div>
         <div class="track"><canvas id="c${L}"></canvas><button type="button" class="lane-run" id="r${L}">Run ${L}</button></div>
         <div class="nums"><div><div class="h">Tokens sent to AI</div><div class="n" id="n${L}1">–</div></div>
-        <div><div class="h">AI calls · time</div><div class="n" id="n${L}2">–</div></div><div><div class="h">Correct</div><div class="n" id="n${L}3">–</div></div></div>`;
+        <div><div class="h">AI calls · time</div><div class="n" id="n${L}2">–</div></div><div><div class="h">${third}</div><div class="n" id="n${L}3">–</div></div></div>`;
       box.appendChild(el);
       lanes[L] = { color, canvas: el.querySelector("canvas"), parts: [], target: 0, flash: 0, st: blank() };
       el.querySelector(".lane-run").onclick = () => race([L]);
@@ -405,17 +408,21 @@
       const st = lanes[L].st;
       let ans = null, ok = null;
       if (L === "A") { ans = st.answer; ok = st.ok; }
-      else if (st.ok) { ans = rules; ok = true; }
+      else if (st.ok) { ans = rules; ok = L === "B" ? true : null; }
       const label = st.skipped ? "not run (no API key)" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : "not run";
-      const mark = ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
+      const mark = L === "C" && ans ? '<span class="key">key</span>'
+        : L === "B" && ans && st.cardFixed ? '<span class="ok" title="The AI wrote a different outcome on its card; the card was set from the rules">✓ card fixed</span>'
+        : ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       return `<div class="ans" style="--lc:${LANES[L][2]}"><b>${L}</b><span class="nm">${name}</span><span class="av">${esc(label)}</span>${mark}</div>`;
     };
-    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "AI read the documents") + row("B", "AI agent + Kanini Context") + row("C", "No AI");
+    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "AI read the documents") + row("B", "AI agent + Kanini Context") + row("C", "No AI (answer key)")
+      + `<div class="ans-note">C is the approved rules applied directly: the answer key. A is checked against it; B can only state the rules' answer.</div>`;
   }
   function laneNumbers() {
     renderAnswers();
     const e = S.order && scenarioFor(S.order.patient);
-    const last = (m) => (e && e[m] ? `last comparison: ${fmt(e[m].tokens_in)} tokens, ${e[m].matches_rules}/${e[m].runs} correct` : "");
+    const last = (m) => (e && e[m] ? `last comparison: ${fmt(e[m].tokens_in)} tokens, ${e[m].matches_rules}/${e[m].runs} `
+      + (m === "B" ? "used the rules' answer" : "matched the key") : "");
     const secs = (st) => (((st.ms ?? (performance.now() - st.t0)) / 1000).toFixed(1));
     const tick = (b) => (b == null ? "–" : b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>');
     // A: the policy documents go to the AI, now
@@ -438,10 +445,11 @@
     lanes.B.target = b.active || b.done ? b.tin / 900 : 0;
     // C: plain code, timed
     const c = lanes.C.st;
-    $("sC").textContent = c.done ? "This run: plain code, no AI" : c.active ? "Looking up…" : `Plain code looks up the answer · ${last("C") ? "last comparison: 0 tokens" : "press Run C"}`;
+    $("sC").textContent = c.done ? "This run: no AI · the answer key A is checked against"
+      : c.active ? "Looking up…" : `The answer key: plain code applies the approved rules · ${last("C") ? "last comparison: 0 tokens" : "press Run C"}`;
     $("nC1").innerHTML = c.done ? "0" : "–";
     $("nC2").innerHTML = c.done && c.callMs != null ? `0 · ${c.callMs}<small> ms</small>` : "–";
-    $("nC3").innerHTML = c.done ? tick(c.ok) : "–";
+    $("nC3").innerHTML = c.done ? '<span class="key">key</span>' : "–";
   }
   function lanesTick(dt) {
     Object.values(lanes).forEach((ln) => {
@@ -516,6 +524,7 @@
       if (L === "A") st.answer = e.answer;
       if (L === "B") {
         chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
+        if (e.text && e.text.includes("(Outcome line set from rules_evaluate.)")) st.cardFixed = true;
         if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
       }
     } else if (e.kind === "timing") {

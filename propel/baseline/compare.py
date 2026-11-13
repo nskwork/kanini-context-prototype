@@ -6,7 +6,15 @@ Each demo scenario is answered three ways, several times:
   C  workflow with Kanini     Propel calls rules_evaluate directly; no LLM at all
 
 Per mode and scenario it reports LLM calls, input and output tokens, time, the outcomes seen across runs, and
-whether they match the reviewed rules (C is the reference: same reviewed pack, no model in the decision).
+whether they match the reviewed rules.
+
+What "matches the rules" means in each lane:
+  C  is the answer key. It is the engineer-approved rules applied by plain code, so it matches by definition.
+     Its lane shows cost (no model, milliseconds) and that the answer repeats, not accuracy.
+  A  is graded against that key: the model decides from the documents on its own.
+  B  takes its outcome from the rules_evaluate result, so "matches" checks that the agent called the rules
+     with the right plan, state, code and facts. Separately, the report counts how often the model wrote the
+     right Outcome line on its own card; the card guard corrects it otherwise.
 
     python -m propel.baseline.compare --offline          # C only, plus the size of A's prompts (no API key needed)
     python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY and the Kanini server)
@@ -39,6 +47,7 @@ MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/source
 OUT = ROOT / "propel/baseline/results"
 MODEL = os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini")
 SCENARIOS = [(str(i), pid) for i, pid in enumerate(PATIENTS, 1)]   # every patient in the journey data
+A_EFFORT = ""   # --a-effort: run A at another reasoning effort, to check A is not held back by the low setting
 OUTCOMES = ["pa_required", "no_pa", "exempt", "other_gate", "needs_facts", "unknown"]
 
 PROMPT = """You decide whether an order needs prior authorization, using only the policy documents below.
@@ -124,7 +133,7 @@ def run_c(pid: str) -> dict:
 def run_a(pid: str) -> dict:
     import litellm
     t = time.perf_counter()
-    effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
+    effort = (A_EFFORT or os.environ.get("PROPEL_REASONING_EFFORT", "low")).strip()
     resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt_for(pid)}],
                               response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
     ms = (time.perf_counter() - t) * 1000
@@ -146,6 +155,7 @@ async def run_b_async(pid: str) -> dict:
     from propel.agent.authorization_agent.agent import build_agent, make_model
 
     usage = {"calls": 0, "in": 0, "out": 0}
+    texts: list[str] = []
 
     def count(callback_context, llm_response):
         um = llm_response.usage_metadata
@@ -160,11 +170,18 @@ async def run_b_async(pid: str) -> dict:
 
     def guarded(callback_context, llm_response):
         guard(callback_context, llm_response)
+        texts.extend(p.text for p in ((llm_response.content.parts if llm_response.content else None) or []) if getattr(p, "text", None))
         return count(callback_context, llm_response)
     agent.after_model_callback = guarded
     svc = InMemorySessionService()
     runner = Runner(app_name="compare", agent=agent, session_service=svc)
     s = await svc.create_session(app_name="compare", user_id="staff")
+    # Open the tool connections before the clock starts: a running service keeps them open (as the dashboard does),
+    # so connecting is set-up, not part of answering an order. Its time is reported separately.
+    t0 = time.perf_counter()
+    for ts in agent.tools or []:
+        await ts.get_tools()
+    setup_ms = (time.perf_counter() - t0) * 1000
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {pid}.")])
     outcome, t = None, time.perf_counter()
     # The run ends with the decision card, and with the staff confirmation prompt when the agent proposes a record.
@@ -175,10 +192,13 @@ async def run_b_async(pid: str) -> dict:
                 r = part.function_response.response or {}
                 r = r.get("structuredContent") or (json.loads(r["content"][0]["text"]) if r.get("content") else r)
                 outcome = r.get("outcome")
+    ms = (time.perf_counter() - t) * 1000
+    card = [x for x in texts if "Outcome:" in x]
     for ts in agent.tools:
         await ts.close()
     return {"outcome": outcome, "safe_to_act": None, "llm_calls": usage["calls"], "tokens_in": usage["in"],
-            "tokens_out": usage["out"], "ms": (time.perf_counter() - t) * 1000, "rule": None}
+            "tokens_out": usage["out"], "ms": ms, "setup_ms": setup_ms, "rule": None,
+            "card_by_model": bool(card) and not any("(Outcome line set from rules_evaluate.)" in x for x in card)}
 
 
 def run_b(pid: str) -> dict:
@@ -193,7 +213,9 @@ def summarise(runs: list[dict], ref: str) -> dict:
     return {"runs": len(runs), "outcomes": dict(outs), "matches_rules": sum(1 for r in runs if r["outcome"] == ref),
             "llm_calls": statistics.mean(r["llm_calls"] for r in runs),
             "tokens_in": statistics.mean(r["tokens_in"] for r in runs), "tokens_out": statistics.mean(r["tokens_out"] for r in runs),
-            "seconds": statistics.mean(r["ms"] for r in runs) / 1000}
+            "seconds": statistics.mean(r["ms"] for r in runs) / 1000,
+            **({"setup_seconds": statistics.mean(r["setup_ms"] for r in runs) / 1000,
+                "card_right_by_model": sum(1 for r in runs if r["card_by_model"])} if runs and "setup_ms" in runs[0] else {})}
 
 
 def _server_up() -> bool:
@@ -210,8 +232,11 @@ def _server_up() -> bool:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
+    ap.add_argument("--a-effort", default="", help="reasoning effort for A only (e.g. medium); default: same as B")
     ap.add_argument("--offline", action="store_true", help="mode C and A's prompt sizes only; no LLM calls")
     args = ap.parse_args(argv)
+    global A_EFFORT
+    A_EFFORT = args.a_effort
     if not args.offline and not _server_up():
         print(f"Kanini Context server not reachable at {os.environ.get('KC_MCP_URL')}; mode B needs it.\n"
               "Start it in another terminal first:  python -m kanini_context.server.mcp_server --http 8765")
@@ -221,7 +246,7 @@ def main(argv: list[str]) -> int:
 
     effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip() or "provider default"
     report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL,
-              "reasoning_effort": effort, "scenarios": {}}
+              "reasoning_effort": effort, "a_reasoning_effort": args.a_effort or effort, "scenarios": {}}
     for sc, pid in SCENARIOS:
         c_runs = [run_c(pid) for _ in range(args.runs)]
         ref = c_runs[0]["outcome"]
@@ -234,20 +259,29 @@ def main(argv: list[str]) -> int:
         report["scenarios"][sc] = entry
         print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt {entry['A_prompt_tokens']:>7,} tokens"
               + ("" if args.offline else f" | A {entry['A']['matches_rules']}/{args.runs} match, {dict(entry['A']['outcomes'])}"
-                                         f" | B {entry['B']['matches_rules']}/{args.runs} match, {entry['B']['llm_calls']:.1f} calls"))
+                                         f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, card right by the model"
+                                         f" {entry['B']['card_right_by_model']}/{args.runs}, {entry['B']['llm_calls']:.1f} calls"))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
     (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2))
-    lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, reasoning effort {effort}, {args.runs} runs per scenario)", "",
-             "| Scenario | Rules say | A: LLM reads policies | B: agent + Kanini | C: workflow + Kanini |",
+    a_eff = f", A at {args.a_effort}" if args.a_effort else ""
+    lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, reasoning effort {effort}{a_eff}, {args.runs} runs per scenario)", "",
+             "C is the answer key: the engineer-approved rules applied by plain code. A is graded against it. "
+             "B states the rules' answer by design, so its check is whether the agent called the rules correctly.", "",
+             "| Scenario | Rules say (answer key) | A: AI reads the documents | B: AI agent + Kanini Context | C: no AI, rules applied directly |",
              "| --- | --- | --- | --- | --- |"]
     for sc, e in report["scenarios"].items():
         def cell(m):
             if m not in e:
                 return f"{e['A_prompt_tokens']:,} input tokens per call (not run)" if m == "A" else "not run"
             s = e[m]
-            return (f"{s['matches_rules']}/{s['runs']} match; {s['llm_calls']:.1f} LLM calls; "
-                    f"{s['tokens_in']:,.0f} in / {s['tokens_out']:,.0f} out tokens; {s['seconds']:.2f} s")
+            cost = f"{s['llm_calls']:.1f} LLM calls; {s['tokens_in']:,.0f} in / {s['tokens_out']:,.0f} out tokens; {s['seconds']:.2f} s"
+            if m == "C":
+                return f"answer key; same answer {max(s['outcomes'].values())}/{s['runs']} runs; {cost}"
+            if m == "B":
+                return (f"{s['matches_rules']}/{s['runs']} used the rules' answer; card right by the model {s['card_right_by_model']}/{s['runs']}; "
+                        f"{cost} (+{s['setup_seconds']:.2f} s one-off connection, not counted)")
+            return f"{s['matches_rules']}/{s['runs']} match the key; {cost}"
         lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | {cell('A')} | {cell('B')} | {cell('C')} |")
     if not args.offline:
         lines += ["", "A's answers per scenario: " + "; ".join(f"{sc} {e['A']['outcomes']}" for sc, e in report["scenarios"].items())]
@@ -257,7 +291,10 @@ def main(argv: list[str]) -> int:
               + " tokens per scenario. Without the pack, A would also have to find them among every payer's documents.",
               "- B counts the model calls up to the decision card and the staff confirmation prompt; the staff click is not counted. "
               "B's first call looks up the patient record, which A is handed in its prompt.",
-              "- C is the same rules_evaluate call made by plain code: no model."]
+              "- B's time starts once its tool connections are open, as in a running service; the connection time is shown separately.",
+              "- C is the same rules_evaluate call made by plain code: no model. It is the answer key, so its lane shows cost and "
+              "repeatability, not accuracy. Its time is the database call alone.",
+              "- Not counted in any lane: the one-off model use when the rules were drafted from the documents."]
     (OUT / f"compare-{stamp}.md").write_text("\n".join(lines) + "\n")
     print(f"\nreport: propel/baseline/results/compare-{stamp}.md")
     return 0

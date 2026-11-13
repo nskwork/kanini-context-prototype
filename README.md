@@ -22,18 +22,21 @@ Prepared by NANDHU S K
 
 Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full report: `propel/baseline/results/compare-20261112-1854.md`.
 
-| | **A** · AI reads the policy documents | **B** · AI agent asks Kanini Context | **C** · no AI: direct lookup in Kanini Context |
+> **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A is the AI deciding on its own and is graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
+
+| | **A** · AI reads the policy documents | **B** · AI agent asks Kanini Context | **C** · no AI: the approved rules, applied directly |
 | :-- | :--: | :--: | :--: |
-| **Right answer** | 20 of 30 | **30 of 30** | **30 of 30** |
+| **Against the answer key** | 20 of 30 match | 30 of 30 used the rules' answer | *is the key* |
 | **Model calls per order** | 1 | 4 to 4.8 | **0** |
 | **Input tokens per order** | 22,455 to 39,313 | 10,512 to 13,124 | **0** |
-| **Time per order** | 5.5 to 11 s | 10 to 13 s | **0.03 s** |
+| **Time per order** | 5.5 to 11 s | 10 to 13 s, about 3 s of it opening the tool connections (now timed separately) | **0.03 s** |
 | **Same answer every run** | no | yes | yes |
 
 **In plain words**
 
-- **C is the point.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time.
-- **B is the assistant.** When staff want an explanation, the agent uses a third to a half of A's tokens and can only ever state what the rules returned.
+- **C is the point.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time. C is not "more accurate" than A; it is the reviewed answer, delivered with no model call.
+- **B is the assistant.** When staff want an explanation, the agent uses a third to a half of A's tokens and can only ever state what the rules returned. The report also counts how often the model wrote the right outcome on its own card; a guard sets it from the rules otherwise.
+- **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
 - **A guesses where the documents are silent.**
   - For an anemia drug under UnitedHealthcare with a kidney (not cancer) diagnosis, the list is silent, so the right answer is "route to staff". A said "PA required" in all 5 runs.
   - With the hemoglobin result missing, A said "No PA" 3 times and "Other gate" 2 times, on the same input. Kanini Context says "get the hemoglobin" every time.
@@ -41,14 +44,14 @@ Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full re
 
 ### Scenario by scenario
 
-| Order | Rules say | A | B | C |
+| Order | Answer key (rules say) | A | B | C |
 | :-- | :-- | :--: | :--: | :--: |
-| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
-| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
-| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
-| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
-| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ✅ 5/5 | ✅ 5/5 |
-| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 0/5 | ✅ 5/5 | ✅ 5/5 |
+| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ✅ 5/5 used it | key |
+| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 0/5 | ✅ 5/5 used it | key |
 
 ### Tests
 
