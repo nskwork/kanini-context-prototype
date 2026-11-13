@@ -334,3 +334,22 @@ def test_card_check_compares_meaning_not_wording():
     assert outcome_line_agrees("Outcome: Not known (route to staff) · not safe to act", held)
     assert not outcome_line_agrees("Outcome: Not yet known · not safe to act", held)
     assert outcome_line_agrees("Outcome: Other gate · not safe to act", {"outcome": "other_gate", "safe_to_act": False})
+
+
+def test_record_request_without_a_card_gets_one_from_the_rules():
+    # GPT-5 mini often sends journey_record with no text; staff must still see the card before they approve.
+    from types import SimpleNamespace
+    from google.adk.models.llm_response import LlmResponse
+    from google.genai import types
+    from propel.agent.authorization_agent.agent import _order_key, after_model
+    ev = {"outcome": "no_pa", "safe_to_act": True,
+          "card": {"reasons": ["Hgb 9.4 < 10", "eGFR 38 < 45"], "next_step_detail": "Proceed with the order",
+                   "primary_rule": {"rule_ref": "kc:rule/esa-ckd-nd/L39237@2026-09-17", "citation": "LCD L39237", "page": 7}}}
+    order = ["original-medicare", "TN", "J0885", "2026-11-20"]
+    ctx = SimpleNamespace(state={"propel:orders": {"ord-001": order}, "propel:evals": {_order_key(*order): ev}})
+    resp = LlmResponse(content=types.Content(role="model", parts=[
+        types.Part(function_call=types.FunctionCall(name="journey_record", args={"order_id": "ord-001"}))]))
+    after_model(ctx, resp)
+    text, call = resp.content.parts[0].text, resp.content.parts[1].function_call
+    assert "Outcome: No PA · safe to act" in text and "Why: eGFR 38 < 45" in text and "LCD L39237, p. 7" in text
+    assert call.name == "journey_record"

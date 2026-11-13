@@ -234,7 +234,8 @@ def after_tool(tool, args: dict, tool_context, tool_response):
         prim = p.get("primary_rule") or {}
         evals[key] = {"outcome": p.get("outcome", "unknown"), "rule_ref": prim.get("rule_ref"), "source": prim.get("citation"),
                       "safe_to_act": bool(p.get("safe_to_act")), "pack_release": p.get("pack_release"),
-                      "next_step": p.get("next_step"), "reason": p.get("reason"), "recorded_as_of": p.get("recorded_as_of")}
+                      "next_step": p.get("next_step"), "reason": p.get("reason"), "recorded_as_of": p.get("recorded_as_of"),
+                      "card": _slim_evaluate(p) if p else {}}
         tool_context.state["propel:evals"] = evals
         return _slim_evaluate(p) if p else None
     elif name == "journey_record" and isinstance(tool_response, dict) and tool_response.get("error") == "This tool call is rejected.":
@@ -279,11 +280,51 @@ def outcome_line_agrees(line: str, ev: dict | None) -> bool:
     return named == [ev["outcome"]] and (says_safe if ev["safe_to_act"] else says_not_safe)
 
 
+def card_from_rules(order_id: str, ev: dict) -> str:
+    """The decision card written from the rules_evaluate result alone, for a record request the model sent without one."""
+    c = ev.get("card") or {}
+    prim = c.get("primary_rule") or {}
+    lines = [f"Decision card · {order_id}", card_outcome_line(ev)]
+    lines += ["Why: " + r for r in (c.get("reasons") or [])[:6]]
+    if c.get("next_step_detail") or c.get("next_step"):
+        lines.append(f"Next step: {c.get('next_step_detail') or c.get('next_step')}")
+    if (c.get("decision_clock") or {}).get("text"):
+        lines.append(f"Deadline: {c['decision_clock']['text']}")
+    route = c.get("route") or {}
+    if route.get("submit_via"):
+        ch = (route.get("channels") or [{}])[0]
+        lines.append(f"Submit via: {route['submit_via']}" + (f" ({ch['interface']}: {ch['address']})" if ch.get("address") else ""))
+    for e in c.get("evidence") or []:
+        if isinstance(e, dict) and e.get("documents"):
+            lines.append(f"Evidence to send ({'any one of' if e.get('logic') == 'any' else 'all of'}): " + "; ".join(e["documents"]))
+    if prim.get("rule_ref"):
+        q = f', "{prim["quote"][:160]}"' if prim.get("quote") else ""
+        lines.append(f"Rule: {prim['rule_ref']} ({prim.get('citation', '')}{', p. ' + str(prim['page']) if prim.get('page') else ''}){q}")
+    if c.get("pack_release"):
+        lines.append(f"Pack: {c['pack_release']}")
+    lines.append("(Card written from rules_evaluate: the record request came without one.)")
+    return "\n".join(lines)
+
+
 def after_model(callback_context, llm_response):
     """If the reply holds a decision card, its Outcome line is set from the rules_evaluate result for that order,
-    so neither the log nor the reply can state an outcome the rules did not return."""
+    so neither the log nor the reply can state an outcome the rules did not return. If the reply asks to record a
+    decision without a card, the card is written from the rules first, so staff always see it before they approve."""
     parts = (llm_response.content.parts if llm_response and llm_response.content else None) or []
     state = callback_context.state
+    calls = [p.function_call for p in parts if getattr(p, "function_call", None) and p.function_call.name == "journey_record"]
+    if calls and not any("outcome:" in (getattr(p, "text", None) or "").lower() for p in parts):
+        cards = []
+        for fc in calls:
+            oid = (fc.args or {}).get("order_id", "")
+            order = state.get("propel:orders", {}).get(oid)
+            ev = state.get("propel:evals", {}).get(_order_key(*order)) if order else None
+            if ev:
+                cards.append(card_from_rules(oid, ev))
+        if cards:
+            from google.genai import types
+            llm_response.content.parts = [types.Part(text="\n\n".join(cards))] + list(parts)
+            return None
     for part in parts:
         text = getattr(part, "text", None)
         if not text or "Outcome:" not in text:
