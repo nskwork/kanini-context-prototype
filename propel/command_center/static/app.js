@@ -121,7 +121,7 @@
     if (n.kind === "Rule") return "rule " + id.split("/").pop();
     if (n.kind === "Source") return "source · " + (n.doc || id);
     if (n.kind === "Concept") return n.label || id;
-    if (n.kind === "Authority" && n.prog) return id.replace(/^CMS-/, "");   // the screened programs: short names
+    if (n.kind === "Authority" && (n.prog || n.unscr)) return id.replace(/^CMS-/, "");   // the PA programs: short names
     if (n.kind === "DataElement" && n.name) return n.name.length > 24 ? n.name.slice(0, 22) + "…" : n.name;
     if (n.name) return n.name;
     if (n.kind === "Code" || n.kind === "DataElement") return id.split("|").slice(1).join(" ") || id;
