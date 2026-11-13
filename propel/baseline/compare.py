@@ -281,7 +281,8 @@ def main(argv: list[str]) -> int:
             if m == "B":
                 return (f"{s['matches_rules']}/{s['runs']} used the rules' answer; card right by the model {s['card_right_by_model']}/{s['runs']}; "
                         f"{cost} (+{s['setup_seconds']:.2f} s one-off connection, not counted)")
-            return f"{s['matches_rules']}/{s['runs']} match the key; {cost}"
+            return (f"{s['matches_rules']}/{s['runs']} match the key; {cost} (only the pages the pack picked; "
+                    f"the whole documents are {e['A_full_docs_tokens']:,} tokens)")
         lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | {cell('A')} | {cell('B')} | {cell('C')} |")
     if not args.offline:
         lines += ["", "A's answers per scenario: " + "; ".join(f"{sc} {e['A']['outcomes']}" for sc, e in report["scenarios"].items())]

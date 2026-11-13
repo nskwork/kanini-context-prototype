@@ -28,7 +28,8 @@ Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full re
 | :-- | :--: | :--: | :--: |
 | **Against the answer key** | 20 of 30 match | 30 of 30 used the rules' answer | *is the key* |
 | **Model calls per order** | 1 | 4 to 4.8 | **0** |
-| **Input tokens per order** | 22,455 to 39,313 | 10,512 to 13,124 | **0** |
+| **Input tokens per order** | 22,455 to 39,313, given only the pages Kanini Context picked for the order | 10,512 to 13,124 | **0** |
+| **Input tokens if A reads the documents whole** | 39,193 to 74,580 | not needed | not needed |
 | **Time per order** | 5.5 to 11 s | 10 to 13 s, about 3 s of it opening the tool connections (now timed separately) | **0.03 s** |
 | **Same answer every run** | no | yes | yes |
 
@@ -40,7 +41,7 @@ Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full re
 - **A guesses where the documents are silent.**
   - For an anemia drug under UnitedHealthcare with a kidney (not cancer) diagnosis, the list is silent, so the right answer is "route to staff". A said "PA required" in all 5 runs.
   - With the hemoglobin result missing, A said "No PA" 3 times and "Other gate" 2 times, on the same input. Kanini Context says "get the hemoglobin" every time.
-- A was given only the pages Kanini Context selected. Read whole, the same documents are 39,193 to 74,580 tokens per order.
+- A was given only the pages Kanini Context selected, which favours A: without the pack it would also have to find the right documents and pages. Read whole, the same documents are 39,193 to 74,580 tokens per order (second token row above).
 
 ### Scenario by scenario
 
