@@ -433,14 +433,14 @@
       : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : `The AI gets short answers from checked rules · ${last("B") || "press Run B"}`;
     $("nB1").innerHTML = scripted ? "–" : b.active || b.done ? fmt(b.tin) : "–";
     $("nB2").innerHTML = b.active || b.done ? `${b.turns} · ${secs(b)}<small> s</small>` : "–";
-    $("nB3").innerHTML = b.ok == null ? "–" : tick(b.ok);
+    $("nB3").innerHTML = b.done ? tick(b.ok) : "–";   // marked when the agent has finished, with its final time
     lanes.B.target = b.active || b.done ? b.tin / 900 : 0;
     // C: plain code, timed
     const c = lanes.C.st;
     $("sC").textContent = c.done ? "This run: plain code, no AI" : c.active ? "Looking up…" : `Plain code looks up the answer · ${last("C") ? "last comparison: 0 tokens" : "press Run C"}`;
     $("nC1").innerHTML = c.done ? "0" : "–";
     $("nC2").innerHTML = c.done && c.callMs != null ? `0 · ${c.callMs}<small> ms</small>` : "–";
-    $("nC3").innerHTML = c.ok == null ? "–" : tick(c.ok);
+    $("nC3").innerHTML = c.done ? tick(c.ok) : "–";
   }
   function lanesTick(dt) {
     Object.values(lanes).forEach((ln) => {
