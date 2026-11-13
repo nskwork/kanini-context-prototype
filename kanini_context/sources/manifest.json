@@ -95,9 +95,13 @@
         "at": "2026-10-15T19:40:00-05:00",
         "ok": true,
         "note": "copy printed; Public Versions shows 09/27/2026 - N/A Currently in Effect"
+      },
+      {
+        "at": "2026-11-12T21:52:09-06:00",
+        "ok": true,
+        "note": "live MCD page: version 38 (updated 10/07/2026, eff. 09/27/2026) still current"
       }
     ],
-    "open_question": "the live page could not be confirmed from the build environment on 2026-11-12; confirm version 38 is still current and record the check",
     "sha256": "e2c62cae95a41c6c2baa8b440d74f57c907282ddade1ff8d686801567ac4d61a",
     "bytes": 3260669
   },
