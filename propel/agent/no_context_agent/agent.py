@@ -78,7 +78,7 @@ def read_pages(source_id: str, pages: list[int]) -> dict:
     return {"source_id": source_id, "title": doc["title"], "pages": [{"page": p, "text": doc["pages"][p - 1]} for p in want]}
 
 
-_LINE = re.compile(r"^[ \t>*-]*\**Outcome:\**[ \t]*(.*)$", re.M | re.I)
+_LINE = re.compile(r"^[ \t>*-]*(?:\d+[.)]\s*)?\**Outcome:\**[ \t]*(.*)$", re.M | re.I)   # also "2) Outcome:"
 
 
 def card_outcome(text: str) -> str | None:

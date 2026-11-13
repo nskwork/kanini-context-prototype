@@ -375,7 +375,7 @@ def main(argv: list[str]) -> int:
               + ". The passages sent for each order are listed in the JSON report. A' sends every document whole.",
               "- A's time includes ranking the passages; building the passage index is one-off and not counted.",
               "- B counts the model calls up to the decision card and the staff confirmation prompt; the staff click is not counted. "
-              "B's first call looks up the patient record, which A is handed in its prompt.",
+              "B's first call looks up the patient record, as A's does; the one-call baselines (search, every document) are handed it in their prompt.",
               "- \"Model's own card\": the Outcome line the model wrote, before the guard sets it from the rules, names the rules' "
               "outcome and safe-to-act flag (wording and punctuation do not count). Counted only when the card comes before the "
               "approval prompt: on orders that are recorded, the model often sends the record request alone and writes the card "

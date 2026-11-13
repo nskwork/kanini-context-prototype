@@ -157,13 +157,15 @@ def explain(report: dict) -> dict:
                 for b in item["broke"]:
                     if b["answer"] != "other_gate":
                         continue
-                    texts = [(r.get("card") or "") + " ".join(map(str, r.get("reasons") or [])) for r in runs_o if r.get("outcome") == "other_gate"]
-                    tn = sum(1 for t in texts if re.search(r"A58982|L39237|<\s*45|below 45|less than 45", t))
+                    texts = [(r.get("card") or "") + " " + " ".join(map(str, r.get("reasons") or [])) + " " + str(r.get("rule_cited") or "")
+                             for r in runs_o if r.get("outcome") == "other_gate"]
+                    # the limit itself, however it was written ("< 45", "≈45", "below 45", "threshold … 45"), not a citation alone
+                    tn = sum(1 for t in texts if re.search(r"(?:[<≤≈~]\s*|below\s+|less than\s+|under\s+|threshold[^.;]{0,40}?)45\b", t, re.I))
                     st3a = sum(1 for t in texts if re.search(r"N18\.31|3a|IIIa", t, re.I))
                     if not runs_o or tn:
                         b["why"] += ("; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60)"
                                      + (f" ({tn} of {len(texts)} runs used it)" if texts else ""))
-                    if st3a and st3a > tn:
+                    if st3a:
                         b["why"] += ("; the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 "
                                      "lists N18.31" + (f" ({st3a} of {len(texts)} runs used it)" if texts else ""))
             runs = e.get(f"{key}_runs") or (e.get("A_runs") if key == "A_agent" else None)

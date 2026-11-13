@@ -169,8 +169,9 @@ def ontology():
 @app.get("/api/compare")
 def compare():
     """The latest comparison, lane by lane: each lane (A, B, C) from the newest report in which it ran, since a
-    report can hold one lane only (--only A). A is RAG over the whole library; a report from before that change
-    gave A the pack's pages, so its A is not used. Nothing found: the page shows only live numbers."""
+    report can hold one lane only (--only A). A is the same agent without Kanini Context (A_agent); the one-call
+    baselines (A_rag, A_whole) are kept under their own names; reports from before these lanes existed gave A the
+    pack's pages and are not used for A. Nothing found: the page shows only live numbers."""
     files = sorted(RESULTS.glob("compare-*.json"), reverse=True) if RESULTS.exists() else []
     out: dict = {"files": {}, "scenarios": {}}
     hist: dict = {}   # every run of the one-call baselines and of lane A, so the Testing tab can show them all
