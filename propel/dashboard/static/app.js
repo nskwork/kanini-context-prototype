@@ -499,7 +499,8 @@
     if (e.kind === "doc_start") {
       st.prompt = e.prompt_tokens;
     } else if (e.kind === "model") {
-      st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out;
+      // B's numbers stop at the decision card: the model's reply after staff approve is not part of answering
+      if (!(L === "B" && st.confirmed)) { st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out; }
       if (L === "A") st.answer = e.answer;
       if (L === "B") {
         chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
