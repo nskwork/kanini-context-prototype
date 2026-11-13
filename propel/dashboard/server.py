@@ -274,90 +274,147 @@ async def run_documents(run: Run):
         run.done = True
 
 
-async def run_agent(run: Run):
-    """Mode B: the authorization agent, with its own callbacks kept; the page sees each step as it happens."""
-    from google.adk.runners import Runner
-    from google.adk.sessions import InMemorySessionService
+# --- Mode B: one agent for the whole server -------------------------------------------------------------------------
+# The agent and its MCP connections (the journey server and Kanini Context) are made once and kept open, so a run
+# starts at its first model call. Each run has its own ADK session; the callbacks find the run by its session id.
+
+AGENT: dict = {"agent": None, "own": None}
+SESSIONS: dict[str, Run] = {}
+
+
+def _run_of(ctx) -> Run | None:
+    return SESSIONS.get(ctx.session.id)
+
+
+def _lap(run: Run, kind: str, label: str):
+    c, now = run.clock, time.perf_counter()
+    if c["setup"] is None and kind == "ai_start":   # until the first model call: session and connections
+        c["setup"] = now - c["t"]
+    if kind in ("ai_end", "tool_end"):
+        d = now - c["t"]
+        c["ai" if kind == "ai_end" else "tools"] += d
+        c["steps"].append((label, round(d, 2)))
+    c["t"] = now
+
+
+def _timing(run: Run) -> dict:
+    c = run.clock
+    total = time.perf_counter() - c["t0"]
+    rep = {"setup_s": round(c["setup"] or 0, 2), "ai_s": round(c["ai"], 2), "tools_s": round(c["tools"], 2),
+           "total_s": round(total, 2), "steps": c["steps"]}
+    rep["between_s"] = round(total - rep["setup_s"] - rep["ai_s"] - rep["tools_s"], 2)
+    print(f"[dashboard] B timing for {run.patient}: total {rep['total_s']} s = start-up {rep['setup_s']} + AI {rep['ai_s']} "
+          f"+ tools {rep['tools_s']} + between steps {rep['between_s']}; " + ", ".join(f"{k} {v} s" for k, v in c["steps"]), flush=True)
+    return rep
+
+
+def _fire(run: Run, kind: str, **data):   # called from the agent's synchronous callbacks
+    run.push(kind, **data)
+    run.loop.create_task(run.wake())
+
+
+def _install(agent):
+    """Wrap the agent's own callbacks (journey_record overwrite, card guard, trimming) with the page's event stream."""
+    from google.adk.models.llm_response import LlmResponse
     from google.genai import types
     from propel.agent.authorization_agent import agent as A
-
-    if SCRIPTED:
-        sys.path.insert(0, str(ROOT / "tests"))
-        from scripted_model import ScriptedModel
-        model = ScriptedModel(patient_id=run.patient)
-    else:
-        model = A.make_model()
-    agent = A.build_agent(model=model)
-    loop = asyncio.get_running_loop()
-    usage = {"turn": 0, "in": 0, "out": 0}
-    clock = {"t": time.perf_counter(), "t0": time.perf_counter(), "ai": 0.0, "tools": 0.0, "setup": None, "steps": []}   # where B's time goes
-
-    def lap(kind: str, label: str):
-        now = time.perf_counter()
-        if clock["setup"] is None and kind == "ai_start":   # until the first model call: agent, MCP connections, session
-            clock["setup"] = now - clock["t"]
-        if kind in ("ai_end", "tool_end"):
-            d = now - clock["t"]
-            clock["ai" if kind == "ai_end" else "tools"] += d
-            clock["steps"].append((label, round(d, 2)))
-        clock["t"] = now
-
-    def timing_report():
-        total = time.perf_counter() - clock["t0"]
-        rep = {"setup_s": round(clock["setup"] or 0, 2), "ai_s": round(clock["ai"], 2), "tools_s": round(clock["tools"], 2),
-               "total_s": round(total, 2), "steps": clock["steps"]}
-        rep["between_s"] = round(total - rep["setup_s"] - rep["ai_s"] - rep["tools_s"], 2)   # ADK and MCP work between steps
-        print(f"[dashboard] B timing for {run.patient}: total {rep['total_s']} s = start-up {rep['setup_s']} + AI {rep['ai_s']} "
-              f"+ tools {rep['tools_s']} + between steps {rep['between_s']}; "
-              + ", ".join(f"{k} {v} s" for k, v in clock["steps"]), flush=True)
-        return rep
-
-    own_before, own_after, own_model = agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback
-
-    def fire(kind, **data):   # called from the agent's synchronous callbacks
-        run.push(kind, **data)
-        loop.create_task(run.wake())
+    own_before, own_after, own_model, own_before_model = (agent.before_tool_callback, agent.after_tool_callback,
+                                                          agent.after_model_callback, agent.before_model_callback)
 
     def before_tool(tool, args, tool_context):
-        lap("tool_start", tool.name)
-        fire("tool_call", name=tool.name, args=dict(args), turn=usage["turn"])
+        run = _run_of(tool_context)
+        if run:
+            _lap(run, "tool_start", tool.name)
+            _fire(run, "tool_call", name=tool.name, args=dict(args), turn=run.usage["turn"])
         return own_before(tool, args, tool_context)
 
     def after_tool(tool, args, tool_context, tool_response):
-        lap("tool_end", tool.name)
-        fire("tool_result", name=tool.name, payload=A._payload(tool_response))   # the full result, before it is trimmed for the model
+        run = _run_of(tool_context)
+        if run:
+            _lap(run, "tool_end", tool.name)
+            _fire(run, "tool_result", name=tool.name, payload=A._payload(tool_response))   # the full result, before trimming
         return own_after(tool, args, tool_context, tool_response)
+
+    def before_model(callback_context, llm_request):
+        run = _run_of(callback_context)
+        if run and run.stale:   # replaced by a newer run: no model call, the run ends here
+            return LlmResponse(content=types.Content(role="model", parts=[types.Part(text="Stopped: a newer run replaced this one.")]))
+        if run:
+            _lap(run, "ai_start", "")
+        return own_before_model(callback_context, llm_request) if own_before_model else None
 
     def after_model(callback_context, llm_response):
         out = own_model(callback_context, llm_response)   # the card guard first, so the page shows the corrected card
-        if run.stale:   # the stopping turn of a replaced run is not a model call
+        run = _run_of(callback_context)
+        if not run or run.stale:
             return out
         um = llm_response.usage_metadata
-        usage["turn"] += 1
-        lap("ai_end", f"AI step {usage['turn']}")
+        u = run.usage
+        u["turn"] += 1
+        _lap(run, "ai_end", f"AI step {u['turn']}")
         tin, tout = (um.prompt_token_count or 0, um.candidates_token_count or 0) if um else (0, 0)
-        usage["in"] += tin
-        usage["out"] += tout
+        u["in"] += tin
+        u["out"] += tout
         parts = (llm_response.content.parts if llm_response.content else None) or []
-        fire("model", turn=usage["turn"], tokens_in=tin, tokens_out=tout,
-             calls=[p.function_call.name for p in parts if p.function_call],
-             text="\n".join(p.text for p in parts if getattr(p, "text", None)))
+        _fire(run, "model", turn=u["turn"], tokens_in=tin, tokens_out=tout,
+              calls=[p.function_call.name for p in parts if p.function_call],
+              text="\n".join(p.text for p in parts if getattr(p, "text", None)))
         return out
 
-    own_before_model = agent.before_model_callback
+    agent.before_tool_callback, agent.after_tool_callback = before_tool, after_tool
+    agent.after_model_callback, agent.before_model_callback = after_model, before_model
+    return agent
 
-    def before_model(callback_context, llm_request):
-        if run.stale:   # no model call: the run ends here and its MCP sessions close normally
-            from google.adk.models.llm_response import LlmResponse
-            return LlmResponse(content=types.Content(role="model", parts=[types.Part(text="Stopped: a newer run replaced this one.")]))
-        lap("ai_start", "")
-        return own_before_model(callback_context, llm_request) if own_before_model else None
 
-    agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback = before_tool, after_tool, after_model
-    agent.before_model_callback = before_model
+async def shared_agent():
+    """The server's one agent (real model), with its MCP connections opened ahead of the first run."""
+    if AGENT["agent"] is None:
+        from propel.agent.authorization_agent import agent as A
+        agent = _install(A.build_agent(model=A.make_model()))
+        for ts in agent.tools or []:
+            try:
+                await ts.get_tools()   # opens the connection now, not in the first run
+            except Exception as ex:
+                print(f"[dashboard] tool connection not ready yet ({ex}); it opens on the first run", flush=True)
+        AGENT["agent"] = agent
+    return AGENT["agent"]
+
+
+@app.on_event("startup")
+async def _warm():
+    if not SCRIPTED and os.environ.get("OPENAI_API_KEY"):
+        await shared_agent()
+
+
+@app.on_event("shutdown")
+async def _close():
+    for ts in (AGENT["agent"].tools if AGENT["agent"] else []) or []:
+        try:
+            await ts.close()
+        except Exception:
+            pass
+
+
+async def run_agent(run: Run):
+    """Mode B: the authorization agent; the page sees each step as it happens."""
+    from google.adk.runners import Runner
+    from google.adk.sessions import InMemorySessionService
+    from google.genai import types
+
+    run.loop = asyncio.get_running_loop()
+    run.usage = {"turn": 0, "in": 0, "out": 0}
+    run.clock = {"t": time.perf_counter(), "t0": time.perf_counter(), "ai": 0.0, "tools": 0.0, "setup": None, "steps": []}
+    if SCRIPTED:   # a fresh agent per run: the scripted stand-in follows one patient
+        sys.path.insert(0, str(ROOT / "tests"))
+        from scripted_model import ScriptedModel
+        from propel.agent.authorization_agent import agent as A
+        agent = _install(A.build_agent(model=ScriptedModel(patient_id=run.patient)))
+    else:
+        agent = await shared_agent()
     svc = InMemorySessionService()
     runner = Runner(app_name="dashboard", agent=agent, session_service=svc)
     s = await svc.create_session(app_name="dashboard", user_id="staff")
+    SESSIONS[s.id] = run
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {run.patient}.")])
     try:
         for _ in range(3):
@@ -368,9 +425,9 @@ async def run_agent(run: Run):
                         confirm_id = part.function_call.id
             if not confirm_id or run.stale:   # a replaced run never waits for approval
                 break
-            run.confirm = loop.create_future()
-            await run.emit("timing", **timing_report())
-            await run.emit("confirm_request", llm_calls=usage["turn"], tokens_in=usage["in"], tokens_out=usage["out"])
+            run.confirm = run.loop.create_future()
+            await run.emit("timing", **_timing(run))
+            await run.emit("confirm_request", llm_calls=run.usage["turn"], tokens_in=run.usage["in"], tokens_out=run.usage["out"])
             try:
                 approved = await asyncio.wait_for(run.confirm, timeout=600)
             except (asyncio.TimeoutError, asyncio.CancelledError):   # left waiting, or a new run started: nothing is recorded
@@ -380,21 +437,23 @@ async def run_agent(run: Run):
             msg = types.Content(role="user", parts=[types.Part(function_response=types.FunctionResponse(
                 id=confirm_id, name="adk_request_confirmation", response={"confirmed": approved}))])
         if not any(e["kind"] == "timing" for e in run.events):
-            await run.emit("timing", **timing_report())
+            await run.emit("timing", **_timing(run))
         if run.stale:
             await run.emit("abandoned")
         await asyncio.sleep(0)
-        await run.emit("done", llm_calls=usage["turn"], tokens_in=usage["in"], tokens_out=usage["out"])
+        await run.emit("done", llm_calls=run.usage["turn"], tokens_in=run.usage["in"], tokens_out=run.usage["out"])
     except Exception as ex:   # shown on the page; the run stops
         await run.emit("error", message=str(ex)[:400])
     finally:
-        for t in agent.tools or []:
-            close = getattr(t, "close", None)
-            if close:
-                try:
-                    await close()
-                except Exception:
-                    pass
+        SESSIONS.pop(s.id, None)
+        if SCRIPTED:   # the shared agent keeps its connections; a per-run agent closes its own
+            for t in agent.tools or []:
+                close = getattr(t, "close", None)
+                if close:
+                    try:
+                        await close()
+                    except Exception:
+                        pass
         run.done = True
 
 
