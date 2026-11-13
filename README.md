@@ -1,105 +1,237 @@
-# Kanini Context Prototype
+<div align="center">
 
-An authorization agent answers one prior authorization question per order from Kanini Context, through MCP tools. Every answer carries its rule and edition, the source page and quote, a safe-to-act flag and a next step, and staff approve each decision before it is logged.
+# Kanini Context
 
-The use case is the one in the prototype scope: an anemia drug (ESA) for a patient with chronic kidney disease who is not on dialysis, under Original Medicare in two contractor regions and under one UnitedHealthcare Medicare Advantage plan. The scope findings (`docs/SCOPE_FINDINGS.md`) explain the two changes to the use case: scenario 3 uses IV iron (J1439), and Original Medicare's "no PA" rests on the CMS program lists.
+**Read the rules once. Answer every order from them.**
 
-Kanini Context follows the schema specification v1.5. The prototype's database is the specification's schema with a short list of documented extensions (top of `kanini_context/db/schema.sql`), and the specification's 61 regression tests still give the same verdicts (`kanini_context/db/spec_regression/`).
+A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-Prepared by NANDHU S K.
+![tests](https://img.shields.io/badge/tests-60%20of%2060%20passing-a3e635?style=flat-square)
+![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
+![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
+![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
+![stack](https://img.shields.io/badge/PostgreSQL%2016%20%C2%B7%20Apache%20AGE%20%C2%B7%20FastMCP%20%C2%B7%20Google%20ADK-334155?style=flat-square)
+
+Prepared by NANDHU S K
+
+</div>
+
+---
+
+## Latest results · 12 Nov 2026
+
+Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full report: `propel/baseline/results/compare-20261112-1854.md`.
+
+| | **A** · the model reads the policies | **B** · agent with Kanini Context | **C** · workflow with Kanini Context |
+| :-- | :--: | :--: | :--: |
+| **Right answer** | 20 of 30 | **30 of 30** | **30 of 30** |
+| **Model calls per order** | 1 | 4 to 4.8 | **0** |
+| **Input tokens per order** | 22,455 to 39,313 | 10,512 to 13,124 | **0** |
+| **Time per order** | 5.5 to 11 s | 10 to 13 s | **0.03 s** |
+| **Same answer every run** | no | yes | yes |
+
+**In plain words**
+
+- **C is the point.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time.
+- **B is the assistant.** When staff want an explanation, the agent uses a third to a half of A's tokens and can only ever state what the rules returned.
+- **A guesses where the documents are silent.**
+  - For an anemia drug under UnitedHealthcare with a kidney (not cancer) diagnosis, the list is silent, so the right answer is "route to staff". A said "PA required" in all 5 runs.
+  - With the hemoglobin result missing, A said "No PA" 3 times and "Other gate" 2 times, on the same input. Kanini Context says "get the hemoglobin" every time.
+- A was given only the pages Kanini Context selected. Read whole, the same documents are 39,193 to 74,580 tokens per order.
+
+### Scenario by scenario
+
+| Order | Rules say | A | B | C |
+| :-- | :-- | :--: | :--: | :--: |
+| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
+| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
+| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
+| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 |
+| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ✅ 5/5 | ✅ 5/5 |
+| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 0/5 | ✅ 5/5 | ✅ 5/5 |
+
+### Tests
+
+| Suite | Result |
+| :-- | :-- |
+| Prototype scope, tests 1 to 23 (`tests/test_scope.py`) | ✅ all pass, plus the variants 5a to 5d, 10b and 22b |
+| Scope tests 9 and 21 to 23 with the real model (`tests/test_agent_live.py`) | ✅ pass with GPT-5 mini |
+| Pack tests: checks, approval, freshness, decision log, card guard (`tests/test_pack.py`) | ✅ pass |
+| Schema specification v1.5, 61 regression tests (`kanini_context/db/spec_regression/`) | ✅ same verdicts as the specification |
+
+---
 
 ## How it works
 
+```mermaid
+flowchart LR
+  subgraph Curation["Curation · once per source edition"]
+    P[Source PDFs<br/>16 saved copies] --> D[Rule files<br/>drafted with AI]
+    D --> K{{checks.py<br/>quote on the cited page,<br/>numbers, negation, codes}}
+    K --> AP[approve.py<br/>engineer approves]
+    AP --> B[(Build DB<br/>spec v1.5 schema)]
+    B --> R[(Release 2026.11.0<br/>client copy + AGE graph + OWL)]
+  end
+  subgraph Runtime["Runtime · every order"]
+    O[Order] --> AG[Propel agent<br/>Google ADK · GPT-5 mini]
+    O --> WF[Workflow<br/>plain code, no model]
+    AG -- MCP --> T[Kanini Context tools]
+    WF --> T
+    T --> R
+    AG --> CARD[Decision card] --> ST{Staff approve?} --> LOG[(Decision log<br/>rule + edition + source)]
+  end
 ```
- source PDFs ──> rule files (drafted, checked against the page, approved) ──> loader ──> build DB ──> release ──> client copy (kc_client)
-                                                                                                                       │
- Propel agent (ADK, GPT-5 mini) ──MCP──> Kanini Context server: context_applicable_rules, rules_evaluate, policy_search ┘
-                                         (plus the seven tools of spec 7.2, for other agents)
-        │
-        └──MCP──> Propel journey (mock): journey_get, journey_record ──> decisions.jsonl (after staff approval)
+
+- **The outcome always comes from `rules_evaluate`:** SQL over reviewed rules, so the same question gets the same answer.
+- **The model chooses the tools and writes the explanation, but it cannot change the outcome.** Before `journey_record` runs, its fields are replaced with what `rules_evaluate` returned, and the card's Outcome line is set from the same result.
+- **Silence is never "no".** No rule found, a missing fact, an aging source or an unscreened program all route to staff, naming the reason.
+
+---
+
+## The schema: specification v1.5 and what the prototype built
+
+The database is the specification's schema. The release also writes it out as an OWL ontology (`kanini_context/release/kanini-context.ttl`) and an Apache AGE graph, all from the same registry.
+
+```mermaid
+classDiagram
+  direction LR
+  class CoverageItem
+  CoverageItem <|-- Payer
+  CoverageItem <|-- Plan
+  CoverageItem <|-- Program
+  CoverageItem <|-- Jurisdiction
+  class Authority
+  Authority <|-- Lcd
+  Authority <|-- BillingArticle
+  Authority <|-- PayerList
+  Authority <|-- PayerPolicy
+  Authority <|-- Regulation
+  Authority <|-- PaProgram
+  class Rule
+  Rule <|-- ApprovalRequired
+  Rule <|-- Exemption
+  Rule <|-- DocumentationRequirement
+  Rule <|-- Obligation
+  Rule <|-- CoverageCriteria
+  Obligation <|-- DecisionTimeframe
+  Obligation <|-- AppealWindow
+  class TerminologyItem
+  TerminologyItem <|-- Concept
+  TerminologyItem <|-- Code
+  TerminologyItem <|-- ValueSet
+  Plan --> Payer : operatedBy
+  Plan --> Program : offeredUnder
+  Plan --> Jurisdiction : locatedIn
+  Authority --> CoverageItem : binds
+  Authority --> Rule : states
+  Authority --> Snapshot : issuedIn
+  Snapshot --> Source
+  Rule --> TerminologyItem : about
+  Rule --> DataElement : requires
+  Rule --> KnowledgeArtifact : documentedBy
+  Concept --> Code : mapsTo
+  Code --> ValueSet : belongsTo
+  Payer --> Endpoint : exposes
+  Authority --> Authority : supersedes / preempts / defersTo
 ```
 
-The model chooses the tools and writes the explanation. The outcome always comes from `rules_evaluate`, which is SQL over reviewed rules, so the same question gets the same answer. Before `journey_record` runs, its fields are replaced with what `rules_evaluate` returned for that order, so the log can only hold what the rules said.
+<sub>Core of the model. The full ontology has 53 classes, including every program, authority and endpoint kind.</sub>
 
-## Layout
+| | Specification v1.5 | Built in the prototype |
+| :-- | :--: | :--: |
+| Classes | 51 | **53**: adds `CoverageCriteria` (rule kind) and `PaProgram` (authority kind) |
+| Relations | 17 | **17**: as specified |
+| Attributes | 89 | **93**: adds `rule_key`, `review_exception`, `closed_list`, `covers_through` |
+| Rule kinds | 5 | **6**: adds `coverage_criteria`, so medical-necessity criteria are tested, not just PA |
+| Layers and effects (4.1) | ✓ | ✓ unchanged resolver logic |
+| Dates: four bounds and record time (5.1) | ✓ | ✓ every tool takes an "as recorded" moment, so any answer can be replayed |
+| "Not required" (4.6) | from a stated rule | also `stated_by_exhaustion`: only when every program bound to the plan, state and date is a screened closed list |
+| Approval (6.5) | two approvers | one engineer with a recorded exception, as the prototype scope sets it |
+| Tools (7.2) | 7 tools | the 7 tools, plus the scope's 3 (`context_applicable_rules`, `rules_evaluate`, `policy_search`), over MCP |
+| Client copy and freshness (6.6) | signed read-only schema | second database `kc_client`; limits 14 and 45 days per source |
+| Ontology file (6.1) | ✓ | ✓ generated at every build |
+| Regression tests (8) | 61 | ✓ same verdicts |
 
-| Path | What it holds |
-| --- | --- |
-| `kanini_context/sources/` | `manifest.json` (URL, edition, retrieval and check dates, SHA-256 of each copy), `place.py`, and `raw/` for the PDFs (not in git) |
-| `kanini_context/rules/` | One rule file per source: each rule with its page, column, quote, payload and review |
-| `kanini_context/curation/` | `checks.py` (quote on the cited page, numbers and codes in the quote, negation, schema, completeness), `approve.py`, `load.py`, `pdftext.py` |
-| `kanini_context/db/` | `schema.sql`, `registry.sql`, `resolver.sql` (spec resolver), `api.sql` (agent-facing functions), `spec_regression/` |
-| `kanini_context/release/` | `build.py` (build DB, rule digest, client copy with a read-only tool role, Apache AGE graph `ref_YYYY_MM`), `sync.py`, `owl.py` and the generated ontology `kanini-context.ttl` |
-| `kanini_context/server/mcp_server.py` | The Kanini Context MCP server (FastMCP) |
-| `propel/journey/` | Mock patients and orders, the journey MCP server, the decision log |
-| `propel/agent/authorization_agent/` | The ADK agent for `adk web` |
-| `propel/baseline/compare.py` | LLM calls and tokens with and without Kanini Context |
-| `tests/` | The scope's 23 tests by number, pack tests, and a scripted stand-in model for offline agent runs |
-| `docs/` | Scope findings, prototype notes, demo script |
+Section by section, with the reasons: `docs/PROTOTYPE_NOTES.md`. Every schema and resolver change is listed at the top of `kanini_context/db/schema.sql` and `resolver.sql`.
 
-## Run it on a laptop
+---
+
+## What's in the pack
+
+| | |
+| :-- | :-- |
+| **Use case** | Anemia drug (ESA) for chronic kidney disease, not on dialysis; IV iron under UnitedHealthcare (scope findings, section 2) |
+| **Coverage** | Original Medicare in Tennessee (LCD L39237, Article A58982) and Ohio (LCD L34356, Article A56462); UnitedHealthcare Medicare Advantage |
+| **Sources** | 16 saved public documents, each with URL, edition, SHA-256 and dated checks (`kanini_context/sources/manifest.json`) |
+| **Rules** | 19, each with its page, exact quote, conditions and tests, approved by one engineer |
+| **CMS programs** | Every Original Medicare PA program bound to each state is screened against its own code list, including three found during the build (ASC demonstration, DMEPOS probationary, IRF expansion) |
+
+---
+
+## Run it
 
 Needs Docker and Python 3.12 or 3.13.
 
 ```bash
-# 1. Database: PostgreSQL 16 with Apache AGE 1.6.0
-docker compose up -d db
-
-# 2. Python
-python -m venv .venv && source .venv/bin/activate       # Windows: .venv\Scripts\activate
+docker compose up -d db                                     # PostgreSQL 16 + Apache AGE 1.6.0
+python -m venv .venv && .venv\Scripts\activate              # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                                    # then add OPENAI_API_KEY
+cp .env.example .env                                        # add OPENAI_API_KEY
 
-# 3. Source copies: finds the PDFs in a folder by hash and puts them in kanini_context/sources/raw/
-python -m kanini_context.sources.place ~/Downloads
-#    Six CMS copies are not saved yet (program pages printed to PDF, their code lists, the CMS index); save them under
-#    the names `place` prints, then record them:
-python -m kanini_context.sources.place --record ~/Downloads
-python -m kanini_context.curation.checks                # fix any page numbers it reports for the new quotes
+python -m kanini_context.sources.place ~/Downloads          # put the saved source copies in place (matched by hash)
+python -m kanini_context.curation.checks                    # every quote on its cited page
+python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
+python -m kanini_context.release.build                      # release 2026.11.0
+pytest                                                      # 60 tests
 
-# 4. Approve the rule files (once, after checking each rule against its source), then commit them
-python -m kanini_context.curation.approve --by "NANDHU S K"
-git commit -am "Approve rule files"
-
-# 5. Build the pack and the client copy (release 2026.11.0), then the tests (no API key needed)
-python -m kanini_context.release.build
-pytest
-
-# 6. Demo: the Kanini Context server, then the ADK web UI
-python -m kanini_context.server.mcp_server --http 8765 &
-adk web propel/agent                                    # open http://127.0.0.1:8000, pick authorization_agent
+python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
+adk web propel/agent                                        # terminal 2: http://127.0.0.1:8000
+python -m propel.baseline.compare --runs 5                  # the A / B / C comparison
 ```
 
-On the day of the demo, `python -m kanini_context.release.sync` records a sync, so insurer answers are not held as "sync aging" (48 hours). Prompts for the demo are in `docs/DEMO_SCRIPT.md`. Patients: `maria-tn`, `maria-tn-egfr52`, `maria-oh`, `maria-uhc`, `maria-uhc-esa`, `maria-nohgb` (synthetic, in `propel/journey/patients.json`).
+<details>
+<summary><b>Day-to-day commands</b></summary>
 
-## Approval
+| Command | What it does |
+| :-- | :-- |
+| `python -m kanini_context.sources.place --checked SOURCE_ID "note"` | Records today's recheck of a source on its URL (answers are held after 14 days) |
+| `python -m kanini_context.sources.place --record FOLDER` | Records a newly saved source copy (hash, size, date) |
+| `python -m kanini_context.release.sync` | Records a client sync on the demo day |
+| `python -m propel.baseline.compare --offline` | Mode C and A's prompt sizes, with no model calls |
 
-As the scope sets it, one engineer checks each rule against its source, and formal review comes later. `curation/approve.py` shows every rule with its page and quote and records the approval with a standing exception to the spec's two-approver rule; every answer shows that exception. The rule files are drafted and pass the automated checks; they are not approved yet. Until they are, the build refuses them, and `--test-review` (used by the tests) builds a release labelled `TEST-`. Details in `docs/PROTOTYPE_NOTES.md`, section 2.
+</details>
 
-## CMS programs found during the build
+<details>
+<summary><b>Repository layout</b></summary>
 
-Three CMS prior authorization programs bind Original Medicare beyond the fiscal year 2024 statistics the first program list came from: the ASC demonstration (Tennessee and Ohio from early 2026), the DMEPOS probationary process (nationwide from 15 October 2026) and the IRF demonstration expansion (Tennessee from 2027) (scope findings, section 6). They are registered in the pack, but their copies are not saved yet, so until they are recorded and approved, Original Medicare ESA answers in Tennessee, Ohio and every other bound state are "no rule found", naming each unscreened program, and route to staff. That is the design working: "No PA" holds only when every bound program has been screened. `python -m kanini_context.sources.place` lists the six CMS copies to save (three program pages, two code lists, and the CMS index of initiatives, which is the check that the program set is complete). The tests work out from the pack which programs are screened, and expect the matching answer.
+| Path | What it holds |
+| :-- | :-- |
+| `kanini_context/sources/` | Source manifest, `place.py`, `raw/` for the PDFs (not in git) |
+| `kanini_context/rules/` | One rule file per source |
+| `kanini_context/curation/` | `checks.py`, `approve.py`, `load.py`, `pdftext.py` |
+| `kanini_context/db/` | `schema.sql`, `registry.sql`, `resolver.sql`, `api.sql`, `spec_regression/` |
+| `kanini_context/release/` | `build.py`, `sync.py`, `owl.py`, `kanini-context.ttl` |
+| `kanini_context/server/` | The Kanini Context MCP server |
+| `propel/journey/` | Synthetic patients and orders, journey MCP server, decision log |
+| `propel/agent/authorization_agent/` | The ADK agent |
+| `propel/baseline/` | The A / B / C comparison |
+| `tests/` | Scope tests 1 to 23, pack tests, live-model tests, scripted model |
+| `docs/` | Scope findings, prototype notes, demo script |
 
-## Freshness
+</details>
 
-Each source has a last-confirmed date in the manifest. Past 14 days an answer that rests on it is held for staff ("source aging", naming the source); past 45 days it is withheld (proposal appendix B.3). Before the demo, recheck each source on its URL and add a dated entry to its `checks` list. Article A56462 was last confirmed on 2026-10-15, so Ohio answers are held until it is rechecked.
+<details>
+<summary><b>Two answers that differ from the scope's examples, on purpose</b></summary>
 
-## Tests and the scope
+LCD L39237 accepts "Hb < 10 g/dL **or** HCT < 30%", so either result settles it:
 
-`tests/test_scope.py` holds the scope's tests 1 to 23 under their numbers. Tests 2 to 8 and 11 to 19 call the MCP server; test 20 runs the loader; tests 9, 10 and 21 to 23 run the real agent, journey server, approval step and log with a scripted model in place of GPT-5 mini (`tests/scripted_model.py`), which proves the wiring offline. `tests/test_agent_live.py` runs tests 9 and 21 to 23 again with GPT-5 mini when `OPENAI_API_KEY` is set (skipped otherwise).
+- **Test 5, no hemoglobin:** the answer asks for hemoglobin or hematocrit.
+- **Test 17, Hb exactly 10.0:** with a hematocrit of 30% or more the answer is "other gate"; with no hematocrit it is "not yet known".
 
-Field names follow the prototype's tool schemas, as the scope allows. Two answers differ from the scope's examples on purpose, both because L39237 accepts "Hb < 10 g/dL **or** HCT < 30%":
+</details>
 
-- Test 5, no hemoglobin: the answer asks for hemoglobin or hematocrit, since either one settles it.
-- Test 17, Hb exactly 10.0: with a hematocrit of 30% or more the answer is "other gate"; with no hematocrit it is "not yet known", since a hematocrit below 30% would still meet the criterion.
+---
 
-`docs/PROTOTYPE_NOTES.md` sets out how the build follows spec v1.5 section by section, where it differs and why, and the answer contract.
-
-## LLM calls saved
-
-```bash
-python -m propel.baseline.compare --offline      # no key: the workflow path, and how big a "read the policies" prompt is
-python -m propel.baseline.compare --runs 5       # with the key: all three modes
-```
-
-Mode A gives GPT-5 mini the policy text and asks it to decide; mode B is the agent with Kanini Context; mode C calls `rules_evaluate` with no model. Offline, mode C answers each scenario the same way every run in about 30 ms, while mode A would send 21,000 to 57,000 input tokens of policy text to the model for every question.
+<div align="center">
+<sub>Synthetic data only. No patient information is stored or sent to Kanini Context.</sub>
+</div>
