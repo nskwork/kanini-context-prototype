@@ -153,7 +153,7 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .band{margin:0 14px;position:relative;z-index:2}
 .band .panel-head{justify-content:space-between}
 .band h2{font-size:var(--s-lg);white-space:nowrap}
-.trace{display:flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end;min-width:0;overflow:hidden}
+.trace{display:flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end;flex:1;min-width:0;overflow:hidden;padding-left:24px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px);mask-image:linear-gradient(90deg,transparent 0,#000 24px)}
 .trace span{flex:none;white-space:nowrap;padding:3px 9px;border-radius:999px;border:1px solid rgba(34,211,238,.4);color:#a5f3fc;font-size:var(--s-xs);font-weight:600;animation:pop .4s ease-out}
 .trace span.tool{border-color:rgba(167,139,250,.45);color:#ddd6fe}
 @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
@@ -165,7 +165,7 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .lane-run{position:absolute;right:6px;top:50%;transform:translateY(-50%);height:24px;padding:0 10px;border-radius:7px;border:1px solid color-mix(in srgb,var(--lc) 55%,transparent);background:rgba(4,5,12,.7);color:var(--ink2);font-size:var(--s-xs);font-weight:700;cursor:pointer}
 .lane-run:hover{color:var(--ink);border-color:var(--lc)}
 .nums .ok{color:var(--lime)} .nums .bad{color:var(--rose)}
-.btn-race{height:32px;padding:0 14px;margin-right:auto;margin-left:14px;border:1px solid var(--violet);background:rgba(124,58,237,.25);color:#fff;box-shadow:0 0 18px rgba(124,58,237,.45);white-space:nowrap}
+.btn-race{flex:none;height:32px;padding:0 14px;margin-left:14px;border:1px solid var(--violet);background:rgba(124,58,237,.25);color:#fff;box-shadow:0 0 18px rgba(124,58,237,.45);white-space:nowrap}
 .lane .s{font-size:var(--s-xs);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track{position:relative;height:26px;border-radius:9px;background:rgba(148,163,184,.07);overflow:hidden}
 .track canvas{position:absolute;inset:0;width:100%;height:100%}

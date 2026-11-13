@@ -463,6 +463,10 @@
     const t = $("trace"), last = t.lastElementChild;
     if (last && last.textContent === text) return;   // a confirmed call is reported again when it resumes
     const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; if (title) s.title = title; t.appendChild(s);
+    // keep only whole chips: the oldest go when the row is full, the latest stay in view
+    let room = t.clientWidth - 24;
+    const kids = [...t.children].reverse();
+    kids.forEach((k) => { room -= k.offsetWidth + 6; k.style.display = room < 0 ? "none" : ""; });
   }
   function setBusy() {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
     const b = lanes.B?.st;
