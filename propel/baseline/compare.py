@@ -19,8 +19,10 @@ What "matches the rules" means in each lane:
     python -m propel.baseline.compare --offline          # C only, plus the size of A's prompts (no API key needed)
     python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY and the Kanini server)
 
-Mode A is given the documents the pack binds to the coverage, place, code and date, which favours it: a real
-deployment would also have to find them. Sources with licensed text are cut to the pages the rules cite.
+Mode A uses no part of Kanini Context. It answers from the whole policy library (every saved document) in one of
+two ways, each reported as its own line: "rag" ranks the library's passages against the order and sends the best
+16 (what most LLM applications do), and "whole" sends every document whole (long-context reading). The dashboard
+shows the RAG version. See propel/baseline/library.py.
 """
 from __future__ import annotations
 
@@ -47,11 +49,15 @@ MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/source
 OUT = ROOT / "propel/baseline/results"
 MODEL = os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini")
 SCENARIOS = [(str(i), pid) for i, pid in enumerate(PATIENTS, 1)]   # every patient in the journey data
+# What any application knows about its own plans and states; the pack is not consulted.
+PLAN_NAMES = {"original-medicare": "Original Medicare (Part B)", "uhc-ma": "UnitedHealthcare Medicare Advantage"}
+STATE_NAMES = {"TN": "Tennessee", "OH": "Ohio", "CA": "California", "TX": "Texas"}
+A_MODES = {"rag": "A: AI + RAG over the library", "whole": "A': AI reads the whole library"}
 A_EFFORT = ""   # --a-effort: run A at another reasoning effort, to check A is not held back by the low setting
 OUTCOMES = ["pa_required", "no_pa", "exempt", "other_gate", "needs_facts", "unknown"]
 
 PROMPT = """You decide whether an order needs prior authorization, using only the policy documents below.
-Coverage: {plan} ({state}). Order: HCPCS {code}, {desc}, date of service {dos}, {enc}, {urg} request.
+Coverage: {plan}, member in {state}. Order: HCPCS {code}, {desc}, date of service {dos}, {enc}, {urg} request.
 Patient facts: {facts}
 
 Answer with JSON only: {{"outcome": one of {outcomes}, "safe_to_act": true or false,
@@ -70,49 +76,30 @@ def order(pid: str) -> tuple[dict, dict, dict]:
     return p, o, f
 
 
-def docs_for(plan: str, state: str, code: str, dos: str) -> dict[str, list[int] | None]:
-    """The documents mode A reads: every source behind a rule the pack binds to this coverage, place, code and
-    date (the same documents Kanini Context answers from). A source with licensed text (license_note in the
-    manifest) is cut to the pages its rules cite; the others are given whole."""
-    with psycopg.connect(f"dbname={env.CLIENT_DB}") as c:
-        refs = [r["rule_ref"].split("@")[0] for r in
-                (c.execute("SELECT kc_api.applicable_rules(%s,%s,%s,%s::date)", (plan, state, "HCPCS|" + code, dos)).fetchone()[0]
-                 .get("rules") or [])]
-        rows = c.execute("""SELECT sn.source_id, r.source_locator FROM kc_core.rule r JOIN kc_core.snapshot sn ON sn.snapshot_id = r.snapshot_id
-                             WHERE r.rule_key = ANY (%s) AND upper_inf(r.recorded)""", (refs,)).fetchall()
-    docs: dict[str, list[int] | None] = {}
-    for sid, loc in rows:
-        if "license_note" not in MANIFEST[sid]:
-            docs[sid] = None
-            continue
-        cited = [loc["page"]] + [loc[k]["page"] for k in ("continued", "row_statement", "code_cell") if k in loc]
-        docs[sid] = sorted(set((docs.get(sid) or []) + cited))
-    return docs
+def a_documents(pid: str, mode: str) -> tuple[str, dict]:
+    """The document text A reads for this order, and what was sent: no rule, binding or citation from the pack."""
+    from propel.baseline import library
+    if mode == "whole":
+        return library.whole_text(), {"documents": [d["title"] for d in library.documents()]}
+    found, method = library.retrieve(rag_query(pid))
+    return library.rag_text(found), {"method": method,
+                                     "passages": [{"title": p["title"], "page": p["page"]} for p in found]}
 
 
-def docs_text(docs: dict[str, list[int] | None]) -> str:
-    out = []
-    for sid, pg in sorted(docs.items()):
-        txt = pages(MANIFEST[sid]["file"])
-        sel = [txt[i - 1] for i in pg] if pg else txt
-        out.append(f"=== {MANIFEST[sid]['title']} ({MANIFEST[sid]['edition']})\n" + "\n".join(sel))
-    return "\n\n".join(out)
-
-
-def full_docs_tokens(pid: str) -> int:
-    """Tokens of A's documents given whole (no page cuts), for the note under the table."""
-    import litellm
+def rag_query(pid: str) -> str:
     p, o, _ = order(pid)
-    docs = docs_for(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
-    return litellm.token_counter(model=MODEL.split("/")[-1], text=docs_text({k: None for k in docs}))
+    return (f"Does this order need prior authorization? {PLAN_NAMES.get(p['coverage']['plan'], p['coverage']['plan'])}, "
+            f"{STATE_NAMES.get(p['coverage']['state'], p['coverage']['state'])}. HCPCS {o['code']} {o['description']}, "
+            f"date of service {o['date_of_service']}. Patient: {json.dumps(p['facts'])}")
 
 
-def prompt_for(pid: str) -> str:
+def prompt_for(pid: str, mode: str = "rag") -> tuple[str, dict]:
     p, o, f = order(pid)
-    docs = docs_for(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
-    return PROMPT.format(plan=p["coverage"]["plan"], state=p["coverage"]["state"], code=o["code"], desc=o["description"],
-                         dos=o["date_of_service"], enc=o["encounter_type"], urg=o["urgency"], facts=json.dumps(p["facts"]),
-                         outcomes=OUTCOMES, docs=docs_text(docs))
+    text, sent = a_documents(pid, mode)
+    return PROMPT.format(plan=PLAN_NAMES.get(p["coverage"]["plan"], p["coverage"]["plan"]),
+                         state=STATE_NAMES.get(p["coverage"]["state"], p["coverage"]["state"]), code=o["code"],
+                         desc=o["description"], dos=o["date_of_service"], enc=o["encounter_type"], urg=o["urgency"],
+                         facts=json.dumps(p["facts"]), outcomes=OUTCOMES, docs=text), sent
 
 
 # --- C: workflow with Kanini Context, no LLM ----------------------------------------------------------------------
@@ -130,11 +117,12 @@ def run_c(pid: str) -> dict:
 
 # --- A: the LLM reads the policies --------------------------------------------------------------------------------
 
-def run_a(pid: str) -> dict:
+def run_a(pid: str, mode: str = "rag") -> dict:
     import litellm
-    t = time.perf_counter()
+    t = time.perf_counter()   # includes ranking the passages (one embedding call for the question) in RAG mode
     effort = (A_EFFORT or os.environ.get("PROPEL_REASONING_EFFORT", "low")).strip()
-    resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt_for(pid)}],
+    prompt, _ = prompt_for(pid, mode)
+    resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt}],
                               response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
     ms = (time.perf_counter() - t) * 1000
     try:
@@ -241,11 +229,13 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--a-effort", default="", help="reasoning effort for A only (e.g. medium); default: same as B")
+    ap.add_argument("--a-docs", default="rag,whole", help="how A gets its documents: rag, whole, or both (default)")
     ap.add_argument("--only", choices=["A", "B"], help="run one of the model lanes only (C always runs: it is the key)")
     ap.add_argument("--offline", action="store_true", help="mode C and A's prompt sizes only; no LLM calls")
     args = ap.parse_args(argv)
     global A_EFFORT
     A_EFFORT = args.a_effort
+    a_modes = [m for m in args.a_docs.split(",") if m in A_MODES]
     if not args.offline and not _server_up():
         print(f"Kanini Context server not reachable at {os.environ.get('KC_MCP_URL')}; mode B needs it.\n"
               "Start it in another terminal first:  python -m kanini_context.server.mcp_server --http 8765")
@@ -255,23 +245,28 @@ def main(argv: list[str]) -> int:
 
     effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip() or "provider default"
     report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL,
-              "reasoning_effort": effort, "a_reasoning_effort": args.a_effort or effort, "scenarios": {}}
+              "reasoning_effort": effort, "a_reasoning_effort": args.a_effort or effort, "a_docs": a_modes, "scenarios": {}}
     for sc, pid in SCENARIOS:
         c_runs = [run_c(pid) for _ in range(args.runs)]
         ref = c_runs[0]["outcome"]
-        entry = {"patient": pid, "reference_outcome": ref, "rule": c_runs[0]["rule"], "C": summarise(c_runs, ref),
-                 "A_prompt_tokens": litellm.token_counter(model=MODEL.split("/")[-1], text=prompt_for(pid)),
-                 "A_full_docs_tokens": full_docs_tokens(pid)}
+        entry = {"patient": pid, "reference_outcome": ref, "rule": c_runs[0]["rule"], "C": summarise(c_runs, ref)}
+        for m in a_modes:
+            prompt, sent = prompt_for(pid, m)
+            entry[f"A_{m}_prompt_tokens"] = litellm.token_counter(model=MODEL.split("/")[-1], text=prompt)
+            entry[f"A_{m}_sent"] = sent
         if not args.offline:
             if args.only != "B":
-                entry["A"] = summarise([run_a(pid) for _ in range(args.runs)], ref)
+                for m in a_modes:
+                    entry[f"A_{m}"] = summarise([run_a(pid, m) for _ in range(args.runs)], ref)
             if args.only != "A":
                 b_runs = [run_b(pid) for _ in range(args.runs)]
                 entry["B"] = summarise(b_runs, ref)
                 entry["B_card_lines"] = [r["card_lines"] for r in b_runs]   # what the model wrote, for checking
         report["scenarios"][sc] = entry
-        print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt {entry['A_prompt_tokens']:>7,} tokens"
-              + (f" | A {entry['A']['matches_rules']}/{args.runs} match, {dict(entry['A']['outcomes'])}" if "A" in entry else "")
+        print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt "
+              + ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes) + " tokens"
+              + "".join(f" | A {m} {entry[f'A_{m}']['matches_rules']}/{args.runs} match, {dict(entry[f'A_{m}']['outcomes'])}"
+                        for m in a_modes if f"A_{m}" in entry)
               + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, own card right"
                  f" {entry['B']['card_right_by_model']} of {entry['B']['card_written']} written, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else ""))
 
@@ -281,12 +276,15 @@ def main(argv: list[str]) -> int:
     lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, reasoning effort {effort}{a_eff}, {args.runs} runs per scenario)", "",
              "C is the answer key: the engineer-approved rules applied by plain code. A is graded against it. "
              "B states the rules' answer by design, so its check is whether the agent called the rules correctly.", "",
-             "| Scenario | Rules say (answer key) | A: AI reads the documents | B: AI agent + Kanini Context | C: no AI, rules applied directly |",
-             "| --- | --- | --- | --- | --- |"]
+             "A uses no part of Kanini Context: it answers from the whole policy library. "
+             + "; ".join(f"{A_MODES[m]}" for m in a_modes) + ".", "",
+             "| Scenario | Rules say (answer key) | " + " | ".join(A_MODES[m] for m in a_modes)
+             + " | B: AI agent + Kanini Context | C: no AI, rules applied directly |",
+             "| --- | --- | " + "--- | " * len(a_modes) + "--- | --- |"]
     for sc, e in report["scenarios"].items():
         def cell(m):
             if m not in e:
-                return f"{e['A_prompt_tokens']:,} input tokens per call (not run)" if m == "A" else "not run"
+                return f"{e[m + '_prompt_tokens']:,} input tokens per call (not run)" if m.startswith("A_") else "not run"
             s = e[m]
             cost = f"{s['llm_calls']:.1f} LLM calls; {s['tokens_in']:,.0f} in / {s['tokens_out']:,.0f} out tokens; {s['seconds']:.2f} s"
             if m == "C":
@@ -296,15 +294,20 @@ def main(argv: list[str]) -> int:
                         if s["card_written"] else "no card before approval (written after staff approve)")
                 return (f"{s['matches_rules']}/{s['runs']} used the rules' answer; {card}; "
                         f"{cost} (+{s['setup_seconds']:.2f} s one-off connection, not counted)")
-            return (f"{s['matches_rules']}/{s['runs']} match the key; {cost} (only the pages the pack picked; "
-                    f"the whole documents are {e['A_full_docs_tokens']:,} tokens)")
-        lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | {cell('A')} | {cell('B')} | {cell('C')} |")
-    if any("A" in e for e in report["scenarios"].values()):
-        lines += ["", "A's answers per scenario: " + "; ".join(f"{sc} {e['A']['outcomes']}" for sc, e in report["scenarios"].items())]
+            return f"{s['matches_rules']}/{s['runs']} match the key; {cost}"
+        lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | "
+                     + " | ".join(cell(f"A_{m}") for m in a_modes) + f" | {cell('B')} | {cell('C')} |")
+    for m in a_modes:
+        if any(f"A_{m}" in e for e in report["scenarios"].values()):
+            lines += ["", f"{A_MODES[m]}, answers per scenario: "
+                      + "; ".join(f"{sc} {dict(e[f'A_{m}']['outcomes'])}" for sc, e in report["scenarios"].items())]
     lines += ["", "Notes:",
-              "- A reads only the documents the pack binds to the order, with licensed billing articles cut to the cited pages. "
-              "Given whole, the same documents are " + ", ".join(f"{e['A_full_docs_tokens']:,}" for e in report["scenarios"].values())
-              + " tokens per scenario. Without the pack, A would also have to find them among every payer's documents.",
+              "- A's library is every saved document (" + str(len(__import__("propel.baseline.library", fromlist=["x"]).documents()))
+              + " documents). RAG ranks its passages (about 600 tokens each) against the order and sends the best "
+              + str(__import__("propel.baseline.library", fromlist=["x"]).TOP_K) + "; ranking: "
+              + ", ".join(sorted({e[f"A_rag_sent"]["method"] for e in report["scenarios"].values() if "A_rag_sent" in e}) or {"not run"})
+              + ". The passages sent for each order are listed in the JSON report. A' sends every document whole.",
+              "- A's time includes ranking the passages; building the passage index is one-off and not counted.",
               "- B counts the model calls up to the decision card and the staff confirmation prompt; the staff click is not counted. "
               "B's first call looks up the patient record, which A is handed in its prompt.",
               "- \"Model's own card\": the Outcome line the model wrote, before the guard sets it from the rules, names the rules' "

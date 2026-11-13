@@ -20,6 +20,8 @@ Prepared by NANDHU S K
 
 ## Latest results · 12 Nov 2026
 
+> **Lane A is changing (13 Nov).** A now uses no part of Kanini Context: it answers from the whole policy library, either by RAG (the best 16 passages for the order, about 9,000 tokens) or by reading every document whole (about 139,000 tokens with the 10 base documents). The numbers below are from the earlier set-up, where A was given the pages Kanini Context picked; the run with the new A replaces them.
+
 Six synthetic orders, five runs each, GPT-5 mini. B at reasoning effort low; A at low, then again at medium. Reports: `propel/baseline/results/compare-20261112-2210.md` (A low), `compare-20261112-2238.md` (A medium) and `compare-20261112-2256.md` (B again, with the model's own card).
 
 > **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A is the AI deciding on its own and is graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.

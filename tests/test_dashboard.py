@@ -57,6 +57,7 @@ def test_documents_run_marks_the_ai_answer_against_the_rules(client, monkeypatch
         return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)],
                                      usage=types.SimpleNamespace(prompt_tokens=31000, completion_tokens=400))
     monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("PROPEL_RAG", "bm25")   # rank passages without the embeddings call
     monkeypatch.setattr(litellm, "acompletion", fake)
     rid = client.post("/api/run", json={"patient": "maria-uhc-esa", "mode": "documents"}).json()["run"]
     events = []
@@ -66,6 +67,8 @@ def test_documents_run_marks_the_ai_answer_against_the_rules(client, monkeypatch
                 events.append(json.loads(line[5:]))
     kinds = [e["kind"] for e in events]
     assert kinds[:2] == ["start", "doc_start"] and kinds[-1] == "done", events
-    assert next(e for e in events if e["kind"] == "doc_start")["prompt_tokens"] > 1000
+    start = next(e for e in events if e["kind"] == "doc_start")
+    assert start["prompt_tokens"] > 1000 and start["whole_tokens"] > start["prompt_tokens"]
+    assert start["method"] == "BM25 keyword ranking" and len(start["documents"]) == 16   # RAG over the whole library
     ref = next(e for e in events if e["kind"] == "reference")
     assert ref["outcome"] == "unknown" and ref["matches"] is False   # the AI said PA required; the rules say route to staff

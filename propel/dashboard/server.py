@@ -156,7 +156,14 @@ def compare():
     files = sorted(RESULTS.glob("compare-*.json")) if RESULTS.exists() else []
     if not files:
         return {}
-    return {"file": files[-1].name, **json.loads(files[-1].read_text())}
+    rep = json.loads(files[-1].read_text())
+    for e in rep.get("scenarios", {}).values():
+        # lane A is RAG over the whole library; a report from before that change gave A the pack's pages, so its
+        # A numbers are not shown against the RAG lane
+        e.pop("A", None)
+        if "A_rag" in e:
+            e["A"] = e["A_rag"]
+    return {"file": files[-1].name, **rep}
 
 
 @app.get("/api/log")
@@ -238,7 +245,8 @@ async def run_workflow(run: Run):
 
 
 async def run_documents(run: Run):
-    """Mode A, live: the order's policy documents and facts go to the model in one prompt, as in
+    """Mode A, live: a plain LLM application with no Kanini Context. The order's best-matching passages from the whole
+    policy library (RAG, propel/baseline/library.py) and the patient facts go to the model in one prompt, as in
     propel/baseline/compare.py, and its answer is compared with the rules' answer for the same order."""
     import litellm
     from propel.baseline import compare as cmp
@@ -248,11 +256,10 @@ async def run_documents(run: Run):
             await run.emit("unavailable", message="needs OPENAI_API_KEY in .env: the AI is not called")
             await run.emit("done", llm_calls=0, tokens_in=0, tokens_out=0)
             return
-        prompt = await asyncio.to_thread(cmp.prompt_for, run.patient)
-        docs = await asyncio.to_thread(cmp.docs_for, p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
+        prompt, sent = await asyncio.to_thread(cmp.prompt_for, run.patient, "rag")
         n = litellm.token_counter(model=cmp.MODEL.split("/")[-1], text=prompt)
-        whole = await asyncio.to_thread(cmp.full_docs_tokens, run.patient)   # the same documents, read whole
-        await run.emit("doc_start", prompt_tokens=n, whole_tokens=whole, documents=[cmp.MANIFEST[s]["title"] for s in docs])
+        await run.emit("doc_start", prompt_tokens=n, whole_tokens=await asyncio.to_thread(library_tokens),
+                       method=sent["method"], documents=[f"{x['title']}, p. {x['page']}" for x in sent["passages"]])
         effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
         resp = await litellm.acompletion(model=cmp.MODEL, messages=[{"role": "user", "content": prompt}],
                                          response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
@@ -381,10 +388,25 @@ async def shared_agent():
     return AGENT["agent"]
 
 
+_LIB_TOKENS: list[int] = []
+
+
+def library_tokens() -> int:
+    """Tokens of the whole policy library, read whole (counted once)."""
+    if not _LIB_TOKENS:
+        import litellm
+        from propel.baseline import compare as cmp, library
+        _LIB_TOKENS.append(litellm.token_counter(model=cmp.MODEL.split("/")[-1], text=library.whole_text()))
+    return _LIB_TOKENS[0]
+
+
 @app.on_event("startup")
 async def _warm():
     if not SCRIPTED and os.environ.get("OPENAI_API_KEY"):
         await shared_agent()
+        from propel.baseline import library   # embed the library once, so lane A's first run does not wait for it
+        await asyncio.to_thread(library.retrieve, "prior authorization")
+        await asyncio.to_thread(library_tokens)
 
 
 @app.on_event("shutdown")

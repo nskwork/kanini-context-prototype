@@ -375,7 +375,7 @@
   /* ---------------------------------------------------------------- the race: every lane fills only from a run made here */
   // The third number differs by lane on purpose: C is the approved rules applied by plain code, so it is the answer key
   // (it cannot be "wrong"); A is graded against it; B states the rules' answer by design, so its check is that it used it.
-  const LANES = { A: ["documents", "AI reads the policy documents", "#fb7185", "Matches the key"],
+  const LANES = { A: ["documents", "AI searches the policy library (RAG)", "#fb7185", "Matches the key"],
     B: ["agent", "AI agent asks Kanini Context", "#22d3ee", "Used the rules"],
     C: ["workflow", "No AI: the approved rules, applied directly", "#a3e635", "Answer key"] };
   const MODE_LANE = { documents: "A", agent: "B", workflow: "C" };
@@ -415,7 +415,7 @@
         : ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       return `<div class="ans" style="--lc:${LANES[L][2]}"><b>${L}</b><span class="nm">${name}</span><span class="av">${esc(label)}</span>${mark}</div>`;
     };
-    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "AI read the documents") + row("B", "AI agent + Kanini Context") + row("C", "No AI (answer key)")
+    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "AI + RAG, no Kanini Context") + row("B", "AI agent + Kanini Context") + row("C", "No AI (answer key)")
       + `<div class="ans-note">C is the approved rules applied directly: the answer key. A is checked against it; B can only state the rules' answer.</div>`;
   }
   function laneNumbers() {
@@ -428,9 +428,10 @@
     // A: the policy documents go to the AI, now
     const a = lanes.A.st;
     $("sA").textContent = a.note || (a.done ? `AI: ${OUTCOME[a.answer]?.[0] || a.answer} · rules: ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
-      + (a.whole ? ` · whole docs: ${fmt(a.whole)} tokens` : "")
-      : a.active ? `Sending ${fmt(a.prompt)} tokens: only the pages Kanini Context picked${a.whole ? ` (whole documents: ${fmt(a.whole)})` : ""}…` : `Policy pages sent to the AI with the order · ${last("A") || "press Run A"}`);
-    $("sA").title = a.whole ? `A was sent only the pages Kanini Context picked for this order (${fmt(a.prompt)} tokens). Read whole, the same documents are ${fmt(a.whole)} tokens, and without the pack A would also have to find them.` : "";
+      + (a.whole ? ` · library: ${fmt(a.whole)} tokens` : "")
+      : a.active ? `Sending the ${a.docs ? a.docs.length : ""} best-matching passages from the library (${fmt(a.prompt)} tokens)…`
+      : `No Kanini Context: best passages from the whole library go to the AI · ${last("A") || "press Run A"}`);
+    $("sA").title = a.whole ? `A uses no part of Kanini Context. It ranked every passage of the policy library (${fmt(a.whole)} tokens read whole) against this order by ${a.method || "similarity"} and sent the best ${a.docs ? a.docs.length : ""} (${fmt(a.prompt)} tokens):\n` + (a.docs || []).join("\n") : "";
     const ran = (a.active || a.done) && !a.skipped;
     $("nA1").innerHTML = ran && (a.tin || a.prompt) ? fmt(a.tin || a.prompt) : "–";
     $("nA2").innerHTML = ran ? `1 · ${secs(a)}<small> s</small>` : "–";
@@ -519,7 +520,7 @@
   function onEvent(L, e) {
     const st = lanes[L].st;
     if (e.kind === "doc_start") {
-      st.prompt = e.prompt_tokens; st.whole = e.whole_tokens;
+      st.prompt = e.prompt_tokens; st.whole = e.whole_tokens; st.docs = e.documents; st.method = e.method;
     } else if (e.kind === "model") {
       // B's numbers stop at the decision card: the model's reply after staff approve is not part of answering
       if (!(L === "B" && st.confirmed)) { st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out; }

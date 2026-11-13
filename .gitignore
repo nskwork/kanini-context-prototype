@@ -21,3 +21,4 @@ propel/baseline/results/
 
 # adk web session store (chat history)
 .adk/
+propel/baseline/cache/

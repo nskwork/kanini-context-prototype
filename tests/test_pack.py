@@ -353,3 +353,14 @@ def test_record_request_without_a_card_gets_one_from_the_rules():
     text, call = resp.content.parts[0].text, resp.content.parts[1].function_call
     assert "Outcome: No PA · safe to act" in text and "Why: eGFR 38 < 45" in text and "LCD L39237, p. 7" in text
     assert call.name == "journey_record"
+
+
+def test_lane_a_reads_the_library_without_the_pack(monkeypatch):
+    # The plain-LLM baseline: RAG over every saved document, or all of them whole; nothing taken from the pack.
+    monkeypatch.setenv("PROPEL_RAG", "bm25")
+    from propel.baseline import compare, library
+    prompt, sent = compare.prompt_for("maria-uhc-esa", "rag")
+    assert sent["method"] == "BM25 keyword ranking" and len(sent["passages"]) == library.TOP_K
+    assert "kc:rule" not in prompt and "rule_ref" not in prompt
+    whole, sent_whole = compare.prompt_for("maria-uhc-esa", "whole")
+    assert len(sent_whole["documents"]) == len(library.documents()) and len(whole) > 5 * len(prompt)
