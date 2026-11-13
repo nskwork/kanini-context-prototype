@@ -12,7 +12,8 @@ pytest.importorskip("fastapi")
 def client(release):
     from fastapi.testclient import TestClient
     from propel.dashboard import server
-    return TestClient(server.app)
+    with TestClient(server.app) as c:   # one event loop for the module, as under uvicorn, so background runs finish
+        yield c
 
 
 def test_graph_is_the_release_graph(client, db):
@@ -43,3 +44,28 @@ def test_workflow_run_streams_the_answer(client):
     assert kinds[0] == "start" and kinds[-1] == "done"
     res = next(e for e in events if e["kind"] == "tool_result")
     assert res["payload"]["outcome"] == "pa_required" and events[-1]["llm_calls"] == 0
+
+
+def test_documents_run_marks_the_ai_answer_against_the_rules(client, monkeypatch):
+    # Mode A with the model call replaced: the page gets the prompt size, the AI's answer, and whether it matches the rules.
+    import types
+    import litellm
+
+    async def fake(**kw):
+        assert "DOCUMENTS" in kw["messages"][0]["content"]   # the policy pages went into the prompt
+        msg = types.SimpleNamespace(content='{"outcome": "pa_required", "reasons": ["listed"], "citation": "UHC list"}')
+        return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)],
+                                     usage=types.SimpleNamespace(prompt_tokens=31000, completion_tokens=400))
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setattr(litellm, "acompletion", fake)
+    rid = client.post("/api/run", json={"patient": "maria-uhc-esa", "mode": "documents"}).json()["run"]
+    events = []
+    with client.stream("GET", f"/api/run/{rid}/events") as s:
+        for line in s.iter_lines():
+            if line.startswith("data:"):
+                events.append(json.loads(line[5:]))
+    kinds = [e["kind"] for e in events]
+    assert kinds[:2] == ["start", "doc_start"] and kinds[-1] == "done", events
+    assert next(e for e in events if e["kind"] == "doc_start")["prompt_tokens"] > 1000
+    ref = next(e for e in events if e["kind"] == "reference")
+    assert ref["outcome"] == "unknown" and ref["matches"] is False   # the AI said PA required; the rules say route to staff

@@ -339,7 +339,7 @@
     c.className = "panel card live"; c.style.setProperty("--oc", color);
     const prim = p.primary_rule || {};
     const src = (p.sources || []).find((s) => s.citation === prim.citation) || (p.sources || [])[0];
-    const quote = S.live.quote || (src && { quote: src.quote, citation: src.citation, page: src.page });
+    const quote = S.quote || (src && { quote: src.quote, citation: src.citation, page: src.page });
     const clock = p.decision_clock ? (p.decision_clock.text || "") : "";
     const ch = ((p.route || {}).channels || []).map((c) => `${c.interface}: ${String(c.address || "").replace(/^tel:/, "")}`);
     const route = p.route ? [p.route.submit_via, ch.join(" · ")].filter(Boolean).join("<br>") : "";
@@ -348,7 +348,7 @@
     c.innerHTML = `<div class="panel-head"><span class="eyebrow">Decision card · ${esc(S.order?.order_id || "")}</span></div><div class="panel-body">
       <div class="verdict">${esc(label)}</div>
       <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map(why).join("; ")) : ""}</div>
-      <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
+      ${lanes.B && (lanes.B.st.active || lanes.B.st.run) && !lanes.B.st.done ? '<div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>' : ""}
       <div class="k first">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
       ${clock ? `<div class="k">Deadline</div><div class="v">${esc(clock)}</div>` : ""}
@@ -359,8 +359,7 @@
       ${notChecked.length ? `<div class="k">Not checked here, confirm</div><div class="v">${notChecked.slice(0, 2).map(esc).join("<br>")}</div>` : ""}
       <div class="k">Pack</div><div class="v">Release <span class="code">${esc(p.pack_release)}</span> · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
       <div class="agent-text hidden" id="agent-text"></div></div>`;
-    $("ok").onclick = () => confirm(true);
-    $("nok").onclick = () => confirm(false);
+    if ($("ok")) { $("ok").onclick = () => confirm(true); $("nok").onclick = () => confirm(false); }
     const o = $("outcome");
     o.classList.remove("hidden"); o.style.setProperty("--oc", color);
     $("o-label").textContent = label;
@@ -368,47 +367,59 @@
     $("o-sub").textContent = (p.safe_to_act ? "Safe to act" : "Not safe to act") + (sub ? " · " + sub : "");
   }
 
-  /* ---------------------------------------------------------------- the race: A from the report, B and C live */
+  /* ---------------------------------------------------------------- the race: every lane fills only from a run made here */
+  const LANES = { A: ["documents", "AI reads the policy documents", "#fb7185"], B: ["agent", "AI agent asks Kanini Context", "#22d3ee"],
+    C: ["workflow", "No AI: direct lookup in Kanini Context", "#a3e635"] };
+  const MODE_LANE = { documents: "A", agent: "B", workflow: "C" };
   const lanes = {};
+  const blank = () => ({ run: null, es: null, active: false, done: false, t0: 0, ms: null, tin: 0, tout: 0, turns: 0, prompt: 0,
+    answer: null, ref: null, ok: null, callMs: null, note: "" });
   function scenarioFor(pid) {
-    const sc = (S.compare.scenarios || {});
-    return Object.values(sc).find((e) => e.patient === pid) || null;
+    return Object.values(S.compare.scenarios || {}).find((e) => e.patient === pid) || null;
   }
   function buildLanes() {
     const box = $("lanes"); box.innerHTML = "";
-    [["A", "AI reads the policy documents", "#fb7185"], ["B", "AI agent asks Kanini Context", "#22d3ee"], ["C", "No AI: direct lookup in Kanini Context", "#a3e635"]].forEach(([L, title, color]) => {
+    Object.entries(LANES).forEach(([L, [mode, title, color]]) => {
       const el = document.createElement("div");
       el.className = "lane"; el.style.setProperty("--lc", color);
-      el.innerHTML = `<span class="L">${L}</span><div><div class="t">${title}</div><div class="s" id="s${L}"></div></div>
-        <div class="track"><canvas id="c${L}"></canvas></div>
+      el.innerHTML = `<span class="L">${L}</span><div class="lt"><div class="t">${title}</div><div class="s" id="s${L}"></div></div>
+        <div class="track"><canvas id="c${L}"></canvas><button type="button" class="lane-run" id="r${L}">Run ${L}</button></div>
         <div class="nums"><div><div class="h">Tokens sent to AI</div><div class="n" id="n${L}1">–</div></div>
         <div><div class="h">AI calls · time</div><div class="n" id="n${L}2">–</div></div><div><div class="h">Correct</div><div class="n" id="n${L}3">–</div></div></div>`;
       box.appendChild(el);
-      lanes[L] = { color, canvas: el.querySelector("canvas"), parts: [], target: 0, flash: 0 };
+      lanes[L] = { color, canvas: el.querySelector("canvas"), parts: [], target: 0, flash: 0, st: blank() };
+      el.querySelector(".lane-run").onclick = () => race([L]);
     });
     laneNumbers();
   }
   function laneNumbers() {
-    const e = S.order && scenarioFor(S.order.patient), when = S.compare.at ? new Date(S.compare.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null;
-    const A = e?.A, B = e?.B, C = e?.C, live = S.live;
-    $("sA").textContent = A ? `Policy pages sent to the AI on every order · ${when}` : "Run propel/baseline/compare.py for these numbers";
-    $("nA1").innerHTML = A ? fmt(A.tokens_in) : e ? fmt(e.A_prompt_tokens) + "<small> prompt</small>" : "–";
-    $("nA2").innerHTML = A ? `1 · ${A.seconds.toFixed(1)}<small> s</small>` : "1";
-    $("nA3").innerHTML = A ? `${A.matches_rules}/${A.runs}` : "–";
-    lanes.A.target = A && S.run ? A.tokens_in / 900 : 0;
-    const bl = live.mode === "agent";
-    $("sB").textContent = bl ? (live.done ? "This run: short answers from checked rules" : "Running now…") : B ? `The AI gets short answers from checked rules · ${when}` : "Press Ask the AI agent";
-    const scripted = bl && S.scripted && !live.tin;
-    if (scripted) $("sB").textContent = "Rehearsal: scripted stand-in, no AI";
-    $("nB1").innerHTML = scripted ? "–" : bl ? fmt(live.tin) : B ? fmt(B.tokens_in) : "–";
-    $("nB2").innerHTML = bl ? `${live.turns} · ${((live.ms ?? (performance.now() - live.t0)) / 1000).toFixed(1)}<small> s</small>` : B ? `${B.llm_calls.toFixed(1)} · ${B.seconds.toFixed(1)}<small> s</small>` : "–";
-    $("nB3").innerHTML = B ? `${B.matches_rules}/${B.runs}` : "–";
-    lanes.B.target = bl ? live.tin / 900 : 0;
-    const cl = live.mode === "workflow";
-    $("sC").textContent = cl ? "This run: plain code, no AI" : C ? `Plain code looks up the answer · ${when}` : "Press Look up without AI";
-    $("nC1").innerHTML = "0";
-    $("nC2").innerHTML = cl && live.callMs != null ? `0 · ${live.callMs}<small> ms</small>` : C ? `0 · ${(C.seconds * 1000).toFixed(0)}<small> ms</small>` : "0";
-    $("nC3").innerHTML = C ? `${C.matches_rules}/${C.runs}` : "–";
+    const e = S.order && scenarioFor(S.order.patient);
+    const last = (m) => (e && e[m] ? `last comparison: ${fmt(e[m].tokens_in)} tokens, ${e[m].matches_rules}/${e[m].runs} correct` : "");
+    const secs = (st) => (((st.ms ?? (performance.now() - st.t0)) / 1000).toFixed(1));
+    const tick = (b) => (b == null ? "–" : b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>');
+    // A: the policy documents go to the AI, now
+    const a = lanes.A.st;
+    $("sA").textContent = a.note || (a.done ? `AI answered ${OUTCOME[a.answer]?.[0] || a.answer}; the rules say ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
+      : a.active ? `Sending ${fmt(a.prompt)} tokens of policy pages to the AI…` : `Policy pages sent to the AI with the order · ${last("A") || "press Run A"}`);
+    const ran = (a.active || a.done) && !a.skipped;
+    $("nA1").innerHTML = ran && (a.tin || a.prompt) ? fmt(a.tin || a.prompt) : "–";
+    $("nA2").innerHTML = ran ? `1 · ${secs(a)}<small> s</small>` : "–";
+    $("nA3").innerHTML = a.done ? tick(a.ok) : "–";
+    lanes.A.target = ran ? (a.tin || a.prompt) / 900 : 0;
+    // B: the agent, counted from its own model calls
+    const b = lanes.B.st, scripted = S.scripted && (b.active || b.done) && !b.tin;
+    $("sB").textContent = scripted ? "Rehearsal: scripted stand-in, no AI and no tokens"
+      : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : `The AI gets short answers from checked rules · ${last("B") || "press Run B"}`;
+    $("nB1").innerHTML = scripted ? "–" : b.active || b.done ? fmt(b.tin) : "–";
+    $("nB2").innerHTML = b.active || b.done ? `${b.turns} · ${secs(b)}<small> s</small>` : "–";
+    $("nB3").innerHTML = b.ok == null ? "–" : tick(b.ok);
+    lanes.B.target = b.active || b.done ? b.tin / 900 : 0;
+    // C: plain code, timed
+    const c = lanes.C.st;
+    $("sC").textContent = c.done ? "This run: plain code, no AI" : c.active ? "Looking up…" : `Plain code looks up the answer · ${last("C") ? "last comparison: 0 tokens" : "press Run C"}`;
+    $("nC1").innerHTML = c.done ? "0" : "–";
+    $("nC2").innerHTML = c.done && c.callMs != null ? `0 · ${c.callMs}<small> ms</small>` : "–";
+    $("nC3").innerHTML = c.ok == null ? "–" : tick(c.ok);
   }
   function lanesTick(dt) {
     Object.values(lanes).forEach((ln) => {
@@ -426,78 +437,98 @@
         ctx.globalAlpha = Math.min(1, f * 2); ctx.shadowBlur = 24; ctx.fillRect(0, h / 2 - 2, w * grow, 4); ctx.globalAlpha = 1;
       }
     });
-    if (S.live.mode === "agent" && !S.live.done) laneNumbers();
+    if (Object.values(lanes).some((l) => l.st.active)) laneNumbers();
   }
 
-  /* ---------------------------------------------------------------- runs */
+  /* ---------------------------------------------------------------- runs (each lane has its own) */
   function chip(text, cls, title) {
     const t = $("trace"), last = t.lastElementChild;
     if (last && last.textContent === text) return;   // a confirmed call is reported again when it resumes
     const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; if (title) s.title = title; t.appendChild(s);
   }
-  function setBusy(b) {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
-    $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (press to restart)" : "Ask the AI agent";
+  function setBusy() {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
+    const b = lanes.B?.st;
+    $("run-agent").textContent = b && b.active ? "Asking… (press to restart)" : "Ask the AI agent";
   }
-
-  async function start(mode) {
-    if (!S.order) return;
-    if (S.es) { S.es.close(); S.es = null; }
-    if (S.view !== "inst") await setView("inst");
+  function closeAll() { Object.values(lanes).forEach((l) => { if (l.st.es) l.st.es.close(); }); }
+  function clearAnswer() {
     unfocus(); card(null); $("outcome").classList.add("hidden"); $("trace").innerHTML = ""; $("detail").classList.add("hidden");
-    S.live = { mode, turns: 0, tin: 0, tout: 0, t0: performance.now(), ms: null, eval: null, quote: null, done: false, callMs: null };
-    setBusy(true);
-    const r = await (await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ patient: S.order.patient, mode }) })).json();
-    S.run = r.run;
-    laneNumbers();
-    S.es = new EventSource(`/api/run/${r.run}/events`);
-    S.es.onmessage = (m) => onEvent(JSON.parse(m.data));
+    S.eval = null; S.quote = null; S.lit = false;
   }
-
-  function onEvent(e) {
-    const L = S.live;
-    if (e.kind === "model") {
-      L.turns = e.turn; L.tin += e.tokens_in; L.tout += e.tokens_out;
-      chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
-      if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
-      laneNumbers();
+  async function race(which) {
+    if (!S.order) return;
+    if (S.view !== "inst") await setView("inst");
+    which.forEach((L) => { const l = lanes[L]; if (l.st.es) l.st.es.close(); l.st = blank(); l.parts.length = 0; });
+    if (which.includes("B") || which.includes("C")) clearAnswer();
+    await Promise.all(which.map(async (L) => {
+      const st = lanes[L].st; st.active = true; st.t0 = performance.now();
+      const r = await (await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ patient: S.order.patient, mode: LANES[L][0] }) })).json();
+      st.run = r.run;
+      st.es = new EventSource(`/api/run/${r.run}/events`);
+      st.es.onmessage = (m) => onEvent(L, JSON.parse(m.data));
+    }));
+    setBusy(); laneNumbers();
+  }
+  function showAnswer(p) {   // the rules' answer: card and graph (from B or C, whichever comes first)
+    const first = !S.eval;
+    S.eval = p; card(p);
+    if (first) lightAnswer(p);
+    ["B", "C"].forEach((L) => { if (lanes[L].st.active || lanes[L].st.done) lanes[L].st.ok = lanes[L].st.ok ?? null; });
+  }
+  function onEvent(L, e) {
+    const st = lanes[L].st;
+    if (e.kind === "doc_start") {
+      st.prompt = e.prompt_tokens;
+    } else if (e.kind === "model") {
+      st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out;
+      if (L === "A") st.answer = e.answer;
+      if (L === "B") {
+        chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
+        if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
+      }
+    } else if (e.kind === "reference") {
+      st.ref = e.outcome; st.ok = e.matches;
+    } else if (e.kind === "unavailable") {
+      st.note = "Not run: " + e.message; st.skipped = true;
     } else if (e.kind === "tool_call") {
       const lbl = TOOL_LABEL[e.name] || e.name;
-      if (L.mode === "agent" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.textContent === lbl))) chip(lbl, "tool", e.name);
+      if (L === "B" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.textContent === lbl))) chip(lbl, "tool", e.name);
     } else if (e.kind === "tool_result") {
       if (e.name === "context_applicable_rules") lightCandidates(e.payload);
       if (e.name === "rules_evaluate") {
-        L.eval = e.payload; card(e.payload); lightAnswer(e.payload);
-        if (L.mode === "workflow") { L.callMs = e.call_ms; lanes.C.flash = 1.6; chip(`answered in ${e.call_ms} ms with no AI`); }
+        st.ok = true;   // B and C state the rules' answer itself
+        showAnswer(e.payload);
+        if (L === "C") { st.callMs = e.call_ms; lanes.C.flash = 1.6; }
       }
       if (e.name === "policy_search" && e.payload && e.payload.quote) {
-        L.quote = { quote: e.payload.quote, citation: e.payload.citation, page: (e.payload.locator || {}).page };
-        if (L.eval) { card(L.eval); }
+        S.quote = { quote: e.payload.quote, citation: e.payload.citation, page: (e.payload.locator || {}).page };
+        if (S.eval) card(S.eval);
         const src = nodes.find((n) => n.kind === "Source" && n.doc === e.payload.citation);
         if (src) { src.on = true; paint(); }
       }
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
-      L.ms = performance.now() - L.t0; L.done = true; setBusy(false); laneNumbers();
+      st.ms = performance.now() - st.t0; st.done = true; st.active = false;
     } else if (e.kind === "confirm") {
       chip(e.approved ? "staff approved" : "staff rejected");
       setTimeout(loadLog, 800);
     } else if (e.kind === "abandoned") {
       chip("not approved: a new run started");
-    } else if (e.kind === "done") {
-      if (S.es) { S.es.close(); S.es = null; }
-      if (L.ms == null) L.ms = performance.now() - L.t0;
-      L.done = true; setBusy(false); laneNumbers(); loadLog();
-      if ($("ok") && L.mode === "workflow") { $("ok").remove(); $("nok").remove(); }
-    } else if (e.kind === "error") {
-      if (S.es) { S.es.close(); S.es = null; }
-      chip("error: " + e.message, "tool"); setBusy(false);
+    } else if (e.kind === "done" || e.kind === "error") {
+      if (st.es) { st.es.close(); st.es = null; }
+      if (st.ms == null) st.ms = performance.now() - st.t0;
+      st.done = true; st.active = false;
+      if (e.kind === "error") st.note = "Error: " + e.message;
+      if (L === "B") loadLog();
     }
+    setBusy(); laneNumbers();
   }
   async function confirm(ok) {
-    if (!S.run) return;
+    const run = lanes.B.st.run;
+    if (!run) return;
     $("ok").disabled = true; $("nok").disabled = true;
-    await fetch(`/api/run/${S.run}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ approved: ok }) });
+    await fetch(`/api/run/${run}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ approved: ok }) });
   }
   async function loadLog() {
     const rows = await (await fetch("/api/log")).json();
@@ -509,7 +540,7 @@
   /* ---------------------------------------------------------------- orders, views, start-up */
   function pick(o) {
     S.order = o;
-    if (S.es) { S.es.close(); S.es = null; }
+    closeAll();
     document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.p === o.patient)));
     $("q-title").innerHTML = `${esc(o.description.split(" (")[0].split(",")[0])} <span class="code">${esc(o.code)}</span>`;
     const f = o.facts, fn = o.fact_names || {};
@@ -521,11 +552,9 @@
       .concat(["diagnosis_codes", "hgb_g_dl", "hct_pct", "egfr", "creatinine_date", "dialysis_status"].filter((k) => f[k] != null).map(val));
     if (f.hgb_g_dl == null && f.hct_pct == null) rows.push(["Hemoglobin", "not on file"]);
     $("q-facts").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
-    $("outcome").classList.add("hidden"); card(null); unfocus(); $("trace").innerHTML = "";
-    S.live = { mode: null, turns: 0, tin: 0, tout: 0, t0: 0, ms: null, done: false };
-    S.run = null;
-    setBusy(false);
-    laneNumbers();
+    clearAnswer();
+    Object.values(lanes).forEach((l) => { l.st = blank(); l.parts.length = 0; });
+    setBusy(); laneNumbers();
   }
   async function setView(v) {
     S.view = v;
@@ -533,12 +562,13 @@
     $("view-onto").setAttribute("aria-selected", String(v === "onto"));
     if (v === "onto" && !S.onto) S.onto = await (await fetch("/api/ontology")).json();
     setGraph(v === "inst" ? S.inst : S.onto, v);
-    if (v === "inst" && S.live.eval) lightAnswer(S.live.eval);
+    if (v === "inst" && S.eval) lightAnswer(S.eval);
   }
   $("view-inst").onclick = () => setView("inst");
   $("view-onto").onclick = () => setView("onto");
-  $("run-agent").onclick = () => start("agent");
-  $("run-flow").onclick = () => start("workflow");
+  $("run-agent").onclick = () => race(["B"]);
+  $("run-flow").onclick = () => race(["C"]);
+  $("run-race").onclick = () => race(["C", "B", "A"]);
 
   (async function init() {
     const get = (u, fb) => fetch(u).then((r) => (r.ok ? r.json() : fb)).catch(() => fb);

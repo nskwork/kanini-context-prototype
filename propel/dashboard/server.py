@@ -63,7 +63,7 @@ def status():
         rules = c.execute("SELECT count(*) FROM kc_core.rule WHERE upper_inf(recorded) AND status = 'active'").fetchone()[0]
     return {"release": rel[0] if rel else None, "covers_through": str(rel[2]) if rel else None, "rules": rules, "sources": len(MANIFEST),
             "model": "scripted stand-in (no API key)" if SCRIPTED else os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini"),
-            "scripted": SCRIPTED}
+            "scripted": SCRIPTED, "ai_key": bool(os.environ.get("OPENAI_API_KEY"))}
 
 
 @app.get("/api/orders")
@@ -237,6 +237,43 @@ async def run_workflow(run: Run):
     run.done = True
 
 
+async def run_documents(run: Run):
+    """Mode A, live: the order's policy documents and facts go to the model in one prompt, as in
+    propel/baseline/compare.py, and its answer is compared with the rules' answer for the same order."""
+    import litellm
+    from propel.baseline import compare as cmp
+    p, o = _order(run.patient)
+    try:
+        if not os.environ.get("OPENAI_API_KEY"):
+            await run.emit("unavailable", message="needs OPENAI_API_KEY in .env: the AI is not called")
+            await run.emit("done", llm_calls=0, tokens_in=0, tokens_out=0)
+            return
+        prompt = await asyncio.to_thread(cmp.prompt_for, run.patient)
+        docs = await asyncio.to_thread(cmp.docs_for, p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
+        n = litellm.token_counter(model=cmp.MODEL.split("/")[-1], text=prompt)
+        await run.emit("doc_start", prompt_tokens=n, documents=[cmp.MANIFEST[s]["title"] for s in docs])
+        effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
+        resp = await litellm.acompletion(model=cmp.MODEL, messages=[{"role": "user", "content": prompt}],
+                                         response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
+        try:
+            ans = json.loads(resp.choices[0].message.content)
+        except (ValueError, TypeError):
+            ans = {"outcome": "unparseable"}
+        u = resp.usage
+        await run.emit("model", turn=1, tokens_in=u.prompt_tokens, tokens_out=u.completion_tokens, answer=ans.get("outcome"),
+                       reasons=ans.get("reasons") or [], citation=ans.get("citation"))
+        f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
+        with db() as c:   # the rules' answer for the same order, to mark the AI's answer right or wrong
+            ref = c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)", (p["coverage"]["plan"], p["coverage"]["state"],
+                            "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f))).fetchone()[0]
+        await run.emit("reference", outcome=ref["outcome"], matches=ans.get("outcome") == ref["outcome"])
+        await run.emit("done", llm_calls=1, tokens_in=u.prompt_tokens, tokens_out=u.completion_tokens)
+    except Exception as ex:
+        await run.emit("error", message=str(ex)[:400])
+    finally:
+        run.done = True
+
+
 async def run_agent(run: Run):
     """Mode B: the authorization agent, with its own callbacks kept; the page sees each step as it happens."""
     from google.adk.runners import Runner
@@ -335,9 +372,9 @@ async def run_agent(run: Run):
 @app.post("/api/run")
 async def start(body: dict):
     pid, mode = body.get("patient"), body.get("mode", "agent")
-    if pid not in PATIENTS or mode not in ("agent", "workflow"):
-        raise HTTPException(400, "patient must be a known patient id and mode agent or workflow")
-    for old in list(RUNS.values()):   # a new run releases any run still waiting for approval
+    if pid not in PATIENTS or mode not in ("agent", "workflow", "documents"):
+        raise HTTPException(400, "patient must be a known patient id and mode agent, workflow or documents")
+    for old in [x for x in RUNS.values() if x.mode == mode]:   # a new run of a mode replaces the last one of that mode
         if old.confirm and not old.confirm.done():
             old.confirm.cancel()
         elif old.task and not old.task.done():   # still mid-run: it stops at its next model turn and closes its sessions
@@ -347,7 +384,7 @@ async def start(body: dict):
     run = Run(pid, mode)
     RUNS[run.id] = run
     await run.emit("start", patient=pid, mode=mode, order=PATIENTS[pid]["orders"][0]["order_id"])
-    run.task = asyncio.create_task(run_agent(run) if mode == "agent" else run_workflow(run))
+    run.task = asyncio.create_task({"agent": run_agent, "workflow": run_workflow, "documents": run_documents}[mode](run))
     return {"run": run.id}
 
 

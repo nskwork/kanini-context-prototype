@@ -154,6 +154,11 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .lane{display:grid;grid-template-columns:24px 330px minmax(0,1fr) 400px;align-items:center;gap:14px;padding:6px 14px;border-radius:11px;border:1px solid color-mix(in srgb,var(--lc) 35%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 9%,transparent),rgba(4,5,12,.5))}
 .lane .L{font-family:var(--display);font-weight:800;font-size:var(--s-xl);line-height:1;color:var(--lc);text-shadow:0 0 14px var(--lc)}
 .lane .t{font-weight:700;font-size:var(--s-md)}
+.lane .lt{min-width:0}
+.lane-run{position:absolute;right:6px;top:50%;transform:translateY(-50%);height:24px;padding:0 10px;border-radius:7px;border:1px solid color-mix(in srgb,var(--lc) 55%,transparent);background:rgba(4,5,12,.7);color:var(--ink2);font-size:var(--s-xs);font-weight:700;cursor:pointer}
+.lane-run:hover{color:var(--ink);border-color:var(--lc)}
+.nums .ok{color:var(--lime)} .nums .bad{color:var(--rose)}
+.btn-race{height:32px;padding:0 14px;margin-right:auto;margin-left:14px;border:1px solid var(--violet);background:rgba(124,58,237,.25);color:#fff;box-shadow:0 0 18px rgba(124,58,237,.45);white-space:nowrap}
 .lane .s{font-size:var(--s-xs);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track{position:relative;height:26px;border-radius:9px;background:rgba(148,163,184,.07);overflow:hidden}
 .track canvas{position:absolute;inset:0;width:100%;height:100%}
