@@ -16,6 +16,7 @@ names which ran.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import math
@@ -34,6 +35,7 @@ PASSAGE_WORDS, OVERLAP_WORDS = 450, 60      # about 600 tokens a passage
 TOP_K = 16                                  # passages sent to the model, about 9,000 to 10,000 tokens
 
 
+@functools.lru_cache(maxsize=1)   # the library does not change while a process runs; read it once
 def documents() -> list[dict]:
     """Every saved source document: id, title, edition and page texts."""
     out = []
@@ -48,6 +50,7 @@ def whole_text() -> str:
     return "\n\n".join(f"=== {d['title']} ({d['edition']})\n" + "\n".join(d["pages"]) for d in documents())
 
 
+@functools.lru_cache(maxsize=1)
 def passages() -> list[dict]:
     """The library cut into overlapping passages, each with its document and page."""
     out = []
@@ -86,11 +89,16 @@ def _bm25(query: str, items: list[dict], k1: float = 1.5, b: float = 0.75) -> li
     return scores
 
 
+_STORE: dict = {}
+
+
 def _embed(texts: list[str]) -> list[list[float]]:
     import litellm
     CACHE.mkdir(parents=True, exist_ok=True)
     path = CACHE / f"embeddings-{EMBED_MODEL}.json"
-    store = json.loads(path.read_text()) if path.exists() else {}
+    if not _STORE:   # the embeddings file is read once per process, then kept in memory
+        _STORE.update(json.loads(path.read_text()) if path.exists() else {})
+    store = _STORE
     keys = [hashlib.sha256(t.encode()).hexdigest() for t in texts]
     todo = [(k, t) for k, t in zip(keys, texts) if k not in store]
     for i in range(0, len(todo), 96):
