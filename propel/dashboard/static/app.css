@@ -248,3 +248,36 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 @keyframes sc-flow{to{stroke-dashoffset:-24}}
 @media (prefers-reduced-motion:reduce){.sc-rel.on path{animation:none}}
 .sc-box .self{font-family:var(--code);font-size:10.5px;fill:var(--violet)}
+
+/* ---------------------------------------------------------------- glass panels
+   Frosted glass for the outer panels only (nested blurs cost frames and blur the content twice). Text panels keep
+   a tint of 0.74 or more so text holds its contrast over the brightest glow behind them; the light edge, inner
+   highlight and faint grain give the glass its shape. Without backdrop-filter, or when the viewer asks for less
+   transparency, the panels turn nearly opaque. */
+:root{--glass:rgba(16,11,40,.74);--glass-edge:rgba(255,255,255,.10);--glass-hi:rgba(255,255,255,.07);
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* colour behind the glass, so the frost has something to soften */
+#sky{background:
+  radial-gradient(42vw 38vh at 12% 78%,rgba(34,211,238,.10),transparent 70%),
+  radial-gradient(38vw 40vh at 88% 70%,rgba(244,114,182,.09),transparent 70%),
+  radial-gradient(36vw 30vh at 86% 12%,rgba(163,230,53,.06),transparent 70%),
+  radial-gradient(1100px 620px at 50% 30%,#1a1040 0%,#0a0820 48%,#04050c 85%)}
+.panel,.top{position:relative;isolation:isolate;
+  background:linear-gradient(155deg,var(--glass-hi),rgba(255,255,255,.012) 38%,rgba(255,255,255,0) 60%),var(--glass);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);
+  border:1px solid var(--glass-edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 1px rgba(167,139,250,.05),0 12px 36px rgba(0,0,0,.42)}
+.top{border-width:0 0 1px;box-shadow:inset 0 -1px 0 rgba(255,255,255,.04),0 8px 28px rgba(0,0,0,.35)}
+/* the light edge: brighter at the top left, fading round the panel */
+.panel::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(140deg,rgba(255,255,255,.26),rgba(196,181,253,.10) 30%,rgba(255,255,255,0) 55%,rgba(34,211,238,.08));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+/* the grain: a faint noise so the panel reads as frosted, not flat */
+.panel::after,.top::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;
+  background-image:var(--grain);background-size:160px;opacity:.045;mix-blend-mode:overlay}
+.panel>*,.top>*{position:relative;z-index:1}
+.panel-head,.panel-foot{background:rgba(4,5,12,.28)}
+/* inside a panel: tinted, never blurred again */
+.lane{background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 10%,transparent),rgba(10,7,28,.55));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:root{--glass:rgba(14,10,34,.94)}}
+@media (prefers-reduced-transparency:reduce){:root{--glass:rgba(14,10,34,.97)}.panel,.top{backdrop-filter:none;-webkit-backdrop-filter:none}.panel::after,.top::after{display:none}}
