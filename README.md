@@ -44,7 +44,7 @@
 
 <br>
 
-The key is only as good as the rules. Each rule quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed, for the reason given in `docs/SCOPE_FINDINGS.md`).
+The answer key comes from the rules. Each rule quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed, for the reason given in `docs/SCOPE_FINDINGS.md`).
 
 B takes its answer from the rules by design, so B's check is whether the agent asked the rules the right question. If it asks to record a decision without writing a card, the card is filled in from the rules' answer.
 
@@ -62,7 +62,7 @@ A's document tools are a plain library: the documents' own titles, a search over
 
 **🔴 Without the context layer**
 
-A searches and reads the policy again for every order. It used about twice B's tokens, matched the rules 18 times in 30 (16 in its first run), and gave more than one answer to the same question on 4 of the six orders. Its wrong answers fall into three groups.
+A searches and reads the policy again for every order. It used about twice B's tokens, matched the rules 18 times in 30 (16 in its first run), and gave more than one answer to the same question on 4 of the six orders.
 
 - On the Ohio order it read Tennessee's policy. It answered "Other gate" in 3 of 5 runs (4 of 5 in the first), each time relying on Tennessee's billing article A58982: either its eGFR limit of 45 (Ohio's is 60) or its list of CKD codes, which leaves out the stage 3a code N18.31 that Ohio's article includes. Kanini Context binds each rule to its contractor region, so an Ohio order only ever meets Ohio's rules.
 - On the anemia drug under UnitedHealthcare it treated the plan's silence as a rule. It said "PA required" in 5 of 5 runs (4 of 5 in the first), writing that the plan's list "explicitly lists Erythropoiesis Stimulating Agents (J0885) as requiring prior authorization". The list names J0885 only under cancer supportive care, for a cancer diagnosis (page 7), and this patient has none. The documents do not settle the order, so it should go to staff.
@@ -73,9 +73,9 @@ A searches and reads the policy again for every order. It used about twice B's t
 
 **🟢 With Kanini Context**
 
-B is how Kanini Context reduces the calls. The same agent makes 4 to 5 short calls, reads no document text, and can only state what the rules returned, with the source, edition and safe-to-act flag. If it sends the record request without a card, the card is written from the rules, so staff always see one before approving.
+With Kanini Context (B), the same agent makes 4 to 5 short calls, reads no document text, and can only state what the rules returned, with the source, edition and safe-to-act flag. If it sends the record request without a card, the card is written from the rules, so staff always see one before approving.
 
-C is how it removes them. Once the rules have been read, checked and approved, deciding an order needs no model: it takes 30 milliseconds and gives the same answer every time.
+Once the rules have been read, checked and approved, deciding an order needs no model at all (C). It takes 30 milliseconds and gives the same answer every time.
 
 Neither lane counts the one-off model use when the rules were first drafted from the documents.
 
@@ -173,7 +173,7 @@ The pack did the finding here, so this is not a fair no-context baseline and it 
 
 For each order: how each way without Kanini Context answered in its latest test, where each wrong answer departs from the approved rules, and the AI's own words with the source it cited.
 
-<sub>Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. Same agent, no context: test run started 13 Nov 2026, 10:48 Central time (`compare-20261113-1056.json`). Search (RAG): test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). Every document: test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). The dashboard's Testing tab shows the same text; <code>python -m propel.baseline.failures &lt;reports&gt; --collapsible</code> rebuilds it.</sub>
+<sub>Five answers per order from each way, GPT-5 mini at low reasoning effort. The same agent with no context ran on 13 Nov 2026 at 10:48 Central (`compare-20261113-1056.json`); search and every document ran at 10:23 (`compare-20261113-1031.json`). The dashboard's Testing tab shows the same text; <code>python -m propel.baseline.failures &lt;reports&gt; --collapsible</code> rebuilds it.</sub>
 
 <details><summary><code>maria-tn</code> · rules say <b>No PA</b> · A ⚠️ 3/5 · search ✅ 5/5 · every doc ⚠️ 4/5</summary>
 
@@ -441,9 +441,7 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 <details>
 <summary><b>Two answers that differ from the scope's examples, on purpose</b></summary>
 
-LCD L39237 accepts "Hb < 10 g/dL **or** HCT < 30%", so either result settles it:
-
-In test 5, with no hemoglobin, the answer asks for hemoglobin or hematocrit. In test 17, with Hb exactly 10.0, the answer is "other gate" if the hematocrit is 30% or more and "not yet known" if there is no hematocrit.
+LCD L39237 accepts "Hb < 10 g/dL or HCT < 30%", so either result can settle the order. In test 5, with no hemoglobin, the answer asks for hemoglobin or hematocrit. In test 17, with Hb exactly 10.0, the answer is "other gate" if the hematocrit is 30% or more and "not yet known" if there is no hematocrit.
 
 </details>
 
