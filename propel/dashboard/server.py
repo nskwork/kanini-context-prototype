@@ -251,7 +251,8 @@ async def run_documents(run: Run):
         prompt = await asyncio.to_thread(cmp.prompt_for, run.patient)
         docs = await asyncio.to_thread(cmp.docs_for, p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
         n = litellm.token_counter(model=cmp.MODEL.split("/")[-1], text=prompt)
-        await run.emit("doc_start", prompt_tokens=n, documents=[cmp.MANIFEST[s]["title"] for s in docs])
+        whole = await asyncio.to_thread(cmp.full_docs_tokens, run.patient)   # the same documents, read whole
+        await run.emit("doc_start", prompt_tokens=n, whole_tokens=whole, documents=[cmp.MANIFEST[s]["title"] for s in docs])
         effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
         resp = await litellm.acompletion(model=cmp.MODEL, messages=[{"role": "user", "content": prompt}],
                                          response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))

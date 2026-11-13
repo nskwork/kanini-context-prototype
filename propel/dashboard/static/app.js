@@ -427,8 +427,10 @@
     const tick = (b) => (b == null ? "–" : b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>');
     // A: the policy documents go to the AI, now
     const a = lanes.A.st;
-    $("sA").textContent = a.note || (a.done ? `AI answered ${OUTCOME[a.answer]?.[0] || a.answer}; the rules say ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
-      : a.active ? `Sending ${fmt(a.prompt)} tokens of policy pages to the AI…` : `Policy pages sent to the AI with the order · ${last("A") || "press Run A"}`);
+    $("sA").textContent = a.note || (a.done ? `AI: ${OUTCOME[a.answer]?.[0] || a.answer} · rules: ${OUTCOME[a.ref]?.[0] || a.ref || "…"}`
+      + (a.whole ? ` · whole docs: ${fmt(a.whole)} tokens` : "")
+      : a.active ? `Sending ${fmt(a.prompt)} tokens: only the pages Kanini Context picked${a.whole ? ` (whole documents: ${fmt(a.whole)})` : ""}…` : `Policy pages sent to the AI with the order · ${last("A") || "press Run A"}`);
+    $("sA").title = a.whole ? `A was sent only the pages Kanini Context picked for this order (${fmt(a.prompt)} tokens). Read whole, the same documents are ${fmt(a.whole)} tokens, and without the pack A would also have to find them.` : "";
     const ran = (a.active || a.done) && !a.skipped;
     $("nA1").innerHTML = ran && (a.tin || a.prompt) ? fmt(a.tin || a.prompt) : "–";
     $("nA2").innerHTML = ran ? `1 · ${secs(a)}<small> s</small>` : "–";
@@ -517,7 +519,7 @@
   function onEvent(L, e) {
     const st = lanes[L].st;
     if (e.kind === "doc_start") {
-      st.prompt = e.prompt_tokens;
+      st.prompt = e.prompt_tokens; st.whole = e.whole_tokens;
     } else if (e.kind === "model") {
       // B's numbers stop at the decision card: the model's reply after staff approve is not part of answering
       if (!(L === "B" && st.confirmed)) { st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out; }
