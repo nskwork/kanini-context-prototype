@@ -870,7 +870,7 @@
     return `<h4 class="t-h4">What broke, order by order</h4><p class="t-when">Tests started: ${esc(x.when || "")}. Each order answered 5 times by each way.</p>`
       + x.orders.map((r) => `<div class="t-order"><div class="t-o"><code>${esc(r.order)}</code> the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
         + (r.deciding ? `, resting on ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it, so it goes to staff" : "") + `</div>`
-        + part(r.agent, "Same agent, no context", r, "agent") + part(r.search, "Search (RAG)", r, "search") + part(r.whole, "Every document", r, "whole") + `</div>`).join("");
+        + part(r.agent, "A · agent without Kanini Context", r, "agent") + part(r.search, "Single LLM call with search (RAG)", r, "search") + part(r.whole, "Single LLM call with every document", r, "whole") + `</div>`).join("");
   }
   function renderTesting() {
     const box = $("testing"), cmp = S.compare || {}, scs = Object.values(cmp.scenarios || {});
@@ -920,7 +920,7 @@
       + `<p>Each of the ${scs.length} demo orders answered ${scs[0].C ? scs[0].C.runs : 5} times by each method${when ? ", " + esc(when) : ""}, GPT-5 mini. Without Kanini Context, the AI answers from the same ${whole ? fmt(whole) + "-token" : ""} policy library: as the same agent reading it itself (lane A)${hasA ? "" : ", not yet tested"}, by search (RAG), or given every document. These are repeated runs, not a live demo: one answer can land either way by chance.</p></div>`
       + `<div class="t-tiles">${tile("A", "A · same agent, no Kanini Context", "finds and reads the documents itself", "a")}`
       + `${tile("B", "B · agent with Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}`
-      + `${tile("A_rag", "Earlier test: search (RAG)", "no Kanini Context, one call", "a old")}${tile("A_whole", "Earlier test: every document", "no Kanini Context, one call", "a old")}</div>`
+      + `${tile("A_rag", "Single LLM call with search (RAG)", "no Kanini Context, earlier test", "a old")}${tile("A_whole", "Single LLM call with every document", "no Kanini Context, earlier test", "a old")}</div>`
       + `<table class="t-table"><thead><tr><th>Order</th><th>The rules say</th>${hasA ? "<th>A · same agent, no context</th>" : ""}<th>Search (RAG)</th><th>Read all</th><th>B · agent</th><th>C · no AI</th></tr></thead><tbody>${rows}</tbody></table>`
       + `<ul class="t-find">${find.map((f) => `<li>${f}</li>`).join("")}</ul>`
       + whatBroke(cmp.explain)

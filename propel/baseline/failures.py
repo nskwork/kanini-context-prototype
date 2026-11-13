@@ -193,8 +193,8 @@ def _when(at: str | None) -> str:
 def to_markdown(x: dict, report_name: str = "", when: dict | None = None, collapsible: bool = False) -> str:
     """The report as markdown; collapsible puts each order in a <details> block, its scores in the summary line."""
     if when:   # baselines tested in different runs: one line each
-        lines = ["Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. "
-                 + " ".join(f"{k}: test run started {v}." for k, v in when.items()), ""]
+        lines = ["Five answers per order from each approach, GPT-5 mini at low reasoning effort. "
+                 + " ".join(f"{k}: run started {v}." for k, v in when.items()), ""]
     else:
         lines = [f"Test run started {_when(x['at'])}" + (f" (`propel/baseline/results/{report_name}`)" if report_name else "")
                  + ". Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.", ""]
@@ -202,7 +202,7 @@ def to_markdown(x: dict, report_name: str = "", when: dict | None = None, collap
     for r in x["orders"]:
         dp = r["deciding"]
         if collapsible:
-            scores = " · ".join(f"{n} {mark(r[k])}" for k, n in (("agent", "A"), ("search", "search"), ("whole", "every doc")) if r.get(k))
+            scores = " · ".join(f"{n} {mark(r[k])}" for k, n in (("agent", "A without context"), ("search", "search call"), ("whole", "every-document call")) if r.get(k))
             lines += [f"<details><summary><code>{r['order']}</code> · rules say <b>{LABEL.get(r['rules'], r['rules'])}</b> · {scores}</summary>", ""]
         why = (f"resting on {dp['citation']}, page {dp['page']}." if dp
                else "the documents do not settle it, so the order goes to staff." if r["rules"] == "unknown" else "")
@@ -212,7 +212,7 @@ def to_markdown(x: dict, report_name: str = "", when: dict | None = None, collap
         else:
             lines.append(f"**`{r['order']}`**: the rules say **{LABEL.get(r['rules'], r['rules'])}**"
                          + (f", {why}" if dp else f": {why}" if why else "."))
-        for key, name in (("agent", "Same agent, no context"), ("search", "Search (RAG)"), ("whole", "Every document")):
+        for key, name in (("agent", "A · agent without Kanini Context"), ("search", "Single LLM call with search (RAG)"), ("whole", "Single LLM call with every document")):
             it = r.get(key)
             if not it:
                 continue
@@ -242,7 +242,7 @@ def merged(paths: list[Path]) -> tuple[dict, dict]:
     """Several reports as one, each baseline from the newest report holding it, and when each was tested."""
     reps = sorted((json.loads(p.read_text()) | {"_file": p.name} for p in paths), key=lambda r: r["at"], reverse=True)
     out, when = {"at": reps[0]["at"], "scenarios": {}}, {}
-    names = {"A_agent": "Same agent, no context", "A_rag": "Search (RAG)", "A_whole": "Every document"}
+    names = {"A_agent": "A · agent without Kanini Context", "A_rag": "Single LLM call with search (RAG)", "A_whole": "Single LLM call with every document"}
     for r in reps:
         for sc, e in r["scenarios"].items():
             tgt = out["scenarios"].setdefault(sc, {"patient": e["patient"], "reference_outcome": e["reference_outcome"]})

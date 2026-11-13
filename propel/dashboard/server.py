@@ -202,7 +202,7 @@ def compare():
         from propel.baseline import failures
         at = out.get("at") or {}
         out["explain"] = failures.explain({"at": at.get("A") or at.get("A_rag"), "scenarios": out["scenarios"]})
-        names = {"A": "Same agent, no context", "A_rag": "Search (RAG)", "A_whole": "Every document"}
+        names = {"A": "A · agent without Kanini Context", "A_rag": "Single LLM call with search (RAG)", "A_whole": "Single LLM call with every document"}
         out["explain"]["when"] = "; ".join(f"{names[k]} {failures._when(v)}" for k, v in at.items() if k in names)
     except Exception as ex:
         print(f"[dashboard] testing explanation not available: {ex}", flush=True)
