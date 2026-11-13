@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kanini Context · Command Center</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="name">Kanini Context</span>
+      <span class="sub">Command Center</span>
+    </div>
+    <nav class="orders" id="orders" aria-label="Orders"></nav>
+    <div class="status mono" id="status">loading…</div>
+  </header>
+
+  <section class="stage">
+    <div class="question" id="question">
+      <div class="eyebrow">Does this order need prior authorization?</div>
+      <h1 id="q-title">Pick an order above</h1>
+      <div class="facts mono" id="q-facts"></div>
+      <div class="actions">
+        <button type="button" class="btn btn-agent" id="run-agent">Ask the agent</button>
+        <button type="button" class="btn btn-flow" id="run-flow">Run without AI</button>
+      </div>
+      <div class="outcome hidden" id="outcome">
+        <span class="o-label" id="o-label"></span>
+        <span class="o-sub" id="o-sub"></span>
+      </div>
+    </div>
+
+    <div class="graph-wrap">
+      <svg id="graph" role="img" aria-label="Knowledge graph of the release"></svg>
+      <div class="graph-ui">
+        <div class="seg" role="tablist" aria-label="Graph view">
+          <button type="button" role="tab" aria-selected="true" id="view-inst">Instances</button>
+          <button type="button" role="tab" aria-selected="false" id="view-onto">Ontology</button>
+        </div>
+        <div class="zoom">
+          <button type="button" aria-label="Zoom in" id="zin">+</button>
+          <button type="button" aria-label="Zoom out" id="zout">−</button>
+          <button type="button" aria-label="Fit the graph" id="zfit">fit</button>
+          <button type="button" aria-label="Show the whole graph" id="zall">all</button>
+        </div>
+      </div>
+      <div class="legend mono" id="legend"></div>
+      <div class="tip mono hidden" id="tip"></div>
+    </div>
+
+    <aside class="side">
+      <div class="card" id="card">
+        <div class="card-empty">The decision card appears here when the agent or the workflow answers.</div>
+      </div>
+      <div class="detail hidden" id="detail"></div>
+    </aside>
+  </section>
+
+  <section class="band">
+    <div class="band-head">
+      <h2>Same order, three ways to answer it</h2>
+      <div class="trace mono" id="trace"></div>
+    </div>
+    <div class="lanes" id="lanes"></div>
+    <div class="log mono" id="log"></div>
+  </section>
+</div>
+<script src="/static/vendor/d3.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

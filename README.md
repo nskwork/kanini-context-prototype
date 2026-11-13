@@ -88,6 +88,21 @@ flowchart LR
 
 ---
 
+## Command centre
+
+`python -m propel.command_center.server` opens the demo in a browser (http://127.0.0.1:8090). It runs the same agent and tools as `adk web` and shows each step as it happens:
+
+| | |
+| :-- | :-- |
+| **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
+| **Ontology** | The same view of the schema: 53 classes and 17 relations from `kanini-context.ttl`. |
+| **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
+| **The race** | A from the latest comparison report; B counted live from the agent's model calls; C timed live from the no-AI workflow call. |
+
+`--scripted` runs a scripted stand-in model, for a rehearsal with no API key; the page says so.
+
+---
+
 ## The schema: specification v1.5 and what the prototype built
 
 The database is the specification's schema. The release also writes it out as an OWL ontology (`kanini_context/release/kanini-context.ttl`) and an Apache AGE graph, all from the same registry.
@@ -185,7 +200,8 @@ python -m kanini_context.release.build                      # release 2026.11.0
 pytest                                                      # 60 tests
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
-adk web propel/agent                                        # terminal 2: http://127.0.0.1:8000
+python -m propel.command_center.server                      # terminal 2: the command centre, http://127.0.0.1:8090
+adk web propel/agent                                        # or the plain ADK web UI, http://127.0.0.1:8000
 python -m propel.baseline.compare --runs 5                  # the A / B / C comparison
 ```
 
@@ -215,6 +231,7 @@ python -m propel.baseline.compare --runs 5                  # the A / B / C comp
 | `propel/journey/` | Synthetic patients and orders, journey MCP server, decision log |
 | `propel/agent/authorization_agent/` | The ADK agent |
 | `propel/baseline/` | The A / B / C comparison |
+| `propel/command_center/` | The browser command centre: FastAPI server, page, vendored d3 and fonts |
 | `tests/` | Scope tests 1 to 23, pack tests, live-model tests, scripted model |
 | `docs/` | Scope findings, prototype notes, demo script |
 
