@@ -1,4 +1,4 @@
-"""Kanini Context command centre: the demo in a browser.
+"""Kanini Context dashboard: the demo in a browser.
 
 Runs the same authorization agent and the same Kanini Context tools as `adk web`, and streams what happens to one
 page: each model turn and its tokens, each tool call and its full result, the decision card, the staff approval, the
@@ -6,7 +6,7 @@ decision log. The knowledge graph and the ontology are read from the release; th
 `propel/baseline/compare.py` report. Nothing on the page is staged: every animation follows an event from the run.
 
     python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
-    python -m propel.command_center.server                      # terminal 2: http://127.0.0.1:8090
+    python -m propel.dashboard.server                      # terminal 2: http://127.0.0.1:8090
 
 Options: --port N; --scripted runs the scripted stand-in model (tests/scripted_model.py) instead of GPT-5 mini,
 for a rehearsal with no API key (the page says so).
@@ -41,7 +41,7 @@ TTL = ROOT / "kanini_context/release/kanini-context.ttl"
 LOG = Path(os.environ.get("PROPEL_DECISION_LOG", ROOT / "propel/journey/decisions.jsonl"))
 SCRIPTED = False
 
-app = FastAPI(title="Kanini Context command centre")
+app = FastAPI(title="Kanini Context dashboard")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -288,8 +288,8 @@ async def run_agent(run: Run):
     agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback = before_tool, after_tool, after_model
     agent.before_model_callback = before_model
     svc = InMemorySessionService()
-    runner = Runner(app_name="command_center", agent=agent, session_service=svc)
-    s = await svc.create_session(app_name="command_center", user_id="staff")
+    runner = Runner(app_name="dashboard", agent=agent, session_service=svc)
+    s = await svc.create_session(app_name="dashboard", user_id="staff")
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {run.patient}.")])
     try:
         for _ in range(3):
@@ -396,7 +396,7 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
     SCRIPTED = args.scripted
     import uvicorn
-    print(f"Kanini Context command centre: http://127.0.0.1:{args.port}")
+    print(f"Kanini Context dashboard: http://127.0.0.1:{args.port}")
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
     return 0
 

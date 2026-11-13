@@ -88,9 +88,9 @@ flowchart LR
 
 ---
 
-## Command centre
+## Dashboard
 
-`python -m propel.command_center.server` opens the demo in a browser (http://127.0.0.1:8090). It runs the same agent and tools as `adk web` and shows each step as it happens:
+`python -m propel.dashboard.server` opens the demo in a browser (http://127.0.0.1:8090). It runs the same agent and tools as `adk web` and shows each step as it happens:
 
 | | |
 | :-- | :-- |
@@ -200,7 +200,7 @@ python -m kanini_context.release.build                      # release 2026.11.0
 pytest                                                      # 60 tests
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
-python -m propel.command_center.server                      # terminal 2: the command centre, http://127.0.0.1:8090
+python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
 adk web propel/agent                                        # or the plain ADK web UI, http://127.0.0.1:8000
 python -m propel.baseline.compare --runs 5                  # the A / B / C comparison
 ```
@@ -231,7 +231,7 @@ python -m propel.baseline.compare --runs 5                  # the A / B / C comp
 | `propel/journey/` | Synthetic patients and orders, journey MCP server, decision log |
 | `propel/agent/authorization_agent/` | The ADK agent |
 | `propel/baseline/` | The A / B / C comparison |
-| `propel/command_center/` | The browser command centre: FastAPI server, page, vendored d3 and fonts |
+| `propel/dashboard/` | The browser dashboard: FastAPI server, page, vendored d3 and fonts |
 | `tests/` | Scope tests 1 to 23, pack tests, live-model tests, scripted model |
 | `docs/` | Scope findings, prototype notes, demo script |
 

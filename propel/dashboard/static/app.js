@@ -1,4 +1,4 @@
-/* Kanini Context command centre. Every highlight, comet and particle follows an event from a real run or a
+/* Kanini Context dashboard. Every highlight, comet and particle follows an event from a real run or a
    number from the release or the latest comparison report; nothing is scripted on the page. */
 (() => {
   "use strict";
@@ -289,7 +289,7 @@
   async function detail(n) {
     const d = $("detail");
     d.classList.remove("hidden");
-    let body = `<button type="button" class="close" aria-label="Close">Close</button><div class="kind">${esc(n.kind)}</div><h4>${esc(n.name || nodeLabel(n))}</h4>`;
+    let body = `<div class="panel-head"><span class="eyebrow">${esc(n.kind)}</span><button type="button" class="close" aria-label="Close">Close</button></div><div class="panel-body"><h4>${esc(n.name || nodeLabel(n))}</h4>`;
     const rel = (r) => r.toLowerCase().replace(/_/g, " ");
     const nb = (adj.get(n) || []).slice(0, 14).map(([m, l]) => `${esc(l.source === n ? rel(l.rel) + " →" : "← " + rel(l.rel))} ${esc(nodeLabel(m))}`);
     try {
@@ -303,16 +303,20 @@
       }
     } catch (_) { /* the panel still shows the node's links */ }
     body += `<div class="links">${nb.join("<br>")}${(adj.get(n) || []).length > 14 ? "<br>…" : ""}</div>`;
-    d.innerHTML = body;
+    d.innerHTML = body + "</div>";
     d.querySelector(".close").onclick = () => d.classList.add("hidden");
   }
 
   /* ---------------------------------------------------------------- decision card */
   function card(p) {
     const c = $("card");
-    if (!p) { c.className = "card"; c.innerHTML = '<div class="card-empty">The decision card appears here when the agent or the workflow answers.</div>'; return; }
+    if (!p) {
+      c.className = "panel card"; c.style.removeProperty("--oc");
+      c.innerHTML = '<div class="panel-head"><span class="eyebrow">Decision card</span></div><div class="panel-body card-empty">The decision card appears here when the agent or the workflow answers.</div>';
+      return;
+    }
     const [label, color] = OUTCOME[p.outcome] || ["Not known", "#fb7185"];
-    c.className = "card live"; c.style.setProperty("--oc", color);
+    c.className = "panel card live"; c.style.setProperty("--oc", color);
     const prim = p.primary_rule || {};
     const src = (p.sources || []).find((s) => s.citation === prim.citation) || (p.sources || [])[0];
     const quote = S.live.quote || (src && { quote: src.quote, citation: src.citation, page: src.page });
@@ -321,7 +325,7 @@
     const route = p.route ? [p.route.submit_via, ch.join(" · ")].filter(Boolean).join("<br>") : "";
     const ev = (p.evidence || []).map((e) => `${e.logic === "any" ? "One of" : "All of"} (${e.citation}):<br>• ` + (e.documents || []).map(esc).join("<br>• "));
     const notChecked = ((p.coverage_criteria || {}).not_checked || []);
-    c.innerHTML = `<h3>Decision card · ${esc(S.order?.order_id || "")}</h3>
+    c.innerHTML = `<div class="panel-head"><span class="eyebrow">Decision card · ${esc(S.order?.order_id || "")}</span></div><div class="panel-body">
       <div class="verdict">${esc(label)}</div>
       <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map((x) => x.replace(/_/g, " ")).join(", ")) : ""}</div>
       <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
@@ -334,7 +338,7 @@
       ${ev.length ? `<div class="k">Evidence to send</div><div class="v">${ev.join("<br>")}</div>` : ""}
       ${notChecked.length ? `<div class="k">Not checked here, confirm</div><div class="v">${notChecked.slice(0, 2).map(esc).join("<br>")}</div>` : ""}
       <div class="k">Pack</div><div class="v">Release <span class="code">${esc(p.pack_release)}</span> · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
-      <div class="agent-text hidden" id="agent-text"></div>`;
+      <div class="agent-text hidden" id="agent-text"></div></div>`;
     $("ok").onclick = () => confirm(true);
     $("nok").onclick = () => confirm(false);
     const o = $("outcome");
@@ -412,7 +416,7 @@
     const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; t.appendChild(s);
   }
   function setBusy(b) {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
-    $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (press to restart)" : "Ask the agent";
+    $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (restart)" : "Ask the agent";
   }
 
   async function start(mode) {
@@ -477,7 +481,7 @@
   }
   async function loadLog() {
     const rows = await (await fetch("/api/log")).json();
-    $("log").innerHTML = "<b style=\"color:var(--mute)\">Decision log</b>  " + (rows.slice(-4).reverse().map((r) =>
+    $("log").innerHTML = '<span class="eyebrow">Decision log</span>  ' + (rows.slice(-4).reverse().map((r) =>
       r.decision === "rejected" ? `<i>Rejected</i> ${esc(r.order)} by ${esc(r.reviewer)}, no outcome logged`
         : `<b>Approved</b> ${esc(r.order)} · ${esc(OUTCOME[r.outcome]?.[0] || r.outcome)} · <span class="code">${esc(r.ruleRef || r.rule_ref)}</span> · ${esc(r.approved_by || r.reviewer || "")}`).join("  ·  ") || "empty");
   }

@@ -1,4 +1,4 @@
-"""The command centre's API: the release graph and ontology it draws, and a workflow run streamed as events."""
+"""The dashboard's API: the release graph and ontology it draws, and a workflow run streamed as events."""
 from __future__ import annotations
 
 import json
@@ -11,7 +11,7 @@ pytest.importorskip("fastapi")
 @pytest.fixture(scope="module")
 def client(release):
     from fastapi.testclient import TestClient
-    from propel.command_center import server
+    from propel.dashboard import server
     return TestClient(server.app)
 
 
