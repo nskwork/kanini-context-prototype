@@ -20,7 +20,7 @@ Prepared by NANDHU S K
 
 ## Latest results · 13 Nov 2026
 
-The prototype's objective: show the value of the context layer, and how it reduces or eliminates repeated LLM calls for information that is already in the context. So the comparison is the same agent with and without it. Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Reports in `propel/baseline/results/`: `compare-20261113-1017` (A), `compare-20261112-2256` (B), `compare-20261113-0850` (earlier baselines).
+The prototype's objective: show the value of the context layer, and how it reduces or eliminates repeated LLM calls for information that is already in the context. So the comparison is the same agent with and without it. Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Reports in `propel/baseline/results/`: `compare-20261113-1017` (A), `compare-20261112-2256` (B), `compare-20261113-0850` and `compare-20261113-1031` (one-call baselines).
 
 > **How to read this table.** A is the Propel agent with no Kanini Context: same model, same patient-record tool, and document tools (list, search, read pages) in place of the context layer, so it finds and reads the policy itself for every order. B is the same agent with Kanini Context. C is Kanini Context with no AI. C is the answer key: the engineer-approved rules applied by plain code, so it cannot score anything but full marks; its column shows cost and repeatability. Whether the key is right rests on the rules: each quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
 
@@ -43,41 +43,43 @@ The prototype's objective: show the value of the context layer, and how it reduc
 - **C eliminates.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time.
 - **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
 
-### Earlier baselines
+### Other baselines: one call over the library
 
-Before lane A was the agent, two plain LLM applications were tested against the same 16-document library (`compare-20261113-0850`). Their full results are in the dashboard's Testing tab and below.
+Two plain LLM applications, each answering in one call from the same 16-document library, tested twice (`compare-20261113-0850` at 08:42 and `compare-20261113-1031` at 10:23 Central time, 13 Nov 2026). The second run kept every answer with the AI's own reasons, quoted below.
 
-| | **Search (RAG)**: the 16 best-matching passages, one call | **Every document**: the whole library, one call |
+| | **Search (RAG)**: the 16 best-matching passages | **Every document**: the whole library |
 | :-- | :--: | :--: |
-| **Against the answer key** | 11 of 30 match | 18 of 30 match |
+| **Against the answer key, first run** | 11 of 30 | 18 of 30 |
+| **Against the answer key, second run** | 16 of 30 | 20 of 30 |
+| **Both runs** | 27 of 60 | 38 of 60 |
 | **Input tokens per order** | 7,605 to 9,343 | 147,525 |
-| **Same answer every run** | changed between runs on 3 of 6 orders | changed on 4 of 6 orders |
+| **Answer changed between runs of the same order** | on 3 of 6 orders, then 2 of 6 | on 4 of 6 orders, then 3 of 6 |
 
-Given exactly the pages Kanini Context picked for each order, a single call still matched only 21 of 30 at low reasoning effort and 23 of 30 at medium (`compare-20261112-2210`, `compare-20261112-2238`).
+The same test, run twice an hour and forty minutes apart, moved by five and by two answers: the score of a method without the context layer depends on the run. Given exactly the pages Kanini Context picked for each order, a single call still matched only 21 of 30 at low reasoning effort and 23 of 30 at medium (`compare-20261112-2210`, `compare-20261112-2238`).
 
 ### Scenario by scenario
 
-| Order | Answer key (rules say) | A · no context | B | C | Search (RAG) | Every document |
+| Order | Answer key (rules say) | A · no context | B | C | Search (RAG), run 1 · 2 | Every document, run 1 · 2 |
 | :-- | :-- | :--: | :--: | :--: | :--: | :--: |
-| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ⚠️ 2/5 | ✅ 5/5 | key | ⚠️ 3/5 | ✅ 5/5 |
-| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ⚠️ 4/5 | ✅ 5/5 | key | ✅ 5/5 | ✅ 5/5 |
-| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ❌ 1/5 | ✅ 5/5 | key | ❌ 0/5 | ⚠️ 2/5 |
-| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 1/5 | ⚠️ 3/5 |
-| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 1/5 | ✅ 5/5 | key | ❌ 0/5 | ❌ 0/5 |
-| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 2/5 | ⚠️ 3/5 |
+| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ⚠️ 2/5 | ✅ 5/5 | key | ⚠️ 3/5 · ✅ 5/5 | ✅ 5/5 · ⚠️ 4/5 |
+| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ⚠️ 4/5 | ✅ 5/5 | key | ✅ 5/5 · ✅ 5/5 | ✅ 5/5 · ✅ 5/5 |
+| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ❌ 1/5 | ✅ 5/5 | key | ❌ 0/5 · ❌ 0/5 | ⚠️ 2/5 · ⚠️ 3/5 |
+| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 1/5 · ⚠️ 4/5 | ⚠️ 3/5 · ✅ 5/5 |
+| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 1/5 | ✅ 5/5 | key | ❌ 0/5 · ❌ 0/5 | ❌ 0/5 · ❌ 0/5 |
+| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 2/5 · ❌ 2/5 | ⚠️ 3/5 · ⚠️ 3/5 |
 
 ### What broke in testing
 
-Order by order: how each way without Kanini Context answered, what each wrong answer got wrong against the approved rules, and, for lane A, its own words and the source it cited. Generated from the test reports by `python -m propel.baseline.failures <report.json> [more reports]`; the dashboard's Testing tab shows the same text.
+Order by order: how each way without Kanini Context answered in its latest test, what each wrong answer got wrong against the approved rules, and the AI's own words and the source it cited. Generated from the test reports by `python -m propel.baseline.failures <report.json> [more reports]`; the dashboard's Testing tab shows the same text.
 
-Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. Same agent, no context: test run started 13 Nov 2026, 10:09 Central time (`compare-20261113-1017.json`). Search (RAG): test run started 13 Nov 2026, 08:42 Central time (`compare-20261113-0850.json`). Every document: test run started 13 Nov 2026, 08:42 Central time (`compare-20261113-0850.json`).
+Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. Search (RAG): test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). Every document: test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). Same agent, no context: test run started 13 Nov 2026, 10:09 Central time (`compare-20261113-1017.json`).
 
 **`maria-tn`**: the rules say **No PA**, resting on LCD L39237, page 7.
 - Same agent, no context: right 2 of 5. 3 runs answered Not yet known: every fact the rule tests is on the order.
-  - In its own words (Not yet known, what it asked for): “Obtain and document pre-initiation iron studies (TSAT and ferritin) and ensure the serum creatinine/GFR documentation is included with the claim; once iron stores meet the required thresholds and documentation is assembled, re-evaluate for…” Source it cited: Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237) — Required documentation and CKD (non-dialysis) coverage criteria, pages 9–11; code…
-- Search (RAG): right 3 of 5. 2 runs answered Not yet known: every fact the rule tests is on the order.
-  The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
-- Every document: right 5 of 5.
+  - In its own words (Not yet known, what it said was missing): “Obtain and document pre-initiation iron studies (TSAT and ferritin) and ensure the serum creatinine/GFR documentation is included with the claim; once iron stores meet the required thresholds and documentation is assembled, re-evaluate for…” Source it cited: Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237) — Required documentation and CKD (non-dialysis) coverage criteria, pages 9–11; code…
+- Search (RAG): right 5 of 5.
+- Every document: right 4 of 5. 1 run answered Not yet known: every fact the rule tests is on the order.
+  - In its own words (Not yet known, what it said was missing): “Missing required iron‑store data (transferrin saturation and ferritin) and documentation of iron repletion if low — required prior to ESA initiation/continuation”
 
 **`maria-tn-egfr52`**: the rules say **Other gate**, resting on LCD L39237, page 7.
 - Same agent, no context: right 4 of 5. 1 run answered No PA: the order does not meet the coverage criteria. 1 of them cited Ohio's policy.
@@ -89,28 +91,36 @@ Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. S
 - Same agent, no context: right 1 of 5. 4 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60). 4 of them cited Tennessee's policy.
   - In its own words (Other gate): “The Medicare billing/coding guidance for ESAs (A58982 / L39237) requires documentation of CKD-related anemia (D63.1) AND supports ESA use for CKD-not-on-dialysis patients typically when GFR is below ~45 mL/min/1.73 m2; the patient’s eGFR is 52, which does not…” Source it cited: Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6 and 10 — required ICD D63.1 for CKD not on dialysis, EC modifier requirement, and GFR <45…
 - Search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+  - In its own words (Other gate): “Patient has D63.1 (anemia in CKD) but CKD diagnosis is N18.31 (CKD stage 3a) which is not among the covered CKD stage codes required for non-dialysis ESA (N18.32, N18.4, N18.5, etc.); Guidance indicates a GFR <45 mL/min/1.73 m2 is a reasonable threshold to…”
   The deciding page was **not** among the 16 passages retrieved; 12 came from Tennessee's policy and 2 from Ohio's.
-- Every document: right 2 of 5. 3 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+- Every document: right 3 of 5. 1 run answered PA required: no approval is needed for this order. 1 run answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+  - In its own words (PA required): “Patient has CKD not on dialysis with Hgb 9.4 (<10 g/dL) — meets the hemoglobin criterion for non‑ESRD ESA therapy under the CGS (Ohio) LCD; Patient’s eGFR 52 mL/min/1.73m2 meets the CGS LCD cutoff for CKD non‑dialysis coverage (GFR <60 mL/min/1.73m2) and…”
+  - In its own words (Other gate): “HCPCS J0885 is for non-ESRD (CKD non-dialysis) ESA use under the CGS (Ohio) LCD (L34356).; Coverage for CKD non-dialysis requires anemia (Hgb <10) AND the required CKD stage documentation per CGS: L34356 requires GFR/Cr thresholds but the related…”
 
 **`maria-uhc`**: the rules say **PA required**, resting on UHC MA prior authorization requirements, page 17.
 - Same agent, no context: right 4 of 5. 1 run answered Not yet known: the plan's list requires PA for this code whatever the facts.
-  - In its own words (Not yet known, what it asked for): “Obtain documentation whether the member has had (a) trials of at least two preferred IV iron therapies (e.g., ferumoxytol, sodium ferric gluconate, iron sucrose) each for at least 3 weeks with inadequate response, or (b) documented…” Source it cited: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, "Medicare Part B Step Therapy Programs" — Intravenous Iron Replacement Therapy section (page 8) and HCPCS…
-- Search (RAG): right 1 of 5. 4 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
+  - In its own words (Not yet known, what it said was missing): “Obtain documentation whether the member has had (a) trials of at least two preferred IV iron therapies (e.g., ferumoxytol, sodium ferric gluconate, iron sucrose) each for at least 3 weeks with inadequate response, or (b) documented…” Source it cited: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, "Medicare Part B Step Therapy Programs" — Intravenous Iron Replacement Therapy section (page 8) and HCPCS…
+- Search (RAG): right 4 of 5. 1 run answered Not yet known: the plan's list requires PA for this code whatever the facts.
+  - In its own words (Not yet known, what it said was missing): “No documentation provided of prior trials, contraindications, or intolerance to preferred IV iron therapies for this member”
   The deciding page was among the 16 passages retrieved.
-- Every document: right 3 of 5. 2 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
+- Every document: right 5 of 5.
 
 **`maria-uhc-esa`**: the rules say **Not known**: the documents do not settle it, so the order goes to staff.
 - Same agent, no context: right 1 of 5. 4 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
   - In its own words (PA required): “UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa) as requiring prior authorization for outpatient administration (UHC MA prior authorization requirements, page 7).” Source it cited: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7.
 - Search (RAG): right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
-- Every document: right 0 of 5. 4 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order. 1 run answered No PA: the documents do not settle this order.
+  - In its own words (PA required): “HCPCS J0885 is listed in UnitedHealthcare Medicare Advantage prior authorization requirements for erythropoiesis stimulating agents; Member has CKD non-dialysis diagnosis (D63.1 and N18.32) which aligns with indications in the ESA billing guidance, but UHC…”
+- Every document: right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
+  - In its own words (PA required): “UnitedHealthcare Medicare Advantage lists erythropoiesis stimulating agents (HCPCS J0885) as a drug requiring prior authorization (see UnitedHealthcare prior authorization requirements).; Medicare/local coverage criteria (LCD L39237 / Billing & Coding A58982)…”
 
 **`maria-nohgb`**: the rules say **Not yet known**, resting on LCD L39237, page 7.
 - Same agent, no context: right 4 of 5. 1 run answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
   - In its own words (No PA): “Medicare coverage criteria for epoetin alfa (J0885) for CKD not on dialysis are described in the MAC guidance and billing article (requires diagnosis D63.1 plus CKD staging codes, EC modifier and supporting labs) — documentation required but no Medicare-wide…”
 - Search (RAG): right 2 of 5. 3 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
+  - In its own words (No PA): “Original Medicare Part B coverage policies (LCD L34356 / A58982) do not state a prior authorization requirement for non‑ESRD ESA (J0885).; Order is for non‑dialysis CKD anemia (HCPCS J0885) and the claim includes D63.1 and N18.32, which are the dual diagnoses…”
   The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
 - Every document: right 3 of 5. 2 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
+  - In its own words (No PA): “This is Original Medicare Part B (not a Medicare Advantage plan) and none of the CMS prior-authorization/pre-claim review initiatives or demonstrations in the provided documents require prior authorization for ESA J0885.; Coverage and billing requirements for…”
 
 ### Tests
 

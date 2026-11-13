@@ -89,8 +89,13 @@ def _quote(run: dict) -> dict:
     if run.get("outcome") == "needs_facts":   # what it asked for is what went wrong
         nxt = next((ln.split("Next step:", 1)[1].strip() for ln in card.splitlines() if "Next step:" in ln), "")
         why = nxt or why
-    if not why and run.get("reasons"):
-        why = "; ".join(run["reasons"])
+    if not card and run.get("reasons"):   # a one-call answer: its list of reasons
+        rs = [str(r) for r in run["reasons"]]
+        if run.get("outcome") == "needs_facts":   # the reason that names what it said was missing
+            import re as _re
+            hit = [r for r in rs if _re.search(r"missing|not (on file|present|provided|documented|available)|absent|no (documented|record)|obtain|needed|required to", r, _re.I)]
+            rs = hit[-1:] or rs[-1:]
+        why = "; ".join(rs)
     src = next((ln.split("Source:", 1)[1].strip() for ln in card.splitlines() if "Source:" in ln), "")
     cut = lambda t, n: t if len(t) <= n else t[:n].rsplit(" ", 1)[0] + "…"   # noqa: E731
     return {"why": cut(why, 260), "source": cut(src, 170)}
@@ -175,7 +180,7 @@ def to_markdown(x: dict, report_name: str = "", when: dict | None = None) -> str
                                                                 if b.get("cited_other_region") else "") for b in it["broke"]))
             for b in it["broke"]:
                 if b.get("quote") and b["quote"]["why"]:
-                    lines.append(f"  - In its own words ({LABEL.get(b['answer'], b['answer'])}{', what it asked for' if b['answer'] == 'needs_facts' else ''}): “{b['quote']['why']}”"
+                    lines.append(f"  - In its own words ({LABEL.get(b['answer'], b['answer'])}{', what it said was missing' if b['answer'] == 'needs_facts' else ''}): “{b['quote']['why']}”"
                                  + (f" Source it cited: {b['quote']['source']}" if b["quote"]["source"] else ""))
             if key == "search" and dp and "deciding_page_found" in it:
                 note = (f"  The deciding page was {'among' if it['deciding_page_found'] else '**not** among'} the {it['passages']} passages retrieved"
