@@ -71,8 +71,8 @@
     sim = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).distance(mode === "onto" ? 72 : 46).strength(0.12))
       .force("charge", d3.forceManyBody().strength(mode === "onto" ? -120 : -65))
-      .force("collide", d3.forceCollide((n) => (mode === "onto" ? 26 : n.on ? 42 : n.prog ? 22 : 10)))
-      .force("radial", d3.forceRadial(shell, 0, 0).strength(0.55))
+      .force("collide", d3.forceCollide((n) => (mode === "onto" ? 30 : n.on ? 42 : n.prog || n.unscr ? 22 : 10)))
+      .force("radial", d3.forceRadial(shell, 0, 0).strength(mode === "onto" ? 0.32 : 0.55))
       .force("drift", () => {   // slow breathing so the sky never freezes
         const t = (performance.now() - t0) / 1000;
         nodes.forEach((n) => { n.vx += Math.sin(t * 0.35 + n.phase) * 0.012; n.vy += Math.cos(t * 0.3 + n.phase) * 0.012; });
@@ -102,10 +102,10 @@
   function ontoShells() {   // the ontology: classes in shells by depth under their root class
     const parent = new Map();
     links.filter((l) => l.rel === "subClassOf").forEach((l) => parent.set(l.source, l.target));
-    nodes.forEach((n) => {
+    nodes.forEach((n, i) => {
       let d = 0, r = n;
       while (parent.has(r) && d < 6) { r = parent.get(r); d++; }
-      n.root = r.id; n.depth = d; n.shell = d === 0 ? 110 : d === 1 ? 220 : 330;
+      n.root = r.id; n.depth = d; n.shell = d === 0 ? 105 : d === 1 ? 205 + (i % 3) * 32 : 340;
     });
   }
 
@@ -121,7 +121,7 @@
     if (n.kind === "Rule") return "rule " + id.split("/").pop();
     if (n.kind === "Source") return "source · " + (n.doc || id);
     if (n.kind === "Concept") return n.label || id;
-    if (n.kind === "Authority" && (n.prog || n.unscr)) return id.replace(/^CMS-/, "");   // the PA programs: short names
+    if (n.kind === "Authority" && n.authority_kind === "pa_program") return id.replace(/^CMS-/, "");   // PA programs: short names
     if (n.kind === "DataElement" && n.name) return n.name.length > 24 ? n.name.slice(0, 22) + "…" : n.name;
     if (n.name) return n.name;
     if (n.kind === "Code" || n.kind === "DataElement") return id.split("|").slice(1).join(" ") || id;
@@ -130,12 +130,14 @@
   function paint() {
     const any = nodes.some((n) => n.on || n.cand);
     root.classed("dim", any);
-    gNodes.selectAll("g").attr("class", (n) => "node" + (n.on ? " on" : "") + (n.prog || n.unscr ? " prog" : "") + (n.cand ? " cand" : ""));
+    gNodes.selectAll("g").attr("class", (n) => "node" + (n.on ? " on" : "") + (n.prog ? " prog" : "") + (n.unscr ? " unscr" : "") + (n.cand ? " cand" : ""));
+    gNodes.selectAll("text").text((n) => nodeLabel(n));
     gNodes.selectAll("circle.core").attr("r", (n) => (n.on ? 7 : n.prog || n.cand || n.unscr ? 5.5 : S.view === "onto" ? 5 : 3.6))
-      .attr("fill", nodeColor).style("filter", (n) => `drop-shadow(0 0 ${n.on ? 8 : n.prog ? 6 : 3}px ${nodeColor(n)})`);
+      .attr("fill", nodeColor).style("filter", (n) => `drop-shadow(0 0 ${n.on ? 8 : n.prog || n.unscr ? 6 : 3}px ${nodeColor(n)})`);
     gNodes.selectAll("circle.halo").attr("r", (n) => (n.on && n.primary ? 16 : 0)).attr("stroke", nodeColor);
     gEdges.selectAll("line").attr("class", (l) => "edge" + (l.source.on && l.target.on ? " on" : "")
       + ((l.source.prog || l.target.prog) && (l.source.prog || l.source.on) && (l.target.prog || l.target.on) ? " prog" : "")
+      + ((l.source.unscr || l.target.unscr) && (l.source.unscr || l.source.on || l.source.prog) && (l.target.unscr || l.target.on || l.target.prog) ? " unscr" : "")
       + (l.source.cand && l.target.cand ? " cand" : ""));
     labelPass();
   }
@@ -170,7 +172,7 @@
   }
   $("zin").onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.4);
   $("zout").onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1 / 1.4);
-  $("zfit").onclick = () => { const f = nodes.filter((n) => n.on || n.prog); fitTo(f.length ? f : nodes); };
+  $("zfit").onclick = () => { const f = nodes.filter((n) => n.on || n.prog || n.unscr || n.cand); fitTo(f.length ? f : nodes); };
   $("zall").onclick = () => fitTo(nodes);
 
   function bfs(a, b, allowed) {
@@ -215,7 +217,7 @@
     sim.force("fx", d3.forceX(0).strength((n) => (on(n) ? 0.07 : 0)))
       .force("fy", d3.forceY(0).strength((n) => (on(n) ? 0.07 : 0)))
       .force("radial", d3.forceRadial((n) => (on(n) ? (SHELL[n.kind] ?? 300) * 0.6 : (SHELL[n.kind] ?? 300) + 120), 0, 0).strength((n) => (on(n) ? 0.25 : 0.5)))
-      .force("collide", d3.forceCollide((n) => (n.on ? 42 : n.prog ? 22 : 10)))
+      .force("collide", d3.forceCollide((n) => (n.on ? 42 : n.prog || n.unscr ? 22 : 10)))
       .alpha(0.6).restart();
     setTimeout(() => fitTo(nodes.filter(on), 1300), 900);
   }
@@ -245,7 +247,6 @@
     const add = (n) => n && set.add(n);
     add(node("Plan", cov.plan)); add(node("Program", cov.program)); add(node("Payer", String(cov.payer || "").toLowerCase()));
     const st = node("Jurisdiction", cov.state); add(st);
-    (st ? out(st, "WITHIN") : []).forEach(add);
     const code = node("Code", p.code); add(code);
     (code ? inn(code, "MAPS_TO") : []).forEach(add);
     const refs = new Set([...(p.rule_refs || []), ...((p.prior_authorization || {}).rule_refs || [])].map(bare));
@@ -257,6 +258,8 @@
       inn(r, "STATES").forEach((a) => (screen ? prog : set).add(a));
       if (!screen) { out(r, "SOURCED_FROM").forEach(add); out(r, "REQUIRES").forEach(add); out(r, "ABOUT").forEach(add); }
     });
+    // a region that holds the state (a contractor jurisdiction) lights up only when a rule in the answer binds it
+    (st ? out(st, "WITHIN") : []).filter((j) => (adj.get(j) || []).some(([m, l]) => l.rel === "BINDS" && (set.has(m) || prog.has(m)))).forEach(add);
     if (p.route) { const py = node("Payer", String(cov.payer || "").toLowerCase()); if (py) out(py, "EXPOSES").forEach(add); }
     // programs the answer names as not screened: "not screened against: A; B" lists their citations
     const unscr = new Set();
@@ -264,7 +267,7 @@
       .forEach((t) => t.replace("not screened against:", "").split(";").map((x) => x.trim()).forEach((cit) => {
         nodes.filter((n) => n.kind === "Authority" && n.name === cit).forEach((n) => unscr.add(n));
       }));
-    if (prog.size) { const us = node("Jurisdiction", "US"); if (us) prog.add(us); }
+    if (prog.size || unscr.size) { const us = node("Jurisdiction", "US"); if (us) prog.add(us); }
     nodes.forEach((n) => { n.on = set.has(n); n.prog = !n.on && prog.has(n); n.unscr = unscr.has(n); n.primary = n === prim; });
     paint();
     comets.length = 0;
@@ -323,11 +326,11 @@
       <div class="k">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
       ${clock ? `<div class="k">Deadline</div><div class="v">${esc(clock)}</div>` : ""}
+      <div class="k">Rule</div><div class="rule">${esc(prim.rule_ref || "none")} · ${esc(prim.citation || "")}</div>
+      ${quote && quote.quote ? `<div class="quote"><mark>${esc(quote.quote)}</mark><span class="ref">${esc(quote.citation || "")}${quote.page ? " · page " + esc(quote.page) : ""}</span></div>` : ""}
       ${route ? `<div class="k">Submit via</div><div class="v">${route.split("<br>").map(esc).join("<br>")}</div>` : ""}
       ${ev.length ? `<div class="k">Evidence to send</div><div class="v">${ev.join("<br>")}</div>` : ""}
       ${notChecked.length ? `<div class="k">Not checked here, confirm</div><div class="v">${notChecked.slice(0, 2).map(esc).join("<br>")}</div>` : ""}
-      <div class="k">Rule</div><div class="rule">${esc(prim.rule_ref || "none")} · ${esc(prim.citation || "")}</div>
-      ${quote && quote.quote ? `<div class="quote"><mark>${esc(quote.quote)}</mark><span class="ref">${esc(quote.citation || "")}${quote.page ? " · page " + esc(quote.page) : ""}</span></div>` : ""}
       <div class="k">Pack</div><div class="v mono" style="font-size:11px">${esc(p.pack_release)} · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
       <div class="agent-text hidden" id="agent-text"></div>`;
     $("ok").onclick = () => confirm(true);
@@ -449,7 +452,7 @@
       if (e.name === "journey_get" && e.payload && e.payload.status === "found") chip("patient record");
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
-      L.ms = performance.now() - L.t0; L.done = true; laneNumbers();
+      L.ms = performance.now() - L.t0; L.done = true; setBusy(false); laneNumbers();
     } else if (e.kind === "confirm") {
       chip(e.approved ? "approved by staff" : "rejected by staff", "tool");
       setTimeout(loadLog, 800);
@@ -480,6 +483,7 @@
   /* ---------------------------------------------------------------- orders, views, start-up */
   function pick(o) {
     S.order = o;
+    if (S.es) { S.es.close(); S.es = null; }
     document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.p === o.patient)));
     $("q-title").textContent = `${o.description.split(" (")[0]} · ${o.code}`;
     const f = o.facts, labs = ["hgb_g_dl", "hct_pct", "egfr", "creatinine_date"].filter((k) => f[k] != null).map((k) => `${k} ${f[k]}`).join(" · ");
@@ -488,6 +492,7 @@
     $("outcome").classList.add("hidden"); card(null); unfocus(); $("trace").innerHTML = "";
     S.live = { mode: null, turns: 0, tin: 0, tout: 0, t0: 0, ms: null, done: false };
     S.run = null;
+    setBusy(false);
     laneNumbers();
   }
   async function setView(v) {

@@ -76,25 +76,27 @@ button{font:inherit}
 .edge.on{stroke:rgba(163,230,53,.6);stroke-width:1.6}
 .edge.cand{stroke:rgba(167,139,250,.55)}
 .edge.prog{stroke:rgba(251,146,60,.5);stroke-width:1.3}
+.edge.unscr{stroke:rgba(251,113,133,.55);stroke-width:1.3}
 .node circle.core{transition:r .6s,opacity .6s,fill .6s}
 .node text{font-family:"JetBrains Mono";font-size:9px;fill:var(--mute);pointer-events:none;transition:opacity .4s}
 .node.on text{font-family:Outfit;font-weight:600;font-size:11px;fill:#f5f3ff}
 .node.prog text{fill:#fdba74}
-.dim .edge:not(.on):not(.prog):not(.cand){opacity:.25}
-.dim .node:not(.on):not(.prog):not(.cand) circle.core{opacity:.25}
+.node.unscr text{fill:#fda4af}
+.dim .edge:not(.on):not(.prog):not(.unscr):not(.cand){opacity:.25}
+.dim .node:not(.on):not(.prog):not(.unscr):not(.cand) circle.core{opacity:.25}
 .halo{fill:none;stroke-width:1;animation:halo 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes halo{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.6);opacity:.08}}
 
 .side{padding:18px 22px 12px 8px;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;z-index:2}
-.card{border-radius:16px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);transition:all .5s}
+.card{border-radius:16px;padding:13px 16px;background:var(--panel);border:1px solid var(--line);transition:all .5s}
 .card.live{border-color:var(--oc);box-shadow:0 0 30px color-mix(in srgb,var(--oc) 28%,transparent)}
 .card-empty{font-size:13px;color:var(--mute);line-height:1.5}
 .card h3{margin:0;font-family:Outfit;font-size:13px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
-.card .k{font-size:11px;color:var(--mute);margin-top:10px}
-.card .v{font-size:13px;line-height:1.45;margin-top:2px;overflow-wrap:anywhere}
-.card ul{margin:4px 0 0;padding-left:16px;font-size:12.5px;line-height:1.5}
+.card .k{font-size:10.5px;color:var(--mute);margin-top:7px}
+.card .v{font-size:12px;line-height:1.4;margin-top:2px;overflow-wrap:anywhere}
+.card ul{margin:3px 0 0;padding-left:16px;font-size:12px;line-height:1.4}
 .card .rule{font-family:"JetBrains Mono";font-size:11px;color:#c4b5fd;word-break:break-all}
-.quote{margin-top:8px;padding:10px 12px;border-radius:10px;background:#faf8f2;color:#292524;font-family:Georgia,serif;font-size:13px;line-height:1.55}
+.quote{margin-top:6px;padding:8px 11px;border-radius:10px;background:#faf8f2;color:#292524;font-family:Georgia,serif;font-size:13px;line-height:1.55}
 .quote mark{background:linear-gradient(90deg,rgba(250,204,21,.4),rgba(250,204,21,.4)) no-repeat;background-size:0 100%;color:inherit;animation:mark 1.4s ease-out .3s forwards}
 @keyframes mark{to{background-size:100% 100%}}
 .quote .ref{display:block;margin-top:6px;font-family:"JetBrains Mono";font-size:10px;color:#57534e}
@@ -117,10 +119,10 @@ button{font:inherit}
 .trace span.tool{border-color:rgba(167,139,250,.45);color:#ddd6fe}
 @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
 .lanes{display:flex;flex-direction:column;gap:5px}
-.lane{display:grid;grid-template-columns:26px 230px minmax(0,1fr) 390px;align-items:center;gap:14px;padding:5px 14px;border-radius:11px;border:1px solid color-mix(in srgb,var(--lc) 35%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 9%,transparent),rgba(4,5,12,.5))}
+.lane{display:grid;grid-template-columns:26px 270px minmax(0,1fr) 380px;align-items:center;gap:14px;padding:5px 14px;border-radius:11px;border:1px solid color-mix(in srgb,var(--lc) 35%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 9%,transparent),rgba(4,5,12,.5))}
 .lane .L{font-family:Outfit;font-weight:800;font-size:22px;color:var(--lc);text-shadow:0 0 14px var(--lc)}
 .lane .t{font-family:Outfit;font-weight:600;font-size:15px}
-.lane .s{font-size:11.5px;color:var(--mute)}
+.lane .s{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track{position:relative;height:26px;border-radius:10px;background:rgba(148,163,184,.07);overflow:hidden}
 .track canvas{position:absolute;inset:0;width:100%;height:100%}
 .nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;font-family:"JetBrains Mono"}

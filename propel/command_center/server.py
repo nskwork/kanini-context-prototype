@@ -100,10 +100,14 @@ def graph():
                                             " AS (a agtype, b agtype, l agtype)").fetchall()]
         c.execute('SET search_path = "$user", public')
         names = dict(c.execute("SELECT e.natural_key, d.name FROM kc_core.data_element d JOIN kc_core.entity e ON e.entity_id = d.entity_id").fetchall())
-        names.update(c.execute("SELECT e.natural_key, a.citation FROM kc_core.authority a JOIN kc_core.entity e ON e.entity_id = a.entity_id").fetchall())
-    for n in nodes:   # readable names from the pack: data elements by name, authorities by citation
+        akind = {}
+        for key, cit, kind in c.execute("SELECT e.natural_key, a.citation, a.kind FROM kc_core.authority a JOIN kc_core.entity e ON e.entity_id = a.entity_id").fetchall():
+            names[key], akind[key] = cit, kind
+    for n in nodes:   # readable names from the pack: data elements by name, authorities by citation and kind
         if n["kind"] in ("DataElement", "Authority") and n.get("id") in names:
             n["name"] = names[n["id"]]
+        if n["kind"] == "Authority" and n.get("id") in akind:
+            n["authority_kind"] = akind[n["id"]]
     return {"graph": g, "nodes": nodes, "edges": edges}
 
 
@@ -172,6 +176,8 @@ class Run:
         self.events: list[dict] = []
         self.cond = asyncio.Condition()
         self.confirm: asyncio.Future | None = None
+        self.task: asyncio.Task | None = None
+        self.stale = False   # replaced by a newer run: stops at its next model turn, without calling the model
         self.done = False
         self.t0 = time.perf_counter()
 
@@ -254,7 +260,16 @@ async def run_agent(run: Run):
              text="\n".join(p.text for p in parts if getattr(p, "text", None)))
         return out
 
+    own_before_model = agent.before_model_callback
+
+    def before_model(callback_context, llm_request):
+        if run.stale:   # no model call: the run ends here and its MCP sessions close normally
+            from google.adk.models.llm_response import LlmResponse
+            return LlmResponse(content=types.Content(role="model", parts=[types.Part(text="Stopped: a newer run replaced this one.")]))
+        return own_before_model(callback_context, llm_request) if own_before_model else None
+
     agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback = before_tool, after_tool, after_model
+    agent.before_model_callback = before_model
     svc = InMemorySessionService()
     runner = Runner(app_name="command_center", agent=agent, session_service=svc)
     s = await svc.create_session(app_name="command_center", user_id="staff")
@@ -278,6 +293,8 @@ async def run_agent(run: Run):
             await run.emit("confirm", approved=approved)
             msg = types.Content(role="user", parts=[types.Part(function_response=types.FunctionResponse(
                 id=confirm_id, name="adk_request_confirmation", response={"confirmed": approved}))])
+        if run.stale:
+            await run.emit("abandoned")
         await asyncio.sleep(0)
         await run.emit("done", llm_calls=usage["turn"], tokens_in=usage["in"], tokens_out=usage["out"])
     except Exception as ex:   # shown on the page; the run stops
@@ -301,12 +318,14 @@ async def start(body: dict):
     for old in list(RUNS.values()):   # a new run releases any run still waiting for approval
         if old.confirm and not old.confirm.done():
             old.confirm.cancel()
+        elif old.task and not old.task.done():   # still mid-run: it stops at its next model turn and closes its sessions
+            old.stale = True
     for rid in [r for r, x in RUNS.items() if x.done][:-20]:   # keep the last runs only
         RUNS.pop(rid, None)
     run = Run(pid, mode)
     RUNS[run.id] = run
     await run.emit("start", patient=pid, mode=mode, order=PATIENTS[pid]["orders"][0]["order_id"])
-    asyncio.create_task(run_agent(run) if mode == "agent" else run_workflow(run))
+    run.task = asyncio.create_task(run_agent(run) if mode == "agent" else run_workflow(run))
     return {"run": run.id}
 
 
@@ -331,6 +350,9 @@ async def events(rid: str, request: Request):
         while True:
             async with run.cond:
                 while i >= len(run.events):
+                    if run.done:   # a browser resuming after the last event: nothing more will come
+                        yield "retry: 86400000\n\n"
+                        return
                     try:
                         await asyncio.wait_for(run.cond.wait(), timeout=15)
                     except asyncio.TimeoutError:
