@@ -8,10 +8,10 @@ Prepared by NANDHU S K. Read with the prototype scope (12 Nov 2026), the scope f
 | --- | --- |
 | 1. Store | PostgreSQL 16 with Apache AGE 1.6.0 (`docker-compose.yml`). Answers come from the relational schema of spec v1.5; the AGE graph `ref_YYYY_MM` is a view of the same release for browsing and for scope test 1. Its nodes are the spec's classes (Payer, Plan, Jurisdiction, Concept for the scope's Service, Code, Rule, Source, ...); each Rule node carries its citation, page and cited passage. |
 | 2. Sources | 16 saved public documents, in `kanini_context/sources/manifest.json`: URL, edition, retrieval date, every check with its date, SHA-256 and size. The four in the scope, their two billing and coding articles, 42 CFR 422.568 and 422.572 as separate files, and the eight CMS documents that list the Original Medicare prior authorization programs and their code lists. |
-| 3. Rules | One rule file per source in `kanini_context/rules/`, drafted with a model and checked by `curation/checks.py` against the page (or the column of the page) each quote cites. The engineer approves each file with `curation/approve.py`. 16 rules, loaded as typed rows with their requirement items. |
+| 3. Rules | One rule file per source in `kanini_context/rules/`, drafted with a model and checked by `curation/checks.py` against the page (or the column of the page) each quote cites. The engineer approves each file with `curation/approve.py`. 19 rules, loaded as typed rows with their requirement items. |
 | 4. Context Service | FastMCP server: the scope's three tools (`context_applicable_rules`, `rules_evaluate`, `policy_search`) and the seven tools of spec 7.2, over the same SQL. Propel's journey tools are a second MCP server. |
-| 5. Agent | Google ADK agent on GPT-5 mini through LiteLLM, with staff approval of `journey_record` in `adk web`. |
-| 6. Tests | `tests/test_scope.py` (the 23 scope tests by number), `tests/test_pack.py`, and `tests/test_agent_live.py` (tests 9 and 21 to 23 with GPT-5 mini, when a key is set); the spec's 61 tests in `kanini_context/db/spec_regression/`. |
+| 5. Agent | Google ADK agent on GPT-5 mini through LiteLLM, with staff approval of `journey_record` in `adk web`. The same agent also runs in the browser dashboard (`propel/dashboard`), which shows the knowledge graph, the decision card, the approval step and the three ways of answering side by side. |
+| 6. Tests | `tests/test_scope.py` (the 23 scope tests by number), `tests/test_pack.py`, `tests/test_dashboard.py`, and `tests/test_agent_live.py` (tests 9 and 21 to 23 with GPT-5 mini, when a key is set); the spec's 61 tests in `kanini_context/db/spec_regression/`. |
 
 ## 2. Approval: one engineer, as the scope sets it
 

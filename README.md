@@ -168,7 +168,7 @@ classDiagram
 | Ontology file (6.1) | ✓ | ✓ generated at every build |
 | Regression tests (8) | 61 | ✓ same verdicts |
 
-Section by section, with the reasons: `docs/PROTOTYPE_NOTES.md`. Every schema and resolver change is listed at the top of `kanini_context/db/schema.sql` and `resolver.sql`.
+Section by section, with the reasons: `docs/PROTOTYPE_NOTES.md`. Every scope item and test mapped to its evidence: `docs/COVERAGE.md`. Every schema and resolver change is listed at the top of `kanini_context/db/schema.sql` and `resolver.sql`.
 
 ---
 
