@@ -25,7 +25,7 @@
     policy_search: "quote the source", journey_record: "log the decision"
   };
 
-  const S = { orders: [], order: null, inst: null, onto: null, view: "inst", compare: {}, run: null, es: null,
+  const S = { seq: 0, orders: [], order: null, inst: null, onto: null, view: "inst", compare: {}, run: null, es: null,
     live: { mode: null, turns: 0, tin: 0, tout: 0, t0: 0, ms: null, eval: null, quote: null } };
 
   /* ---------------------------------------------------------------- the star field behind everything */
@@ -348,7 +348,7 @@
     c.innerHTML = `<div class="panel-head"><span class="eyebrow">Decision card · ${esc(S.order?.order_id || "")}</span></div><div class="panel-body">
       <div class="verdict">${esc(label)}</div>
       <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map(why).join("; ")) : ""}</div>
-      ${lanes.B && (lanes.B.st.active || lanes.B.st.run) && !lanes.B.st.done ? '<div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>' : ""}
+      ${lanes.B && (lanes.B.st.awaiting || (lanes.B.st.active && !lanes.B.st.done)) ? '<div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>' : ""}
       <div class="answers" id="answers" aria-label="How each way answered"></div>
       <div class="k first">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
@@ -360,7 +360,10 @@
       ${notChecked.length ? `<div class="k">Not checked here, confirm</div><div class="v">${notChecked.slice(0, 2).map(esc).join("<br>")}</div>` : ""}
       <div class="k">Pack</div><div class="v">Release <span class="code">${esc(p.pack_release)}</span> · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
       <div class="agent-text hidden" id="agent-text"></div></div>`;
-    if ($("ok")) { $("ok").onclick = () => confirm(true); $("nok").onclick = () => confirm(false); }
+    if ($("ok")) {
+      $("ok").onclick = () => confirm(true); $("nok").onclick = () => confirm(false);
+      if (lanes.B.st.awaiting) { $("ok").disabled = false; $("nok").disabled = false; }
+    }
     renderAnswers();
     const o = $("outcome");
     o.classList.remove("hidden"); o.style.setProperty("--oc", color);
@@ -482,15 +485,19 @@
     if (S.view !== "inst") await setView("inst");
     which.forEach((L) => { const l = lanes[L]; if (l.st.es) l.st.es.close(); l.st = blank(); l.parts.length = 0; });
     if (which.includes("B") || which.includes("C")) clearAnswer();
-    await Promise.all(which.map(async (L) => {
+    const seq = ++S.seq;   // a newer run or order choice stops this sequence
+    for (const L of which) {   // one lane at a time, so each gets the model to itself and its time is its own
+      if (seq !== S.seq) return;
       const st = lanes[L].st; st.active = true; st.t0 = performance.now();
+      const finished = new Promise((res) => { st.finish = res; });
       const r = await (await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ patient: S.order.patient, mode: LANES[L][0] }) })).json();
       st.run = r.run;
       st.es = new EventSource(`/api/run/${r.run}/events`);
       st.es.onmessage = (m) => onEvent(L, JSON.parse(m.data));
-    }));
-    setBusy(); laneNumbers();
+      setBusy(); laneNumbers();
+      await finished;
+    }
   }
   function showAnswer(p) {   // the rules' answer: card and graph (from B or C, whichever comes first)
     const first = !S.eval;
@@ -532,9 +539,11 @@
       }
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
-      st.confirmed = true;
+      st.confirmed = true; st.awaiting = true;
+      if (st.finish) st.finish();
       st.ms = performance.now() - st.t0; st.done = true; st.active = false;
     } else if (e.kind === "confirm") {
+      st.awaiting = false;
       chip(e.approved ? "staff approved" : "staff rejected");
       setTimeout(loadLog, 800);
     } else if (e.kind === "abandoned") {
@@ -543,11 +552,12 @@
       if (st.es) { st.es.close(); st.es = null; }
       if (st.ms == null) st.ms = performance.now() - st.t0;
       st.done = true; st.active = false;
+      if (st.finish) st.finish();
       if (e.kind === "error") st.note = "Error: " + e.message;
       if (L === "B") {
         loadLog();
         const ok = $("ok");   // the agent finished without asking for approval (nothing to record): no buttons
-        if (ok && ok.disabled && !st.confirmed) ok.closest(".approve").remove();
+        if (ok && !st.awaiting && !st.confirmed) ok.closest(".approve").remove();
       }
     }
     setBusy(); laneNumbers();
@@ -568,6 +578,7 @@
   /* ---------------------------------------------------------------- orders, views, start-up */
   function pick(o) {
     S.order = o;
+    S.seq = (S.seq || 0) + 1;   // stop any sequence still running
     closeAll();
     document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.p === o.patient)));
     $("q-title").innerHTML = `${esc(o.description.split(" (")[0].split(",")[0])} <span class="code">${esc(o.code)}</span>`;
@@ -596,7 +607,7 @@
   $("view-onto").onclick = () => setView("onto");
   $("run-agent").onclick = () => race(["B"]);
   $("run-flow").onclick = () => race(["C"]);
-  $("run-race").onclick = () => race(["C", "B", "A"]);
+  $("run-race").onclick = () => race(["A", "B", "C"]);
 
   (async function init() {
     const get = (u, fb) => fetch(u).then((r) => (r.ok ? r.json() : fb)).catch(() => fb);

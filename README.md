@@ -97,7 +97,7 @@ flowchart LR
 | **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
 | **Schema** | The same view of the ontology: 53 classes and 17 relations from `kanini-context.ttl`. |
 | **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
-| **The race** | All three run live on the chosen order, together ("Race all three") or one at a time. A sends the policy documents to the AI and marks its answer against the rules; B counts the agent's model calls; C times the lookup with no AI. Nothing is shown before a run except the last comparison, labelled as such. |
+| **The race** | All three run live on the chosen order, in turn ("Run A, B, C in turn", each lane on its own so its time is its own) or one at a time. A sends the policy documents to the AI and marks its answer against the rules; B counts the agent's model calls; C times the lookup with no AI. Nothing is shown before a run except the last comparison, labelled as such. |
 
 `--scripted` runs a scripted stand-in model, for a rehearsal with no API key; the page says so.
 
