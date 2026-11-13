@@ -130,11 +130,16 @@ def build_graph(cur, graph: str) -> tuple[int, int] | None:
         body = ", ".join(f"{k}: ${k}" for k in props)   # keys are fixed names above; values go in as parameters
         cur.execute(f"SELECT * FROM cypher('{graph}', $$ CREATE (v:{label(etype)} {{{body}}}) $$, %s) AS (v agtype)",
                     (json.dumps(props),))
+    # The links view gives a binding one target (its plan, else its program, else its jurisdiction); in the graph a
+    # binding scoped to a program and a state also links the authority to that state, so where a rule applies can be
+    # followed as edges. Repeated bindings (one per state or date) give one edge per target.
     edges = cur.execute("""
         SELECT relation_type, from_id::text, to_id::text FROM kc_core.graph_edges WHERE upper_inf(recorded)
-        UNION ALL SELECT 'sourced_from', r.rule_id::text, 'source:' || sn.source_id
+        UNION SELECT 'binds', b.authority_id::text, b.jurisdiction_id::text FROM kc_core.authority_binding b
+          WHERE upper_inf(b.recorded) AND b.jurisdiction_id IS NOT NULL AND coalesce(b.plan_id, b.program_id) IS NOT NULL
+        UNION SELECT 'sourced_from', r.rule_id::text, 'source:' || sn.source_id
           FROM kc_core.rule r JOIN kc_core.snapshot sn ON sn.snapshot_id = r.snapshot_id WHERE upper_inf(r.recorded)
-        UNION ALL SELECT 'copy_of', snapshot_id::text, 'source:' || source_id FROM kc_core.snapshot""").fetchall()
+        UNION SELECT 'copy_of', snapshot_id::text, 'source:' || source_id FROM kc_core.snapshot""").fetchall()
     n = 0
     for rel, a, b in edges:
         if a not in kinds or b not in kinds:
