@@ -853,6 +853,23 @@
      Results from repeated testing (propel/baseline/compare.py), never from a live run: an LLM application without
      Kanini Context answering the same six orders five times each, beside Kanini Context's two ways. Every number is
      read from the latest comparison report. */
+  const PLAIN = { no_pa: "No PA", pa_required: "PA required", exempt: "Exempt", other_gate: "Other gate", needs_facts: "Not yet known",
+    unknown: "Not known", unparseable: "no readable answer", "no card": "no decision card" };
+  function whatBroke(x) {   // order by order: the rules' answer, each baseline's wrong answers and why (propel/baseline/failures.py)
+    if (!x || !x.orders) return "";
+    const part = (it, name, r, key) => {
+      if (!it) return "";
+      const broke = it.broke.map((b) => `${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(b.why)}.`).join(" ");
+      const ret = key === "search" && "deciding_page_found" in it && r.deciding
+        ? ` <span class="t-ret">The deciding page was ${it.deciding_page_found ? "among" : "<b>not</b> among"} the ${it.passages} passages retrieved`
+          + ("other_region" in it ? `; ${it.other_region} came from ${esc(it.other_region_name)}'s policy, ${it.own_region} from ${esc(r.state)}'s` : "") + ".</span>" : "";
+      return `<div class="t-line"><span class="t-who">${name}</span> right ${it.right} of ${it.runs}.${broke ? " " + broke : ""}${it.broke.length ? ret : ""}</div>`;
+    };
+    return `<h4 class="t-h4">What broke, order by order</h4><p class="t-when">Test run started ${esc(x.when || "")}; each order answered 5 times by each way.</p>`
+      + x.orders.map((r) => `<div class="t-order"><div class="t-o"><code>${esc(r.order)}</code> the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
+        + (r.deciding ? `, resting on ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it, so it goes to staff" : "") + `</div>`
+        + part(r.agent, "Same agent, no context", r, "agent") + part(r.search, "Search (RAG)", r, "search") + part(r.whole, "Every document", r, "whole") + `</div>`).join("");
+  }
   function renderTesting() {
     const box = $("testing"), cmp = S.compare || {}, scs = Object.values(cmp.scenarios || {});
     if (!scs.length) { box.innerHTML = '<p class="t-empty">No comparison report yet. Run <code>python -m propel.baseline.compare --runs 5</code>.</p>'; return; }
@@ -895,6 +912,7 @@
       + `${tile("B", "B · AI agent asks Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}</div>`
       + `<table class="t-table"><thead><tr><th>Order</th><th>The rules say</th>${hasA ? "<th>A · same agent, no context</th>" : ""}<th>Search (RAG)</th><th>Read all</th><th>B · agent</th><th>C · no AI</th></tr></thead><tbody>${rows}</tbody></table>`
       + `<ul class="t-find">${find.map((f) => `<li>${f}</li>`).join("")}</ul>`
+      + whatBroke(cmp.explain)
       + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.</p>`;
   }
 

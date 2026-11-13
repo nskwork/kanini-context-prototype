@@ -378,3 +378,19 @@ def test_no_context_agent_tools_and_card(monkeypatch):
     assert N.card_outcome("Decision card · ord-1\n**Outcome:** No PA – safe to act") == "no_pa"
     assert N.card_outcome("Outcome: Not yet known (facts needed) · not safe to act") == "needs_facts"
     assert N.card_outcome("no card here") is None
+
+
+def test_what_broke_names_the_wrong_answers_and_the_missing_page():
+    # propel/baseline/failures.py: from a report, each wrong answer set against the rules, and whether search found
+    # the page the rule rests on.
+    from propel.baseline import failures
+    rep = {"at": "2026-11-13T14:42:57+00:00", "scenarios": {"1": {
+        "patient": "maria-oh", "reference_outcome": "no_pa",
+        "A_rag": {"runs": 5, "matches_rules": 0, "outcomes": {"other_gate": 5}, "tokens_in": 8000},
+        "A_rag_sent": {"passages": [{"title": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237)", "page": 4}]}}}}
+    x = failures.explain(rep)["orders"][0]
+    assert x["rules"] == "no_pa" and x["search"]["broke"][0]["answer"] == "other_gate"
+    assert "Tennessee's eGFR limit" in x["search"]["broke"][0]["why"]
+    assert x["search"]["deciding_page_found"] is False and x["search"]["other_region"] == 1
+    md = failures.to_markdown({"at": rep["at"], "orders": [x]})
+    assert "13 Nov 2026, 08:42 Central time" in md and "**not** among" in md

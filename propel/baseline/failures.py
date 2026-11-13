@@ -1,0 +1,153 @@
+"""What broke in testing: order by order, how the baselines without Kanini Context answered and why that was wrong.
+
+Worked out from a comparison report (propel/baseline/compare.py) and the release itself, never written by hand:
+
+- the rules' answer for each order, and the source page it rests on (the deciding rule's cited page);
+- each baseline's answers across the runs, and every wrong answer set against what the rules require;
+- for search (RAG), whether the deciding page was among the passages retrieved, and how many passages came from
+  another region's policy than the one that governs the order.
+
+The README section "What broke in testing" and the dashboard's Testing tab both come from explain().
+
+    python -m propel.baseline.failures propel/baseline/results/compare-20261113-0850.json    # prints the markdown
+"""
+from __future__ import annotations
+
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from kanini_context import env  # noqa: E402,F401
+
+import psycopg  # noqa: E402
+
+MANIFEST = json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())
+BY_SHA = {m["sha256"]: m for m in MANIFEST if m.get("sha256")}
+PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"]
+LABEL = {"no_pa": "No PA", "pa_required": "PA required", "exempt": "Exempt", "other_gate": "Other gate",
+         "needs_facts": "Not yet known", "unknown": "Not known", "unparseable": "no readable answer", "no card": "no decision card"}
+# the policy documents of each Medicare contractor region in the library (by source id)
+REGION_DOCS = {"Tennessee": {"mcd-lcd-l39237", "mcd-article-a58982"}, "Ohio": {"mcd-lcd-l34356", "mcd-article-a56462"}}
+STATE_NAME = {"TN": "Tennessee", "OH": "Ohio"}
+TITLE_TO_ID = {m["title"]: m["source_id"] for m in MANIFEST}
+
+
+def rules_answer(pid: str) -> dict:
+    """The approved rules' answer for the patient's open order, as Kanini Context gives it."""
+    p = PATIENTS[pid]
+    o = p["orders"][0]
+    f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
+    with psycopg.connect(f"dbname={env.CLIENT_DB}") as c:
+        return c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)", (p["coverage"]["plan"], p["coverage"]["state"],
+                         "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f))).fetchone()[0]
+
+
+def deciding_page(ev: dict) -> dict | None:
+    """The source page the deciding rule rests on: its document (as in the library) and page."""
+    cit = (ev.get("primary_rule") or {}).get("citation")
+    src = next((s for s in ev.get("sources") or [] if s.get("citation") == cit), None)
+    m = BY_SHA.get((src or {}).get("sha256"))
+    if not src or not m:
+        return None
+    return {"source_id": m["source_id"], "title": m["title"], "citation": cit, "page": src.get("page")}
+
+
+def why_wrong(rules: str, ai: str, ev: dict) -> str:
+    """What a wrong answer gets wrong, set against what the rules require for the order."""
+    plain = {"hgb_g_dl": "hemoglobin", "hct_pct": "hematocrit", "egfr": "eGFR", "creatinine_date": "creatinine date"}
+    names = [plain.get(k, k.replace("_", " ")) for k in ((x.get("fact") or x.get("name")) if isinstance(x, dict) else str(x)
+                                                         for x in ev.get("missing_facts") or [])]
+    missing = ("a " + " or ".join(sorted(names)) + " result") if names else ""
+    table = {
+        ("no_pa", "needs_facts"): "every fact the rule tests is on the order",
+        ("no_pa", "other_gate"): "the order meets the coverage criteria that govern it",
+        ("no_pa", "pa_required"): "no approval is needed for this order",
+        ("other_gate", "no_pa"): "the order does not meet the coverage criteria",
+        ("pa_required", "needs_facts"): "the plan's list requires PA for this code whatever the facts",
+        ("pa_required", "no_pa"): "the plan's list requires PA for this code",
+        ("unknown", "pa_required"): "the plan's list names this drug only with a cancer diagnosis, so the documents do not settle this order",
+        ("unknown", "no_pa"): "the documents do not settle this order",
+        ("needs_facts", "no_pa"): f"the order lacks {missing or 'a fact the rule requires'}, so it cannot be decided yet",
+        ("needs_facts", "other_gate"): f"the order lacks {missing or 'a fact the rule requires'}, so it cannot be decided yet",
+    }
+    return table.get((rules, ai), f"the rules say {LABEL.get(rules, rules)}")
+
+
+def explain(report: dict) -> dict:
+    """Per order: the rules' answer and deciding page, and for each baseline its answers and what broke."""
+    out = {"at": report.get("at"), "orders": []}
+    for sc, e in report.get("scenarios", {}).items():
+        pid = e["patient"]
+        ev = rules_answer(pid)
+        rules = e.get("reference_outcome") or ev["outcome"]   # the rules' answer when the test ran
+        dp = deciding_page(ev) if rules != "unknown" else None   # "not known" rests on no page: nothing settles it
+        state = STATE_NAME.get(PATIENTS[pid]["coverage"]["state"])
+        row = {"order": pid, "rules": rules, "deciding": dp, "state": state, "plan": PATIENTS[pid]["coverage"]["plan"]}
+        for key, name in (("A_rag", "search"), ("A_whole", "whole"), ("A_agent", "agent")):
+            s = e.get(key) or (e.get("A") if key == "A_agent" and "A_rag" in e else None)   # the dashboard's merged report names it A
+            if not s:
+                continue
+            wrong = {o: n for o, n in s["outcomes"].items() if o != rules}
+            item = {"runs": s["runs"], "right": s["matches_rules"], "answers": s["outcomes"], "tokens": s["tokens_in"],
+                    "broke": [{"answer": o, "runs": n, "why": why_wrong(rules, o, ev)} for o, n in sorted(wrong.items(), key=lambda x: -x[1])]}
+            got = e.get("A_rag_sent") or e.get("A_sent")
+            if key == "A_rag" and got:
+                sent = [TITLE_TO_ID.get(p["title"]) for p in got["passages"]]
+                item["passages"] = len(sent)
+                item["deciding_page_found"] = bool(dp) and any(p["page"] == dp["page"] and TITLE_TO_ID.get(p["title"]) == dp["source_id"]
+                                                           for p in got["passages"])
+                if state in REGION_DOCS and row["plan"] == "original-medicare":
+                    other = next(r for r in REGION_DOCS if r != state)
+                    item["own_region"] = sum(1 for x in sent if x in REGION_DOCS[state])
+                    item["other_region"] = sum(1 for x in sent if x in REGION_DOCS[other])
+                    item["other_region_name"] = other
+            if row["plan"] == "original-medicare" and state == "Ohio":   # Tennessee's limit applied to an Ohio order
+                for b in item["broke"]:
+                    if b["answer"] == "other_gate":
+                        b["why"] += "; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60)"
+            row[name] = item
+        out["orders"].append(row)
+    return out
+
+
+def _when(at: str | None) -> str:
+    if not at:
+        return "date not recorded"
+    t = datetime.fromisoformat(at).astimezone(ZoneInfo("America/Chicago"))
+    return t.strftime("%d %b %Y, %H:%M Central time")
+
+
+def to_markdown(x: dict, report_name: str = "") -> str:
+    lines = [f"Test run started {_when(x['at'])}" + (f" (`propel/baseline/results/{report_name}`)" if report_name else "")
+             + ". Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.", ""]
+    for r in x["orders"]:
+        dp = r["deciding"]
+        lines.append(f"**`{r['order']}`**: the rules say **{LABEL.get(r['rules'], r['rules'])}**"
+                     + (f", resting on {dp['citation']}, page {dp['page']}." if dp
+                        else ": the documents do not settle it, so the order goes to staff." if r["rules"] == "unknown" else "."))
+        for key, name in (("agent", "Same agent, no context"), ("search", "Search (RAG)"), ("whole", "Every document")):
+            it = r.get(key)
+            if not it:
+                continue
+            head = f"- {name}: right {it['right']} of {it['runs']}"
+            if not it["broke"]:
+                lines.append(head + ".")
+                continue
+            lines.append(head + ". " + " ".join(f"{b['runs']} run{'s' if b['runs'] > 1 else ''} answered {LABEL.get(b['answer'], b['answer'])}: "
+                                               f"{b['why']}." for b in it["broke"]))
+            if key == "search" and dp and "deciding_page_found" in it:
+                note = (f"  The deciding page was {'among' if it['deciding_page_found'] else '**not** among'} the {it['passages']} passages retrieved"
+                        + (f"; {it['other_region']} came from {it['other_region_name']}'s policy and {it['own_region']} from {r['state']}'s"
+                           if "other_region" in it else "") + ".")
+                lines.append(note)
+        lines.append("")
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    path = Path(sys.argv[1])
+    print(to_markdown(explain(json.loads(path.read_text())), path.name))

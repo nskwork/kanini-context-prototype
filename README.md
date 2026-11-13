@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-72%20of%2072%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-73%20of%2073%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -54,6 +54,40 @@ Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Report
 | `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ❌ 1/5 | ⚠️ 3/5 | ✅ 5/5 used it | key |
 | `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ❌ 0/5 | ✅ 5/5 used it | key |
 | `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 2/5 | ⚠️ 3/5 | ✅ 5/5 used it | key |
+
+### What broke in testing
+
+Order by order, how the two baselines without Kanini Context answered, and what each wrong answer got wrong, set against the approved rules. Generated from the test report by `python -m propel.baseline.failures <report.json>`, the same text the dashboard's Testing tab shows.
+
+Test run started 13 Nov 2026, 08:42 Central time (`propel/baseline/results/compare-20261113-0850.json`). Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.
+
+**`maria-tn`**: the rules say **No PA**, resting on LCD L39237, page 7.
+- Search (RAG): right 3 of 5. 2 runs answered Not yet known: every fact the rule tests is on the order.
+  The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
+- Every document: right 5 of 5.
+
+**`maria-tn-egfr52`**: the rules say **Other gate**, resting on LCD L39237, page 7.
+- Search (RAG): right 5 of 5.
+- Every document: right 5 of 5.
+
+**`maria-oh`**: the rules say **No PA**, resting on LCD L34356, page 8.
+- Search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+  The deciding page was **not** among the 16 passages retrieved; 12 came from Tennessee's policy and 2 from Ohio's.
+- Every document: right 2 of 5. 3 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
+
+**`maria-uhc`**: the rules say **PA required**, resting on UHC MA prior authorization requirements, page 17.
+- Search (RAG): right 1 of 5. 4 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
+  The deciding page was among the 16 passages retrieved.
+- Every document: right 3 of 5. 2 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
+
+**`maria-uhc-esa`**: the rules say **Not known**: the documents do not settle it, so the order goes to staff.
+- Search (RAG): right 0 of 5. 5 runs answered PA required: the plan's list names this drug only with a cancer diagnosis, so the documents do not settle this order.
+- Every document: right 0 of 5. 4 runs answered PA required: the plan's list names this drug only with a cancer diagnosis, so the documents do not settle this order. 1 run answered No PA: the documents do not settle this order.
+
+**`maria-nohgb`**: the rules say **Not yet known**, resting on LCD L39237, page 7.
+- Search (RAG): right 2 of 5. 3 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
+  The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
+- Every document: right 3 of 5. 2 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
 
 ### Tests
 
@@ -236,7 +270,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 72 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 73 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090

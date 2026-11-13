@@ -190,6 +190,12 @@ def compare():
     if not out["scenarios"]:
         return {}
     out["file"] = out["files"].get("A") or next(iter(out["files"].values()), "")
+    try:   # what broke, order by order, for the Testing tab (same text as the README section)
+        from propel.baseline import failures
+        out["explain"] = failures.explain({"at": (out.get("at") or {}).get("A_rag"), "scenarios": out["scenarios"]})
+        out["explain"]["when"] = failures._when(out["explain"]["at"])
+    except Exception as ex:
+        print(f"[dashboard] testing explanation not available: {ex}", flush=True)
     return out
 
 

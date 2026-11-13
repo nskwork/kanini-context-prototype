@@ -131,7 +131,7 @@ def run_a(pid: str, mode: str = "rag") -> dict:
     except (ValueError, TypeError):
         ans = {"outcome": "unparseable"}
     u = resp.usage
-    return {"outcome": ans.get("outcome"), "safe_to_act": ans.get("safe_to_act"), "llm_calls": 1,
+    return {"outcome": ans.get("outcome"), "safe_to_act": ans.get("safe_to_act"), "llm_calls": 1, "reasons": ans.get("reasons") or [],
             "tokens_in": u.prompt_tokens, "tokens_out": u.completion_tokens, "ms": ms, "rule": ans.get("citation")}
 
 
@@ -242,7 +242,7 @@ async def run_a_agent_async(pid: str, model=None) -> dict:
         await ts.close()
     return {"outcome": N.card_outcome("\n".join(texts)) or "no card", "safe_to_act": None, "llm_calls": usage["calls"],
             "tokens_in": usage["in"], "tokens_out": usage["out"], "ms": ms, "setup_ms": setup_ms, "rule": None,
-            "pages_read": usage["reads"], "searches": usage["searches"]}
+            "pages_read": usage["reads"], "searches": usage["searches"], "card": "\n".join(texts)[-1200:]}
 
 
 def run_a_agent(pid: str) -> dict:
@@ -313,6 +313,9 @@ def main(argv: list[str]) -> int:
                 for m in a_modes:
                     runs_m = [run_a_agent(pid) if m == "agent" else run_a(pid, m) for _ in range(args.runs)]
                     entry[f"A_{m}"] = summarise(runs_m, ref)
+                    # every run's answer and the AI's own words, so what broke can be quoted later
+                    entry[f"A_{m}_runs"] = [{"outcome": r["outcome"], "reasons": r.get("reasons"), "card": r.get("card"),
+                                             "rule_cited": r.get("rule")} for r in runs_m]
                     if m == "agent":
                         entry["A_agent"]["pages_read"] = statistics.mean(r["pages_read"] for r in runs_m)
                         entry["A_agent"]["searches"] = statistics.mean(r["searches"] for r in runs_m)

@@ -361,3 +361,9 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .testing{padding:14px 20px 16px}
 .t-head p{margin-bottom:10px}
 .t-table td,.t-table th{padding:5px 8px}
+.t-h4{font-family:var(--display);font-size:var(--s-md);margin:14px 0 2px}
+.t-when{margin:0 0 8px;font-size:var(--s-xs);color:var(--mute)}
+.t-order{padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:var(--s-sm);color:var(--ink2);line-height:1.5}
+.t-o{color:var(--ink);margin-bottom:3px} .t-o code{font-family:var(--code);font-size:12px;color:var(--violet);margin-right:6px}
+.t-line{padding-left:12px} .t-who{display:inline-block;min-width:150px;font-weight:700;color:var(--rose)}
+.t-ret{color:var(--amber)} .t-line b{color:var(--ink)}
