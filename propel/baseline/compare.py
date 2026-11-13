@@ -1,7 +1,7 @@
 """How many LLM calls and tokens Kanini Context saves, and whether answers repeat.
 
 Each demo scenario is answered three ways, several times:
-  A  LLM reads the policies   GPT-5 mini gets the policy text for the patient's coverage and decides (no Kanini Context)
+  A  LLM + policy library   GPT-5 mini answers from the whole policy library, by RAG or read whole (no Kanini Context)
   B  agent with Kanini        the Propel agent calls the Kanini Context tools; the outcome comes from rules_evaluate
   C  workflow with Kanini     Propel calls rules_evaluate directly; no LLM at all
 
@@ -115,7 +115,7 @@ def run_c(pid: str) -> dict:
             "ms": ms, "rule": (r.get("primary_rule") or {}).get("rule_ref")}
 
 
-# --- A: the LLM reads the policies --------------------------------------------------------------------------------
+# --- A: a plain LLM application over the policy library --------------------------------------------------------------------------------
 
 def run_a(pid: str, mode: str = "rag") -> dict:
     import litellm
@@ -236,7 +236,7 @@ def main(argv: list[str]) -> int:
     global A_EFFORT
     A_EFFORT = args.a_effort
     a_modes = [m for m in args.a_docs.split(",") if m in A_MODES]
-    if not args.offline and not _server_up():
+    if not args.offline and args.only != "A" and not _server_up():
         print(f"Kanini Context server not reachable at {os.environ.get('KC_MCP_URL')}; mode B needs it.\n"
               "Start it in another terminal first:  python -m kanini_context.server.mcp_server --http 8765")
         return 1

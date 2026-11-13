@@ -6,7 +6,7 @@
 
 A context layer for prior authorization: reviewed payer and Medicare rules, served to AI agents and workflows through MCP tools, with the source page behind every answer.
 
-![tests](https://img.shields.io/badge/tests-68%20of%2068%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-69%20of%2069%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -64,6 +64,38 @@ Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Report
 | Dashboard: release graph and schema, live runs of A, B and C (`tests/test_dashboard.py`) | ✅ pass |
 | Schema specification v1.5, 61 regression tests (`kanini_context/db/spec_regression/`) | ✅ same verdicts as the specification |
 
+### Scope tests, one by one
+
+The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. Last run: 69 of 69 passed, 13 Nov 2026.
+
+| # | Scope test | The scope expects | Result | Difference from the scope's example |
+| --: | :-- | :-- | :--: | :-- |
+| 1 | Rules loaded | the scope's rules listed with source and date | ✅ pass | 19 rules: the three in the scope (checked by id, source and date) plus the billing articles, UnitedHealthcare rules and CMS program screens |
+| 2 | Region, Tennessee | L39237 resolved for Original Medicare in TN | ✅ pass | Citation reads "LCD L39237, Coverage Criteria B" |
+| 3 | Region, Ohio | L34356 resolved for Original Medicare in OH | ✅ pass | none |
+| 4 | Date | unavailable: no edition loaded for a date before the LCD | ✅ pass | Next step is the code `human_review` (route to staff) |
+| 5 | Evaluate (four calls) | No PA, Other gate, No PA (Ohio), Not yet known | ✅ pass | Called with the order (plan, state, code, date, facts) rather than a rule id; 5d asks for Hb or HCT, as L39237 accepts either |
+| 6 | Medicare Advantage plan | PA required, evidence from the UHC policy, 72 h / 24 h clock | ✅ pass | Run with IV iron J1439: UnitedHealthcare lists the ESA only with a cancer diagnosis (`docs/SCOPE_FINDINGS.md`) |
+| 7 | Unknown payer | no rule found, not safe, route to staff | ✅ pass | none |
+| 8 | Input guard | invalid input: unexpected field | ✅ pass | Nothing is written to the audit table |
+| 9 | Agent end to end | trace journey.get → applicable rules → evaluate → policy search, then the card | ✅ pass | Same four tools; the rules lookup and the evaluation run in one model turn. Also run with GPT-5 mini |
+| 10 | Decision log | approved entry with order, outcome, rule and reviewer | ✅ pass | Plus 10b: the logged decision replays with the same rule edition |
+| 11 | Missing field | invalid input: missing field: plan | ✅ pass | none |
+| 12 | Malformed date | invalid input: date_of_service must be a date | ✅ pass | none |
+| 13 | Unknown service | no rule found, route to staff | ✅ pass | none |
+| 14 | State outside the loaded regions | no rule found for CA | ✅ pass | Reason reads "no coverage policy loaded for CA", since the pack also holds non-LCD policies |
+| 15 | Date beyond the pack | unavailable: pack not current for 2027 | ✅ pass | none |
+| 16 | Boundary, eGFR | eGFR 45 is not < 45: Other gate | ✅ pass | none |
+| 17 | Boundary, hemoglobin | Hb 10.0 is not < 10: Other gate | ✅ pass | With Hb 10.0 alone the answer asks for HCT (L39237 accepts either); with HCT 31 it is Other gate |
+| 18 | Implausible value | invalid input: egfr out of range | ✅ pass | none |
+| 19 | Stale lab | creatinine older than the LCD allows: Other gate | ✅ pass | Tennessee only: L34356 sets no time limit |
+| 20 | Overlapping rule version | load rejected: overlapping active versions; graph unchanged | ✅ pass | none |
+| 21 | Context Service unavailable | agent says it cannot reach Kanini Context and routes to staff | ✅ pass | Also run with GPT-5 mini |
+| 22 | Instruction to skip checks | trace still shows the rules tools; answer from the tools | ✅ pass | With GPT-5 mini on `maria-uhc`, where the prompt's "no PA" contradicts the rules. Plus 22b: a card that contradicts the rules is corrected |
+| 23 | Staff rejects the decision | rejected entry with the reviewer; nothing approved | ✅ pass | Also run with GPT-5 mini |
+
+Every difference is explained in `docs/COVERAGE.md`, section 6.
+
 ---
 
 ## How it works
@@ -102,7 +134,7 @@ flowchart LR
 | **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
 | **Schema** | The same view of the ontology: 53 classes and 17 relations from `kanini-context.ttl`. |
 | **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
-| **The race** | All three run live on the chosen order, in turn ("Run A, B, C in turn", each lane on its own so its time is its own) or one at a time. A sends the policy documents to the AI and marks its answer against the rules; B counts the agent's model calls; C times the lookup with no AI. Nothing is shown before a run except the last comparison, labelled as such. |
+| **The race** | All three run live on the chosen order, in turn ("Run A, B, C in turn", each lane on its own so its time is its own) or one at a time. A is a plain LLM application with no Kanini Context: it ranks the whole policy library against the order, sends the best 16 passages to the AI (hover the lane to see them) and marks its answer against the rules; B counts the agent's model calls; C times the lookup with no AI. Nothing is shown before a run except the last comparison, labelled as such. |
 
 `--scripted` runs a scripted stand-in model, for a rehearsal with no API key; the page says so.
 
@@ -202,12 +234,13 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 68 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 69 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
 adk web propel/agent                                        # or the plain ADK web UI, http://127.0.0.1:8000
-python -m propel.baseline.compare --runs 5                  # the A / B / C comparison
+python -m propel.baseline.compare --runs 5                  # the A / A' / B / C comparison (B needs the server running)
+python -m propel.baseline.compare --runs 5 --only A         # A (RAG) and A' (whole library) only; no server needed
 ```
 
 <details>
@@ -219,6 +252,7 @@ python -m propel.baseline.compare --runs 5                  # the A / B / C comp
 | `python -m kanini_context.sources.place --record FOLDER` | Records a newly saved source copy (hash, size, date) |
 | `python -m kanini_context.release.sync` | Records a client sync on the demo day |
 | `python -m propel.baseline.compare --offline` | Mode C and A's prompt sizes, with no model calls |
+| `python -m propel.baseline.compare --a-docs rag` | A by RAG only (`whole` for the whole library only) |
 
 </details>
 
