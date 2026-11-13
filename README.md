@@ -18,42 +18,41 @@ Prepared by NANDHU S K
 
 ---
 
-## Latest results · 12 Nov 2026
+## Latest results · 13 Nov 2026
 
-> **Lane A is changing (13 Nov).** A now uses no part of Kanini Context: it answers from the whole policy library, either by RAG (the best 16 passages for the order, about 9,000 tokens) or by reading every document whole (about 139,000 tokens with the 10 base documents). The numbers below are from the earlier set-up, where A was given the pages Kanini Context picked; the run with the new A replaces them.
+Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Reports: `propel/baseline/results/compare-20261113-0850.md` (A and A'), `compare-20261112-2256.md` (B).
 
-Six synthetic orders, five runs each, GPT-5 mini. B at reasoning effort low; A at low, then again at medium. Reports: `propel/baseline/results/compare-20261112-2210.md` (A low), `compare-20261112-2238.md` (A medium) and `compare-20261112-2256.md` (B again, with the model's own card).
+> **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A and A' are a plain LLM application with no Kanini Context, answering from the same 16-document policy library, and are graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
 
-> **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A is the AI deciding on its own and is graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
-
-| | **A** · AI reads the policy documents | **B** · AI agent asks Kanini Context | **C** · no AI: the approved rules, applied directly |
-| :-- | :--: | :--: | :--: |
-| **Against the answer key** | 21 of 30 at low effort; 23 of 30 at medium | 30 of 30 used the rules' answer | *is the key* |
-| **Model calls per order** | 1 | 4 to 5 | **0** |
-| **Input tokens per order** | 22,455 to 39,313, given only the pages Kanini Context picked for the order | 10,512 to 13,671 | **0** |
-| **Input tokens if A reads the documents whole** | 39,193 to 74,580 | not needed | not needed |
-| **Time per order** | 6.7 to 9.1 s at low; 15 to 22 s at medium | 8.3 to 23 s, once the tool connections are open (about 3 s, once per service start) | **0.03 s** |
-| **Same answer every run** | no | yes | yes |
+| | **A** · AI + RAG over the library | **A'** · AI reads the whole library | **B** · AI agent asks Kanini Context | **C** · no AI: the approved rules, applied directly |
+| :-- | :--: | :--: | :--: | :--: |
+| **What the AI is given** | the 16 passages that best match the order | all 16 documents, whole | the rules' answer for the order, through tools | no AI |
+| **Against the answer key** | 11 of 30 match | 18 of 30 match | 30 of 30 used the rules' answer | *is the key* |
+| **Model calls per order** | 1 (plus one embedding lookup) | 1 | 4 to 5 | **0** |
+| **Input tokens per order** | 7,605 to 9,343 | 147,525 | 10,512 to 13,671 | **0** |
+| **Time per order** | 4.6 to 6.7 s | 7.1 to 11 s | 7.1 to 16 s, once its tool connections are open | **0.03 s** |
+| **Same answer every run** | no | no | yes | yes |
 
 **In plain words**
 
+- **Without Kanini Context, the AI gets it wrong often.** Searching the library (RAG), it matched the rules 11 times in 30; reading every document, 18 in 30, at about 148,000 tokens per order.
+- **Retrieval picks the wrong region.** For the Ohio order, RAG brought back twelve passages of the Tennessee billing article and only one page each of Ohio's LCD (not its coverage criteria page) and Ohio's article. The AI answered "other gate" in 5 runs of 5: the Tennessee answer for eGFR 52, where Ohio allows < 60. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.
+- **Silence is read as a rule.** On the anemia drug under UnitedHealthcare, where the list names it only with a cancer diagnosis, both A and A' said "PA required" (one run of A' said "No PA"); none routed it to staff, the answer the documents support.
 - **C is the point.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time. C is not "more accurate" than A; it is the reviewed answer, delivered with no model call.
-- **B is the assistant.** When staff want an explanation, the agent uses about a third of A's tokens and can only ever state what the rules returned. It is not faster than A: four short model calls take about as long as one long one, or longer.
-- **More reasoning does not fix A.** At medium effort A takes twice as long and gets the missing-hemoglobin case right 4 times in 5 instead of 2, but still says "PA required" for the anemia drug under UnitedHealthcare in all 5 runs, where the list is silent and the right answer is "route to staff". It also answered "needs facts" once on the IV iron order, which needs PA, in both runs.
-- **A was given only the pages Kanini Context selected**, which favours A: without the pack it would also have to find the right documents and pages. Read whole, the same documents are 39,193 to 74,580 tokens per order.
-- **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
-- **The model's own card agreed with the rules every time it wrote one before approval: 8 of 8** (`compare-20261112-2256`). On the four orders that get recorded, GPT-5 mini sends the record request first and writes the card after staff approve, so those cards were not counted. Either way, the card's Outcome line is set from the rules before anyone sees it, and the decision log takes its fields from the rules, not the model.
+- **B is the assistant.** When staff want an explanation, the agent uses 4 to 5 short model calls, about 12,000 tokens, and can only state what the rules returned. Its own decision card agreed with the rules every time it wrote one before approval (8 of 8); when it sends the record request alone, the card is written from the rules, so staff always see it before approving.
+- **Even the right pages are not enough.** In an earlier run A was handed exactly the pages Kanini Context picked for each order and still matched only 21 of 30 at low reasoning effort, 23 of 30 at medium (`compare-20261112-2210.md`, `compare-20261112-2238.md`).
+- **Not counted in any lane:** the one-off model use when the rules were drafted from the documents, and embedding the library once for RAG.
 
 ### Scenario by scenario
 
-| Order | Answer key (rules say) | A, low | A, medium | B | C |
+| Order | Answer key (rules say) | A, RAG | A', whole library | B | C |
 | :-- | :-- | :--: | :--: | :--: | :--: |
-| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
+| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ⚠️ 3/5 | ✅ 5/5 | ✅ 5/5 used it | key |
 | `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ⚠️ 4/5 | ⚠️ 4/5 | ✅ 5/5 used it | key |
+| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ❌ 0/5 | ⚠️ 2/5 | ✅ 5/5 used it | key |
+| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ❌ 1/5 | ⚠️ 3/5 | ✅ 5/5 used it | key |
 | `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ❌ 0/5 | ✅ 5/5 used it | key |
-| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 2/5 | ⚠️ 4/5 | ✅ 5/5 used it | key |
+| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 2/5 | ⚠️ 3/5 | ✅ 5/5 used it | key |
 
 ### Tests
 
