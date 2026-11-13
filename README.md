@@ -10,22 +10,22 @@
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
 ![stack](https://img.shields.io/badge/PostgreSQL%2016%20%C2%B7%20Apache%20AGE%20%C2%B7%20FastMCP%20%C2%B7%20Google%20ADK-334155?style=flat-square)
 
-**[Results](#-results)** · **[Every run](#-every-test-every-run)** · **[What broke](#-what-broke-without-the-context-layer)** · **[How it works](#%EF%B8%8F-how-it-works)** · **[Dashboard](#%EF%B8%8F-dashboard)** · **[Tests](#-tests-and-scope-coverage)** · **[Schema](#-the-schema)** · **[Run it](#%EF%B8%8F-run-it)**
+[Results](#results) · [Every test run](#every-test-run) · [What each run got wrong](#what-each-run-got-wrong) · [How it works](#how-it-works) · [Dashboard](#dashboard) · [Tests](#tests-and-scope-coverage) · [Schema](#schema) · [Running it](#running-it)
 
 <sub>Prepared by NANDHU S K</sub>
 
 </div>
 
 > [!IMPORTANT]
-> **The objective:** show the value of the Kanini Context layer, and how it reduces or eliminates repeated LLM calls for information that is already in the context. So the comparison is the same agent with and without it.
+> The prototype has to show what the Kanini Context layer is worth, and how it reduces or removes repeated LLM calls for information the context already holds. So the comparison runs the same agent with and without it.
 
 <br>
 
-## 📊 Results
+## Results
 
 <img src="docs/assets/results.svg" alt="The same agent without Kanini Context, with it, and Kanini Context with no AI" width="100%">
 
-<sub>Drawn from the reports in <code>propel/baseline/results/</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines). Every run, order by order: <a href="#-every-test-every-run">Every test, every run</a>.</sub>
+<sub>Drawn from the reports in <code>propel/baseline/results/</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines). Every run, order by order, is under <a href="#every-test-run">Every test run</a>.</sub>
 
 | | **A** · same agent, no context | **B** · agent with Kanini Context (reduce) | **C** · Kanini Context, no AI (eliminate) |
 | :-- | :--: | :--: | :--: |
@@ -37,18 +37,24 @@
 | **Same answer every run** | no: changed between runs on 4 of 6 orders (6 of 6 in the first run) | yes | yes |
 
 > [!NOTE]
-> **How to read this.** A is the Propel agent with no Kanini Context: same model, same patient-record tool, and document tools (list, search, read pages) in place of the context layer, so it finds and reads the policy itself for every order. B is the same agent with Kanini Context. C is Kanini Context with no AI. C is the answer key: the engineer-approved rules applied by plain code, so it cannot score anything but full marks; its column shows cost and repeatability.
+> A is the Propel agent with no Kanini Context. It has the same model and the same patient-record tool, plus three document tools (list, search, read pages) in place of the context layer, so it finds and reads the policy itself for every order. B is the same agent with Kanini Context. C is Kanini Context with no AI: the engineer-approved rules applied by plain code. C is the answer key, so it always scores full marks, and its column is there to show cost and repeatability.
 
 <details>
 <summary><b>How each lane is graded, and what the answer key rests on</b></summary>
 
 <br>
 
-Whether the key is right rests on the rules: each quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). B takes its answer from the rules by design, so its check is that the agent asked the rules the right question; when it asks to record a decision without writing a card, its card is filled in from the rules' answer, while A is graded on the Outcome line of the card it writes itself, on the outcome alone: A was not told what the rules mean by safe to act (safe to proceed on this answer, which includes submitting a required PA), and it marks most "PA required" cards "not safe to act". Counting that flag too, A would match 13 of 30 in its second run instead of 18. A's document tools are a plain library: the documents' own titles, a search over every document with no filter by state, and page reads; working out which contractor's policy governs an order is part of what the context layer does.
+The key is only as good as the rules. Each rule quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed, for the reason given in `docs/SCOPE_FINDINGS.md`).
+
+B takes its answer from the rules by design, so B's check is whether the agent asked the rules the right question. If it asks to record a decision without writing a card, the card is filled in from the rules' answer.
+
+A is graded on the Outcome line of the card it writes itself, and on the outcome alone. Nobody told A what the rules mean by "safe to act" (safe to proceed on this answer, which includes submitting a required PA), and it marks most "PA required" cards "not safe to act". Counting that flag as well, A's second run would match 13 of 30 instead of 18.
+
+A's document tools are a plain library: the documents' own titles, a search over every document with no filter by state, and page reads. Working out which contractor's policy governs an order is part of the job the context layer does.
 
 </details>
 
-### In plain words
+### What changes with the context layer
 
 <table>
 <tr>
@@ -56,19 +62,22 @@ Whether the key is right rests on the rules: each quotes its source page and was
 
 **🔴 Without the context layer**
 
-- **It works the answer out again for every order, and gets it wrong two times in five.** It searched and read the policy on every order, used about twice B's tokens, matched the rules 18 times in 30 (16 in its first run), and gave more than one answer to the same question on 4 of the six orders.
-- **It reads the wrong region's policy.** On the Ohio order it answered "Other gate" in 3 of 5 runs (4 of 5 in the first run), each time relying on Tennessee's billing article A58982: its eGFR limit of 45 (Ohio's is 60) or its list of CKD codes, which leaves out the stage 3a code N18.31 that Ohio's article lists. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.
-- **It reads silence as a rule.** On the anemia drug under UnitedHealthcare it said "PA required" in 5 of 5 runs (4 of 5 in the first), writing that the plan's list "explicitly lists Erythropoiesis Stimulating Agents (J0885) as requiring prior authorization". The list names J0885 only under cancer supportive care, for a cancer diagnosis (page 7), and this patient has none; the documents do not settle the order, so it goes to staff.
-- **It invents requirements.** On the Tennessee order that needs no PA, it answered "Not yet known" in 2 of 5 runs (3 of 5 in the first), asking for iron studies the approved coverage rule does not test.
+A searches and reads the policy again for every order. It used about twice B's tokens, matched the rules 18 times in 30 (16 in its first run), and gave more than one answer to the same question on 4 of the six orders. Its wrong answers fall into three groups.
+
+- On the Ohio order it read Tennessee's policy. It answered "Other gate" in 3 of 5 runs (4 of 5 in the first), each time relying on Tennessee's billing article A58982: either its eGFR limit of 45 (Ohio's is 60) or its list of CKD codes, which leaves out the stage 3a code N18.31 that Ohio's article includes. Kanini Context binds each rule to its contractor region, so an Ohio order only ever meets Ohio's rules.
+- On the anemia drug under UnitedHealthcare it treated the plan's silence as a rule. It said "PA required" in 5 of 5 runs (4 of 5 in the first), writing that the plan's list "explicitly lists Erythropoiesis Stimulating Agents (J0885) as requiring prior authorization". The list names J0885 only under cancer supportive care, for a cancer diagnosis (page 7), and this patient has none. The documents do not settle the order, so it should go to staff.
+- On the Tennessee order that needs no PA, it answered "Not yet known" in 2 of 5 runs (3 of 5 in the first) and asked for iron studies that the approved coverage rule does not test.
 
 </td>
 <td width="50%" valign="top">
 
 **🟢 With Kanini Context**
 
-- **B reduces.** With Kanini Context the same agent makes 4 to 5 short calls, reads no document text and can only state what the rules returned, with source, edition and safe-to-act flag. When it sends the record request without a card, the card is written from the rules, so staff always see it before approving.
-- **C eliminates.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time.
-- **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
+B is how Kanini Context reduces the calls. The same agent makes 4 to 5 short calls, reads no document text, and can only state what the rules returned, with the source, edition and safe-to-act flag. If it sends the record request without a card, the card is written from the rules, so staff always see one before approving.
+
+C is how it removes them. Once the rules have been read, checked and approved, deciding an order needs no model: it takes 30 milliseconds and gives the same answer every time.
+
+Neither lane counts the one-off model use when the rules were first drafted from the documents.
 
 </td>
 </tr>
@@ -87,9 +96,9 @@ Whether the key is right rests on the rules: each quotes its source page and was
 
 <br>
 
-## 🧪 Every test, every run
+## Every test run
 
-Every comparison kept in `propel/baseline/results/`, on the same six orders, five answers per order per run. Besides lane A, two plain LLM applications were tested, each answering in a single call from the same 16-document library: **search (RAG)**, sent the 16 passages that best match the order, and **every document**, sent the whole library. One more run handed a single call exactly the pages Kanini Context picked for each order.
+These are all the comparisons in `propel/baseline/results/`. Each covers the same six orders, with five answers per order per run. Besides lane A, two plain LLM applications answered in a single call from the same 16-document library. Search (RAG) was sent the 16 passages that best match the order; every document was sent the whole library. One more pair of runs gave a single call exactly the pages Kanini Context picked for each order.
 
 <img src="docs/assets/history.svg" alt="Every test run, order by order: answers that matched the approved rules out of five" width="100%">
 
@@ -106,19 +115,19 @@ Every comparison kept in `propel/baseline/results/`, on the same six orders, fiv
 | 13 Nov, 10:48 | **A**: same agent, no context, run 2 | search and page tools over the library | 18 of 30 | 18,387 to 27,025 | `compare-20261113-1056` |
 
 > [!WARNING]
-> **The same prompt gave a different score.** Search (RAG) was sent the identical 16 passages for every order in both of its runs, and every document the identical library, yet the scores moved from 11 to 16 of 30 and from 18 to 20 of 30. Without the context layer the answer depends on the run, not only on the input.
+> Search (RAG) was sent the identical 16 passages for every order in both of its runs, and every document was sent the identical library. The scores still moved, from 11 to 16 of 30 and from 18 to 20 of 30.
 
-### The five ways it broke
+### Five kinds of mistake
 
-Wrong answers out of five, per run (run 1 · run 2). Each row is one kind of mistake; the orders are in the figure above, and the AI's own words for each are in [What broke](#-what-broke-without-the-context-layer).
+Wrong answers out of five, per run (run 1 · run 2). Each row is one kind of mistake. The AI's own words for each are under [What each run got wrong](#what-each-run-got-wrong).
 
 | Mistake | Order, and what the rules say | A · no context | Search (RAG) | Every document | Pages picked by Kanini Context | B |
 | :-- | :-- | :--: | :--: | :--: | :--: | :--: |
-| 🗺️ **Read the wrong region's policy** | `maria-oh`: No PA, Ohio allows eGFR < 60 | 4 · 3 | **5 · 5** | 3 · 1 | 0 · 0 | 0 |
-| 🔇 **Read silence as a rule** | `maria-uhc-esa`: Not known, route to staff | 4 · 5 | **5 · 5** | 4 · 5 | **5 · 5** | 0 |
-| 🩸 **Missed a missing fact** | `maria-nohgb`: Not yet known, get the hemoglobin | 1 · 1 | 3 · 3 | 2 · 2 | 3 · 1 | 0 |
-| ➕ **Invented a requirement** | `maria-tn`: No PA | 3 · 2 | 2 · 0 | 0 · 1 | 0 · 0 | 0 |
-| 📋 **Asked for facts the plan's list does not need** | `maria-uhc`: PA required | 1 · 1 | 4 · 1 | 2 · 0 | 1 · 1 | 0 |
+| Read the wrong region's policy | `maria-oh`: No PA, Ohio allows eGFR < 60 | 4 · 3 | **5 · 5** | 3 · 1 | 0 · 0 | 0 |
+| Read silence as a rule | `maria-uhc-esa`: Not known, route to staff | 4 · 5 | **5 · 5** | 4 · 5 | **5 · 5** | 0 |
+| Missed a missing fact | `maria-nohgb`: Not yet known, get the hemoglobin | 1 · 1 | 3 · 3 | 2 · 2 | 3 · 1 | 0 |
+| Invented a requirement | `maria-tn`: No PA | 3 · 2 | 2 · 0 | 0 · 1 | 0 · 0 | 0 |
+| Asked for facts the plan's list does not need | `maria-uhc`: PA required | 1 · 1 | 4 · 1 | 2 · 0 | 1 · 1 | 0 |
 | Other one-off answers | | 1 · 0 | 0 · 0 | 1 · 1 | 0 · 0 | 0 |
 | **Wrong, all six orders** | | **14 · 12** | **19 · 14** | **12 · 10** | **9 · 7** | **0** |
 
@@ -126,29 +135,33 @@ Wrong answers out of five, per run (run 1 · run 2). Each row is one kind of mis
 <tr>
 <td width="33%" valign="top">
 
-**🟠 Search (RAG): what broke it**
+**🟠 Search (RAG)**
 
-- **It never retrieved the deciding page** on any of the four Original Medicare orders: LCD L39237 page 7 for Tennessee, L34356 page 8 for Ohio. It found it only for `maria-uhc` (the UHC list, page 17).
-- **It retrieved the wrong state.** For the Ohio order, 12 of the 16 passages came from Tennessee's policy and 2 from Ohio's: 0 of 5 in both runs, every answer "Other gate" under Tennessee's limit of 45. The Tennessee orders got 2 passages of Ohio's.
-- Cheapest of the no-context ways (about 8,200 tokens), and the least accurate: 27 of 60.
+It never retrieved the page that decides any of the four Original Medicare orders (LCD L39237 page 7 for Tennessee, L34356 page 8 for Ohio). It found the deciding page only for `maria-uhc` (the UHC list, page 17).
+
+For the Ohio order, 12 of the 16 passages came from Tennessee's policy and 2 from Ohio's. It scored 0 of 5 in both runs, every answer "Other gate" under Tennessee's limit of 45. The Tennessee orders got 2 passages of Ohio's.
+
+At about 8,200 tokens it was the cheapest way without the context layer, and the least accurate: 27 of 60.
 
 </td>
 <td width="33%" valign="top">
 
-**🟣 Every document: what broke it**
+**🟣 Every document**
 
-- **It costs about 147,500 tokens per order**, about 13 times B, on every order, for 38 of 60.
-- **Having the right page did not help.** The Ohio and Tennessee policies were both in the prompt; it still applied Tennessee's limits to Ohio in 3 of 5 runs, then 1 of 5.
-- **It read the cancer-only listing as a rule** for the anemia drug in 9 of 10 answers.
+It costs about 147,500 tokens per order, about 13 times B, and scored 38 of 60.
+
+Both the Ohio and the Tennessee policies were in the prompt, and it still applied Tennessee's limits to Ohio in 3 of 5 answers in its first run and 1 of 5 in its second. It read the cancer-only listing as a rule for the anemia drug in 9 of 10 answers.
 
 </td>
 <td width="33%" valign="top">
 
 **⚪ Pages picked by Kanini Context**
 
-- Given exactly the documents the pack binds to each order, so the wrong-region mistake disappears: 21 then 23 of 30.
-- **The answer still has to be worked out by the model**, and it still misread silence as a rule on all 10 answers for the anemia drug, and missed the missing hemoglobin in 4 of 10.
-- Not a fair no-context baseline (the pack did the finding), so it is not lane A.
+This call was given exactly the documents the pack binds to each order, so the wrong-region mistake went away: 21, then 23 of 30.
+
+The model still had to work the answer out from the text. It treated silence as a rule on all 10 answers for the anemia drug and missed the missing hemoglobin in 4 of 10.
+
+The pack did the finding here, so this is not a fair no-context baseline and it is not lane A.
 
 </td>
 </tr>
@@ -156,11 +169,11 @@ Wrong answers out of five, per run (run 1 · run 2). Each row is one kind of mis
 
 <br>
 
-## 🔍 What broke without the context layer
+## What each run got wrong
 
-Order by order: how each way without Kanini Context answered in its latest test, what each wrong answer got wrong against the approved rules, and the AI's own words and the source it cited. Click an order to open it.
+For each order: how each way without Kanini Context answered in its latest test, where each wrong answer departs from the approved rules, and the AI's own words with the source it cited.
 
-<sub>Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. Same agent, no context: test run started 13 Nov 2026, 10:48 Central time (`compare-20261113-1056.json`). Search (RAG): test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). Every document: test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). Generated by <code>python -m propel.baseline.failures &lt;reports&gt; --collapsible</code>; the dashboard's Testing tab shows the same text.</sub>
+<sub>Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. Same agent, no context: test run started 13 Nov 2026, 10:48 Central time (`compare-20261113-1056.json`). Search (RAG): test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). Every document: test run started 13 Nov 2026, 10:23 Central time (`compare-20261113-1031.json`). The dashboard's Testing tab shows the same text; <code>python -m propel.baseline.failures &lt;reports&gt; --collapsible</code> rebuilds it.</sub>
 
 <details><summary><code>maria-tn</code> · rules say <b>No PA</b> · A ⚠️ 3/5 · search ✅ 5/5 · every doc ⚠️ 4/5</summary>
 
@@ -235,7 +248,7 @@ The rules' answer rests on LCD L39237, page 7.
 
 <br>
 
-## ⚙️ How it works
+## How it works
 
 ```mermaid
 flowchart LR
@@ -256,29 +269,29 @@ flowchart LR
   end
 ```
 
-- **The outcome always comes from `rules_evaluate`:** SQL over reviewed rules, so the same question gets the same answer.
-- **The model chooses the tools and writes the explanation, but it cannot change the outcome.** Before `journey_record` runs, its fields are replaced with what `rules_evaluate` returned, and the card's Outcome line is set from the same result.
-- **Silence is never "no".** No rule found, a missing fact, an aging source or an unscreened program all route to staff, naming the reason.
+The outcome always comes from `rules_evaluate`, which is SQL over reviewed rules, so the same question gets the same answer. The model chooses the tools and writes the explanation. It cannot change the outcome: before `journey_record` runs, its fields are replaced with what `rules_evaluate` returned, and the card's Outcome line is set from the same result.
+
+When the rules say nothing, the answer is never "no PA". No rule found, a missing fact, an aging source or an unscreened program each send the order to staff with the reason.
 
 <br>
 
-## 🖥️ Dashboard
+## Dashboard
 
-`python -m propel.dashboard.server` opens the demo in a browser (http://127.0.0.1:8090). It runs the same agent and tools as `adk web` and shows each step as it happens:
+`python -m propel.dashboard.server` opens the demo in a browser at http://127.0.0.1:8090. It runs the same agent and tools as `adk web` and shows each step as it happens.
 
 | | |
 | :-- | :-- |
-| **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
+| **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and dots travel the path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
 | **Schema** | The ontology as a class diagram, read from `kanini-context.ttl` at every release: one box per class with its fields and its kinds (53 classes, 93 fields), the Terminology and Coverage groups as frames, and the 17 relations as named arrows. Click a class to see all its fields and zoom to its neighbours; after an answer, the classes it passed through glow. |
 | **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
-| **Without and with Kanini Context** | Three lanes run live on the chosen order, in turn or one at a time. **A** is the same agent and model with no Kanini Context: it searches and reads the policy documents itself for every order (each search and page shows as it happens) and its answer is marked against the rules. **B** is the agent with Kanini Context (reduce: short calls, no document text). **C** is Kanini Context with no AI (eliminate). Nothing shows before a run; after it, each mark comes with how often that way was right in testing. |
+| **Without and with Kanini Context** | Three lanes run live on the chosen order, in turn or one at a time. **A** is the same agent and model with no Kanini Context: it searches and reads the policy documents itself for every order (each search and page shows as it happens) and its answer is marked against the rules. **B** is the agent with Kanini Context, making short calls with no document text. **C** is Kanini Context with no AI. The lanes are empty until a run; after it, each mark shows how often that way was right in testing. |
 | **Testing** | The same six orders over repeated runs, from `propel/baseline/results/`: the agent without the context layer, and earlier baselines (an LLM application with search, or with every document), with how often each was right, how often its answer changed between runs, tokens and calls, and the reasons it went wrong. |
 
-`--scripted` runs a scripted stand-in model, for a rehearsal with no API key; the page says so.
+With `--scripted` it uses a scripted stand-in model and needs no API key. The page says when it is in that mode.
 
 <br>
 
-## ✅ Tests and scope coverage
+## Tests and scope coverage
 
 | Suite | Result |
 | :-- | :-- |
@@ -293,7 +306,7 @@ flowchart LR
 
 <br>
 
-The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. Last full run on the engineer's laptop: all tests passed, 13 Nov 2026 (the count is in the badge above).
+The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. The last full run, on the engineer's laptop on 13 Nov 2026, passed every test.
 
 | # | Scope test | The scope expects | Result | Difference from the scope's example |
 | --: | :-- | :-- | :--: | :-- |
@@ -327,22 +340,22 @@ Every difference is explained in `docs/COVERAGE.md`, section 6.
 
 <br>
 
-## 🧬 The schema
+## Schema
 
-The database is the specification's schema. The release also writes it out as an OWL ontology (`kanini_context/release/kanini-context.ttl`) and an Apache AGE graph, all from the same registry.
+The database uses the specification's schema. Each release also writes it out as an OWL ontology (`kanini_context/release/kanini-context.ttl`) and an Apache AGE graph, both from the same registry.
 
 <img src="docs/assets/schema.svg" alt="The Kanini Context schema: coverage, authorities and rules, provenance, terminology, and the facts a rule needs" width="100%">
 
-<sub>Drawn from the release's ontology file (<code>kanini-context.ttl</code>), so it shows the classes, fields and relations as built. The dashboard's Schema tab shows the same model interactively, with every field.</sub>
+<sub>Drawn from the release's ontology file (<code>kanini-context.ttl</code>). The dashboard's Schema tab has the same model with every field, and you can click through it.</sub>
 
-**How an order travels through it:** the order's plan and state select a **Plan** and its **Jurisdiction** (coverage) → the **Authorities** that *bind* them → the **Rules** they *state* that are *about* the order's **Code** (directly or through a **ValueSet**), in force on the date of service → each rule's **DataElements** are checked against the order's facts → the answer carries the rule's **source quote and locator**, and the **Snapshot** it was read from.
+An order's plan and state pick out a Plan and its Jurisdiction. From there the resolver finds the Authorities that bind them, and the Rules those authorities state about the order's Code (directly or through a ValueSet) that are in force on the date of service. Each rule's DataElements are checked against the order's facts, and the answer carries the rule's source quote and locator and the Snapshot it was read from.
 
 | | Specification v1.5 | Built in the prototype |
 | :-- | :--: | :--: |
 | Classes | 51 | **53**: adds `CoverageCriteria` (rule kind) and `PaProgram` (authority kind) |
 | Relations | 17 | **17**: as specified |
 | Attributes | 89 | **93**: adds `rule_key`, `review_exception`, `closed_list`, `covers_through` |
-| Rule kinds | 5 | **6**: adds `coverage_criteria`, so medical-necessity criteria are tested, not just PA |
+| Rule kinds | 5 | **6**: adds `coverage_criteria`, so medical-necessity criteria are tested as well as PA |
 | Layers and effects (4.1) | ✓ | ✓ unchanged resolver logic |
 | Dates: four bounds and record time (5.1) | ✓ | ✓ every tool takes an "as recorded" moment, so any answer can be replayed |
 | "Not required" (4.6) | from a stated rule | also `stated_by_exhaustion`: only when every program bound to the plan, state and date is a screened closed list |
@@ -352,11 +365,11 @@ The database is the specification's schema. The release also writes it out as an
 | Ontology file (6.1) | ✓ | ✓ generated at every build |
 | Regression tests (8) | 61 | ✓ same verdicts |
 
-Section by section, with the reasons: `docs/PROTOTYPE_NOTES.md`. Every scope item and test mapped to its evidence: `docs/COVERAGE.md`. Every schema and resolver change is listed at the top of `kanini_context/db/schema.sql` and `resolver.sql`.
+`docs/PROTOTYPE_NOTES.md` goes through the build section by section with the reasons, and `docs/COVERAGE.md` maps every scope item and test to its evidence. The schema and resolver changes are listed at the top of `kanini_context/db/schema.sql` and `resolver.sql`.
 
 <br>
 
-## 📦 What's in the pack
+## What the pack holds
 
 | | |
 | :-- | :-- |
@@ -368,7 +381,7 @@ Section by section, with the reasons: `docs/PROTOTYPE_NOTES.md`. Every scope ite
 
 <br>
 
-## ▶️ Run it
+## Running it
 
 Needs Docker and Python 3.12 or 3.13.
 
@@ -387,7 +400,7 @@ pytest                                                      # 75 tests; strict: 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
 adk web propel/agent                                        # or the plain ADK web UI, http://127.0.0.1:8000
-python -m propel.baseline.compare --runs 5                  # the A / A' / B / C comparison (B needs the server running)
+python -m propel.baseline.compare --runs 5                  # the A / B / C comparison (B needs the server running)
 python -m propel.baseline.compare --runs 5 --only A         # lane A only (the agent without Kanini Context); no server needed
 python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the one-call baselines: search and every document
 ```
@@ -421,7 +434,7 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 | `propel/baseline/` | The A / B / C comparison |
 | `propel/dashboard/` | The browser dashboard: FastAPI server, page, vendored d3 and fonts |
 | `tests/` | Scope tests 1 to 23, pack tests, live-model tests, scripted model |
-| `docs/` | Scope findings, prototype notes, demo script |
+| `docs/` | Scope findings, prototype notes, coverage map, README figures |
 
 </details>
 
@@ -430,8 +443,7 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 
 LCD L39237 accepts "Hb < 10 g/dL **or** HCT < 30%", so either result settles it:
 
-- **Test 5, no hemoglobin:** the answer asks for hemoglobin or hematocrit.
-- **Test 17, Hb exactly 10.0:** with a hematocrit of 30% or more the answer is "other gate"; with no hematocrit it is "not yet known".
+In test 5, with no hemoglobin, the answer asks for hemoglobin or hematocrit. In test 17, with Hb exactly 10.0, the answer is "other gate" if the hematocrit is 30% or more and "not yet known" if there is no hematocrit.
 
 </details>
 
