@@ -20,7 +20,7 @@ Prepared by NANDHU S K
 
 ## Latest results · 12 Nov 2026
 
-Six synthetic orders, five runs each, GPT-5 mini. B at reasoning effort low; A at low, then again at medium. Reports: `propel/baseline/results/compare-20261112-2210.md` (A low) and `compare-20261112-2238.md` (A medium).
+Six synthetic orders, five runs each, GPT-5 mini. B at reasoning effort low; A at low, then again at medium. Reports: `propel/baseline/results/compare-20261112-2210.md` (A low), `compare-20261112-2238.md` (A medium) and `compare-20261112-2256.md` (B again, with the model's own card).
 
 > **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A is the AI deciding on its own and is graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
 
@@ -40,7 +40,7 @@ Six synthetic orders, five runs each, GPT-5 mini. B at reasoning effort low; A a
 - **More reasoning does not fix A.** At medium effort A takes twice as long and gets the missing-hemoglobin case right 4 times in 5 instead of 2, but still says "PA required" for the anemia drug under UnitedHealthcare in all 5 runs, where the list is silent and the right answer is "route to staff". It also answered "needs facts" once on the IV iron order, which needs PA, in both runs.
 - **A was given only the pages Kanini Context selected**, which favours A: without the pack it would also have to find the right documents and pages. Read whole, the same documents are 39,193 to 74,580 tokens per order.
 - **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
-- **How often the model writes the right outcome on its own card** is being measured again: the first count compared the card's wording character for character, so a different dash or capital counted as wrong.
+- **The model's own card agreed with the rules every time it wrote one before approval: 8 of 8** (`compare-20261112-2256`). On the four orders that get recorded, GPT-5 mini sends the record request first and writes the card after staff approve, so those cards were not counted. Either way, the card's Outcome line is set from the rules before anyone sees it, and the decision log takes its fields from the rules, not the model.
 
 ### Scenario by scenario
 

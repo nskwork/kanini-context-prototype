@@ -194,14 +194,17 @@ async def run_b_async(pid: str) -> dict:
                 r = r.get("structuredContent") or (json.loads(r["content"][0]["text"]) if r.get("content") else r)
                 outcome, ev_result = r.get("outcome"), r
     ms = (time.perf_counter() - t) * 1000
-    from propel.agent.authorization_agent.agent import outcome_line_agrees
-    lines = [ln for x in texts for ln in x.splitlines() if "outcome:" in ln.lower()]
+    from propel.agent.authorization_agent.agent import _OUTCOME_LINE, outcome_line_agrees
+    # the card's own Outcome line (same pattern the guard uses), not other lines that mention an outcome
+    lines = [m.group(0).strip() for x in texts for m in _OUTCOME_LINE.finditer(x)]
     for ts in agent.tools:
         await ts.close()
     return {"outcome": outcome, "safe_to_act": None, "llm_calls": usage["calls"], "tokens_in": usage["in"],
             "tokens_out": usage["out"], "ms": ms, "setup_ms": setup_ms, "rule": None,
             # the model's card states the rules' outcome and safe-to-act flag in its own words (before any correction)
-            "card_by_model": bool(lines) and all(outcome_line_agrees(ln, ev_result) for ln in lines),
+            # None: no card before the approval prompt (the model sent the record request alone and writes the card
+            # after staff approve, which is not part of answering); otherwise whether its card agrees with the rules
+            "card_by_model": (all(outcome_line_agrees(ln, ev_result) for ln in lines) if lines else None),
             "card_lines": lines}
 
 
@@ -219,6 +222,7 @@ def summarise(runs: list[dict], ref: str) -> dict:
             "tokens_in": statistics.mean(r["tokens_in"] for r in runs), "tokens_out": statistics.mean(r["tokens_out"] for r in runs),
             "seconds": statistics.mean(r["ms"] for r in runs) / 1000,
             **({"setup_seconds": statistics.mean(r["setup_ms"] for r in runs) / 1000,
+                "card_written": sum(1 for r in runs if r["card_by_model"] is not None),
                 "card_right_by_model": sum(1 for r in runs if r["card_by_model"])} if runs and "setup_ms" in runs[0] else {})}
 
 
@@ -268,8 +272,8 @@ def main(argv: list[str]) -> int:
         report["scenarios"][sc] = entry
         print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt {entry['A_prompt_tokens']:>7,} tokens"
               + (f" | A {entry['A']['matches_rules']}/{args.runs} match, {dict(entry['A']['outcomes'])}" if "A" in entry else "")
-              + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, card right by the model"
-                 f" {entry['B']['card_right_by_model']}/{args.runs}, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else ""))
+              + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, own card right"
+                 f" {entry['B']['card_right_by_model']} of {entry['B']['card_written']} written, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else ""))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
     (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2))
@@ -288,7 +292,9 @@ def main(argv: list[str]) -> int:
             if m == "C":
                 return f"answer key; same answer {max(s['outcomes'].values())}/{s['runs']} runs; {cost}"
             if m == "B":
-                return (f"{s['matches_rules']}/{s['runs']} used the rules' answer; card right by the model {s['card_right_by_model']}/{s['runs']}; "
+                card = (f"model's own card right in {s['card_right_by_model']} of {s['card_written']} written before approval"
+                        if s["card_written"] else "no card before approval (written after staff approve)")
+                return (f"{s['matches_rules']}/{s['runs']} used the rules' answer; {card}; "
                         f"{cost} (+{s['setup_seconds']:.2f} s one-off connection, not counted)")
             return (f"{s['matches_rules']}/{s['runs']} match the key; {cost} (only the pages the pack picked; "
                     f"the whole documents are {e['A_full_docs_tokens']:,} tokens)")
@@ -301,8 +307,10 @@ def main(argv: list[str]) -> int:
               + " tokens per scenario. Without the pack, A would also have to find them among every payer's documents.",
               "- B counts the model calls up to the decision card and the staff confirmation prompt; the staff click is not counted. "
               "B's first call looks up the patient record, which A is handed in its prompt.",
-              "- \"Card right by the model\": the Outcome line the model wrote, before the guard sets it from the rules, names "
-              "the rules' outcome and safe-to-act flag. Wording and punctuation do not count. The lines are kept in the JSON report.",
+              "- \"Model's own card\": the Outcome line the model wrote, before the guard sets it from the rules, names the rules' "
+              "outcome and safe-to-act flag (wording and punctuation do not count). Counted only when the card comes before the "
+              "approval prompt: on orders that are recorded, the model often sends the record request alone and writes the card "
+              "after staff approve. The lines are kept in the JSON report.",
               "- B's time starts once its tool connections are open, as in a running service; the connection time is shown separately.",
               "- C is the same rules_evaluate call made by plain code: no model. It is the answer key, so its lane shows cost and "
               "repeatability, not accuracy. Its time is the database call alone.",
