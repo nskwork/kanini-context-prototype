@@ -22,7 +22,7 @@ Prepared by NANDHU S K
 
 Six synthetic orders, five runs each, GPT-5 mini (reasoning effort low). Full report: `propel/baseline/results/compare-20261112-1854.md`.
 
-| | **A** · the model reads the policies | **B** · agent with Kanini Context | **C** · workflow with Kanini Context |
+| | **A** · AI reads the policy documents | **B** · AI agent asks Kanini Context | **C** · no AI: direct lookup in Kanini Context |
 | :-- | :--: | :--: | :--: |
 | **Right answer** | 20 of 30 | **30 of 30** | **30 of 30** |
 | **Model calls per order** | 1 | 4 to 4.8 | **0** |
@@ -95,7 +95,7 @@ flowchart LR
 | | |
 | :-- | :-- |
 | **Knowledge graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and comets run along the real path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
-| **Ontology** | The same view of the schema: 53 classes and 17 relations from `kanini-context.ttl`. |
+| **Schema** | The same view of the ontology: 53 classes and 17 relations from `kanini-context.ttl`. |
 | **Decision card** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
 | **The race** | A from the latest comparison report; B counted live from the agent's model calls; C timed live from the no-AI workflow call. |
 

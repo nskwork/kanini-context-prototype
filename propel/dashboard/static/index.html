@@ -27,8 +27,8 @@
         <h1 id="q-title">Pick an order above</h1>
         <dl class="facts" id="q-facts"></dl>
         <div class="actions">
-          <button type="button" class="btn btn-agent" id="run-agent">Ask the agent</button>
-          <button type="button" class="btn btn-flow" id="run-flow">Run without AI</button>
+          <button type="button" class="btn btn-agent" id="run-agent">Ask the AI agent</button>
+          <button type="button" class="btn btn-flow" id="run-flow">Look up without AI</button>
         </div>
         <div class="outcome hidden" id="outcome">
           <span class="o-label" id="o-label"></span>
@@ -41,14 +41,14 @@
       <div class="panel-head">
         <span class="eyebrow">Knowledge graph</span>
         <div class="seg" role="tablist" aria-label="Graph view">
-          <button type="button" role="tab" aria-selected="true" id="view-inst">Instances</button>
-          <button type="button" role="tab" aria-selected="false" id="view-onto">Ontology</button>
+          <button type="button" role="tab" aria-selected="true" id="view-inst">Knowledge</button>
+          <button type="button" role="tab" aria-selected="false" id="view-onto">Schema</button>
         </div>
         <div class="zoom">
           <button type="button" aria-label="Zoom in" id="zin">+</button>
           <button type="button" aria-label="Zoom out" id="zout">−</button>
-          <button type="button" aria-label="Fit the answer's path" id="zfit">Fit</button>
-          <button type="button" aria-label="Show the whole graph" id="zall">All</button>
+          <button type="button" aria-label="Focus on the answer's path" id="zfit">Focus</button>
+          <button type="button" aria-label="Show the whole graph" id="zall">Show all</button>
         </div>
       </div>
       <div class="graph-wrap">

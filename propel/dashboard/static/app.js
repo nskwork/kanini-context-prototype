@@ -308,6 +308,16 @@
   }
 
   /* ---------------------------------------------------------------- decision card */
+  const WHY = {   // plain words for the answer's reason codes (the codes themselves are in the answer contract)
+    pa_program_not_screened: "a prior authorization program here is not checked yet",
+    no_reviewed_rule_in_scope: "no checked rule covers this case",
+    coverage_criteria_not_met: "the coverage criteria are not met",
+    needs_facts: "a test result or fact is missing",
+    source_aging: "a source is due for a recheck",
+    sync_aging: "the local copy is due for a sync",
+    basis_interpreted: "the rule rests on an interpretation, so staff confirm"
+  };
+  const why = (code) => WHY[code] || String(code).replace(/_/g, " ");
   function card(p) {
     const c = $("card");
     if (!p) {
@@ -327,7 +337,7 @@
     const notChecked = ((p.coverage_criteria || {}).not_checked || []);
     c.innerHTML = `<div class="panel-head"><span class="eyebrow">Decision card · ${esc(S.order?.order_id || "")}</span></div><div class="panel-body">
       <div class="verdict">${esc(label)}</div>
-      <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map((x) => x.replace(/_/g, " ")).join(", ")) : ""}</div>
+      <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map(why).join("; ")) : ""}</div>
       <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
       <div class="k">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
@@ -344,8 +354,8 @@
     const o = $("outcome");
     o.classList.remove("hidden"); o.style.setProperty("--oc", color);
     $("o-label").textContent = label;
-    const why = p.outcome === "unknown" ? (p.reason_text || (p.not_safe_because || [])[0] || p.reason) : prim.citation;
-    $("o-sub").textContent = (p.safe_to_act ? "Safe to act" : "Not safe to act") + (why ? " · " + why : "");
+    const sub = p.outcome === "unknown" ? (p.reason_text || why((p.not_safe_because || [])[0] || p.reason)) : prim.citation;
+    $("o-sub").textContent = (p.safe_to_act ? "Safe to act" : "Not safe to act") + (sub ? " · " + sub : "");
   }
 
   /* ---------------------------------------------------------------- the race: A from the report, B and C live */
@@ -356,13 +366,13 @@
   }
   function buildLanes() {
     const box = $("lanes"); box.innerHTML = "";
-    [["A", "Model reads the policies", "#fb7185"], ["B", "Agent + Kanini Context", "#22d3ee"], ["C", "Workflow, no model", "#a3e635"]].forEach(([L, title, color]) => {
+    [["A", "AI reads the policy documents", "#fb7185"], ["B", "AI agent asks Kanini Context", "#22d3ee"], ["C", "No AI: direct lookup in Kanini Context", "#a3e635"]].forEach(([L, title, color]) => {
       const el = document.createElement("div");
       el.className = "lane"; el.style.setProperty("--lc", color);
       el.innerHTML = `<span class="L">${L}</span><div><div class="t">${title}</div><div class="s" id="s${L}"></div></div>
         <div class="track"><canvas id="c${L}"></canvas></div>
-        <div class="nums"><div><div class="h">Input tokens</div><div class="n" id="n${L}1">–</div></div>
-        <div><div class="h">Calls · time</div><div class="n" id="n${L}2">–</div></div><div><div class="h">Right</div><div class="n" id="n${L}3">–</div></div></div>`;
+        <div class="nums"><div><div class="h">Tokens sent to AI</div><div class="n" id="n${L}1">–</div></div>
+        <div><div class="h">AI calls · time</div><div class="n" id="n${L}2">–</div></div><div><div class="h">Correct</div><div class="n" id="n${L}3">–</div></div></div>`;
       box.appendChild(el);
       lanes[L] = { color, canvas: el.querySelector("canvas"), parts: [], target: 0, flash: 0 };
     });
@@ -371,21 +381,21 @@
   function laneNumbers() {
     const e = S.order && scenarioFor(S.order.patient), when = S.compare.at ? new Date(S.compare.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null;
     const A = e?.A, B = e?.B, C = e?.C, live = S.live;
-    $("sA").textContent = A ? `measured in the comparison run, ${when}` : "run propel/baseline/compare.py for these numbers";
+    $("sA").textContent = A ? `Policy pages sent to the AI on every order · ${when}` : "Run propel/baseline/compare.py for these numbers";
     $("nA1").innerHTML = A ? fmt(A.tokens_in) : e ? fmt(e.A_prompt_tokens) + "<small> prompt</small>" : "–";
     $("nA2").innerHTML = A ? `1 · ${A.seconds.toFixed(1)}<small> s</small>` : "1";
     $("nA3").innerHTML = A ? `${A.matches_rules}/${A.runs}` : "–";
     lanes.A.target = A && S.run ? A.tokens_in / 900 : 0;
     const bl = live.mode === "agent";
-    $("sB").textContent = bl ? (live.done ? "this run" : "live: this run") : B ? `last comparison ${when}: ${B.llm_calls.toFixed(1)} calls` : "press Ask the agent";
+    $("sB").textContent = bl ? (live.done ? "This run: short answers from checked rules" : "Running now…") : B ? `The AI gets short answers from checked rules · ${when}` : "Press Ask the AI agent";
     const scripted = bl && S.scripted && !live.tin;
-    if (scripted) $("sB").textContent = "scripted stand-in: no model, no tokens";
+    if (scripted) $("sB").textContent = "Rehearsal: scripted stand-in, no AI";
     $("nB1").innerHTML = scripted ? "–" : bl ? fmt(live.tin) : B ? fmt(B.tokens_in) : "–";
     $("nB2").innerHTML = bl ? `${live.turns} · ${((live.ms ?? (performance.now() - live.t0)) / 1000).toFixed(1)}<small> s</small>` : B ? `${B.llm_calls.toFixed(1)} · ${B.seconds.toFixed(1)}<small> s</small>` : "–";
     $("nB3").innerHTML = B ? `${B.matches_rules}/${B.runs}` : "–";
     lanes.B.target = bl ? live.tin / 900 : 0;
     const cl = live.mode === "workflow";
-    $("sC").textContent = cl ? "this run" : C ? `last comparison ${when} · press Run without AI` : "press Run without AI";
+    $("sC").textContent = cl ? "This run: plain code, no AI" : C ? `Plain code looks up the answer · ${when}` : "Press Look up without AI";
     $("nC1").innerHTML = "0";
     $("nC2").innerHTML = cl && live.callMs != null ? `0 · ${live.callMs}<small> ms</small>` : C ? `0 · ${(C.seconds * 1000).toFixed(0)}<small> ms</small>` : "0";
     $("nC3").innerHTML = C ? `${C.matches_rules}/${C.runs}` : "–";
@@ -416,7 +426,7 @@
     const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; t.appendChild(s);
   }
   function setBusy(b) {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
-    $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (restart)" : "Ask the agent";
+    $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (press to restart)" : "Ask the AI agent";
   }
 
   async function start(mode) {
@@ -438,7 +448,7 @@
     const L = S.live;
     if (e.kind === "model") {
       L.turns = e.turn; L.tin += e.tokens_in; L.tout += e.tokens_out;
-      chip(e.tokens_in ? `turn ${e.turn} · ${fmt(e.tokens_in)} tok` : `turn ${e.turn}`);
+      chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
       if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
       laneNumbers();
     } else if (e.kind === "tool_call") {
@@ -447,7 +457,7 @@
       if (e.name === "context_applicable_rules") lightCandidates(e.payload);
       if (e.name === "rules_evaluate") {
         L.eval = e.payload; card(e.payload); lightAnswer(e.payload);
-        if (L.mode === "workflow") { L.callMs = e.call_ms; lanes.C.flash = 1.6; chip(`rules_evaluate · ${e.call_ms} ms · no model`, "tool"); }
+        if (L.mode === "workflow") { L.callMs = e.call_ms; lanes.C.flash = 1.6; chip(`answered in ${e.call_ms} ms with no AI`); }
       }
       if (e.name === "policy_search" && e.payload && e.payload.quote) {
         L.quote = { quote: e.payload.quote, citation: e.payload.citation, page: (e.payload.locator || {}).page };
@@ -455,15 +465,15 @@
         const src = nodes.find((n) => n.kind === "Source" && n.doc === e.payload.citation);
         if (src) { src.on = true; paint(); }
       }
-      if (e.name === "journey_get" && e.payload && e.payload.status === "found") chip("patient record");
+      if (e.name === "journey_get" && e.payload && e.payload.status === "found") chip("got the patient record");
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
       L.ms = performance.now() - L.t0; L.done = true; setBusy(false); laneNumbers();
     } else if (e.kind === "confirm") {
-      chip(e.approved ? "approved by staff" : "rejected by staff", "tool");
+      chip(e.approved ? "staff approved" : "staff rejected");
       setTimeout(loadLog, 800);
     } else if (e.kind === "abandoned") {
-      chip("not approved: left waiting", "tool");
+      chip("not approved: a new run started");
     } else if (e.kind === "done") {
       if (S.es) { S.es.close(); S.es = null; }
       if (L.ms == null) L.ms = performance.now() - L.t0;
