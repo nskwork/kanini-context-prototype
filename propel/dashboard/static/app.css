@@ -123,6 +123,13 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .card .k{margin-top:9px;padding-top:7px;border-top:1px solid rgba(167,139,250,.1)}
 .card .k.first{border-top:none;padding-top:0}
 .card .v{font-size:var(--s-sm);color:var(--ink2);margin-top:2px;overflow-wrap:anywhere}
+.answers{margin-top:10px;padding:8px 10px 6px;border-radius:10px;background:rgba(4,5,12,.45);border:1px solid rgba(167,139,250,.14)}
+.answers .k{margin:0 0 4px}
+.ans{display:grid;grid-template-columns:16px 1fr auto 16px;align-items:center;gap:8px;font-size:var(--s-sm);padding:2px 0}
+.ans b{font-family:var(--display);color:var(--lc)}
+.ans .nm{color:var(--mute)}
+.ans .av{color:var(--ink);font-weight:600}
+.ans .ok{color:var(--lime);font-weight:700} .ans .bad{color:var(--rose);font-weight:700}
 .card ul{margin:3px 0 0;padding-left:16px;font-size:var(--s-sm);color:var(--ink2)}
 .card .rule{font-family:var(--code);font-size:var(--s-xs);color:#c4b5fd;overflow-wrap:anywhere;margin-top:2px}
 .quote{margin-top:6px;padding:9px 12px;border-radius:10px;background:#faf8f2;color:#292524;font-family:Georgia,serif;font-size:var(--s-sm);line-height:1.5}

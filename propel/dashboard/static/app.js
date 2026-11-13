@@ -349,6 +349,7 @@
       <div class="verdict">${esc(label)}</div>
       <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map(why).join("; ")) : ""}</div>
       ${lanes.B && (lanes.B.st.active || lanes.B.st.run) && !lanes.B.st.done ? '<div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>' : ""}
+      <div class="answers" id="answers" aria-label="How each way answered"></div>
       <div class="k first">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
       ${clock ? `<div class="k">Deadline</div><div class="v">${esc(clock)}</div>` : ""}
@@ -360,6 +361,7 @@
       <div class="k">Pack</div><div class="v">Release <span class="code">${esc(p.pack_release)}</span> · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
       <div class="agent-text hidden" id="agent-text"></div></div>`;
     if ($("ok")) { $("ok").onclick = () => confirm(true); $("nok").onclick = () => confirm(false); }
+    renderAnswers();
     const o = $("outcome");
     o.classList.remove("hidden"); o.style.setProperty("--oc", color);
     $("o-label").textContent = label;
@@ -392,7 +394,23 @@
     });
     laneNumbers();
   }
+  function renderAnswers() {   // the card's comparison strip: what each way answered for this order, and whether it matches the rules
+    const box = $("answers");
+    if (!box) return;
+    const rules = S.eval ? S.eval.outcome : lanes.A?.st.ref;
+    const row = (L, name) => {
+      const st = lanes[L].st;
+      let ans = null, ok = null;
+      if (L === "A") { ans = st.answer; ok = st.ok; }
+      else if (st.ok) { ans = rules; ok = true; }
+      const label = st.skipped ? "not run (no API key)" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : "not run";
+      const mark = ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
+      return `<div class="ans" style="--lc:${LANES[L][2]}"><b>${L}</b><span class="nm">${name}</span><span class="av">${esc(label)}</span>${mark}</div>`;
+    };
+    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "AI read the documents") + row("B", "AI agent + Kanini Context") + row("C", "No AI");
+  }
   function laneNumbers() {
+    renderAnswers();
     const e = S.order && scenarioFor(S.order.patient);
     const last = (m) => (e && e[m] ? `last comparison: ${fmt(e[m].tokens_in)} tokens, ${e[m].matches_rules}/${e[m].runs} correct` : "");
     const secs = (st) => (((st.ms ?? (performance.now() - st.t0)) / 1000).toFixed(1));
@@ -509,6 +527,7 @@
       }
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
+      st.confirmed = true;
       st.ms = performance.now() - st.t0; st.done = true; st.active = false;
     } else if (e.kind === "confirm") {
       chip(e.approved ? "staff approved" : "staff rejected");
@@ -520,7 +539,11 @@
       if (st.ms == null) st.ms = performance.now() - st.t0;
       st.done = true; st.active = false;
       if (e.kind === "error") st.note = "Error: " + e.message;
-      if (L === "B") loadLog();
+      if (L === "B") {
+        loadLog();
+        const ok = $("ok");   // the agent finished without asking for approval (nothing to record): no buttons
+        if (ok && ok.disabled && !st.confirmed) ok.closest(".approve").remove();
+      }
     }
     setBusy(); laneNumbers();
   }
