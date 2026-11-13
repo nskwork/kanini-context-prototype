@@ -17,7 +17,7 @@ What "matches the rules" means in each lane:
      right Outcome line on its own card; the card guard corrects it otherwise.
 
     python -m propel.baseline.compare --offline          # C only, plus the size of A's prompts (no API key needed)
-    python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY and the Kanini server)
+    python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY or Azure OpenAI, and the Kanini server)
 
 Mode A uses no part of Kanini Context. By default it is the same agent as B without the context layer
 (propel/agent/no_context_agent): same model, same patient-record tool, and document tools in place of Kanini
@@ -48,7 +48,7 @@ import psycopg  # noqa: E402
 PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"]
 MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())}
 OUT = ROOT / "propel/baseline/results"
-MODEL = os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini")
+from propel.llm import MODEL, TOKEN_MODEL  # noqa: E402  (OpenAI or Azure OpenAI)
 SCENARIOS = [(str(i), pid) for i, pid in enumerate(PATIENTS, 1)]   # every patient in the journey data
 # What any application knows about its own plans and states; the pack is not consulted.
 PLAN_NAMES = {"original-medicare": "Original Medicare (Part B)", "uhc-ma": "UnitedHealthcare Medicare Advantage"}
@@ -306,7 +306,7 @@ def main(argv: list[str]) -> int:
         entry = {"patient": pid, "reference_outcome": ref, "rule": c_runs[0]["rule"], "C": summarise(c_runs, ref)}
         for m in [m for m in a_modes if m != "agent"]:   # the agent finds its own documents: no prompt to size
             prompt, sent = prompt_for(pid, m)
-            entry[f"A_{m}_prompt_tokens"] = litellm.token_counter(model=MODEL.split("/")[-1], text=prompt)
+            entry[f"A_{m}_prompt_tokens"] = litellm.token_counter(model=TOKEN_MODEL, text=prompt)
             entry[f"A_{m}_sent"] = sent
         if not args.offline:
             if args.only != "B":

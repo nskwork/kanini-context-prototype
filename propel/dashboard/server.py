@@ -26,6 +26,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from kanini_context import env  # noqa: E402  (loads .env)
+from propel import llm  # noqa: E402  (OpenAI or Azure OpenAI)
 
 import psycopg  # noqa: E402
 from fastapi import FastAPI, HTTPException, Request  # noqa: E402
@@ -62,8 +63,8 @@ def status():
         rel = c.execute("SELECT release_id, built_at, covers_through FROM kc_gov.release ORDER BY built_at DESC LIMIT 1").fetchone()
         rules = c.execute("SELECT count(*) FROM kc_core.rule WHERE upper_inf(recorded) AND status = 'active'").fetchone()[0]
     return {"release": rel[0] if rel else None, "covers_through": str(rel[2]) if rel else None, "rules": rules, "sources": len(MANIFEST),
-            "model": "scripted stand-in (no API key)" if SCRIPTED else os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini"),
-            "scripted": SCRIPTED, "ai_key": bool(os.environ.get("OPENAI_API_KEY"))}
+            "model": "scripted stand-in (no API key)" if SCRIPTED else llm.describe(),
+            "scripted": SCRIPTED, "ai_key": llm.has_key()}
 
 
 @app.get("/api/orders")
@@ -295,12 +296,12 @@ async def run_documents(run: Run):
     from propel.baseline import compare as cmp
     p, o = _order(run.patient)
     try:
-        if not os.environ.get("OPENAI_API_KEY"):
-            await run.emit("unavailable", message="needs OPENAI_API_KEY in .env: the AI is not called")
+        if not llm.has_key():
+            await run.emit("unavailable", message="needs OPENAI_API_KEY or the Azure OpenAI settings in .env: the AI is not called")
             await run.emit("done", llm_calls=0, tokens_in=0, tokens_out=0)
             return
         prompt, sent = await asyncio.to_thread(cmp.prompt_for, run.patient, "rag")
-        n = litellm.token_counter(model=cmp.MODEL.split("/")[-1], text=prompt)
+        n = litellm.token_counter(model=llm.TOKEN_MODEL, text=prompt)
         await run.emit("doc_start", prompt_tokens=n, whole_tokens=await asyncio.to_thread(library_tokens),
                        method=sent["method"], documents=[f"{x['title']}, p. {x['page']}" for x in sent["passages"]])
         effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
@@ -451,13 +452,13 @@ def library_tokens() -> int:
     if not _LIB_TOKENS:
         import litellm
         from propel.baseline import compare as cmp, library
-        _LIB_TOKENS.append(litellm.token_counter(model=cmp.MODEL.split("/")[-1], text=library.whole_text()))
+        _LIB_TOKENS.append(litellm.token_counter(model=llm.TOKEN_MODEL, text=library.whole_text()))
     return _LIB_TOKENS[0]
 
 
 @app.on_event("startup")
 async def _warm():
-    if not SCRIPTED and os.environ.get("OPENAI_API_KEY"):
+    if not SCRIPTED and llm.has_key():
         await shared_agent()
         await shared_agent("nocontext")
         from propel.baseline import library   # embed the library once, so lane A's first run does not wait for it

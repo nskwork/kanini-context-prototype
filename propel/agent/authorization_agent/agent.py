@@ -6,8 +6,8 @@ The model chooses the tools and writes the explanation. The outcome always comes
   - journey_record needs staff approval in adk web; a rejection is logged as rejected, with the reviewer
   - when Kanini Context cannot be reached, its tools answer "unavailable" and the agent routes to staff
 
-Environment: OPENAI_API_KEY; KC_MCP_URL (default http://127.0.0.1:8765/mcp, the Kanini Context server);
-PROPEL_MODEL (default openai/gpt-5-mini); PROPEL_REVIEWER (default demo-staff).
+Environment: OPENAI_API_KEY, or the AZURE_OPENAI_* settings (propel/llm.py); KC_MCP_URL (default http://127.0.0.1:8765/mcp, the Kanini Context server);
+PROPEL_MODEL (default openai/gpt-5-mini, or azure/<deployment> on Azure); PROPEL_REVIEWER (default demo-staff).
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from kanini_context import env  # noqa: F401,E402  (loads .env)
 LOG = Path(os.environ.get("PROPEL_DECISION_LOG", ROOT / "propel" / "journey" / "decisions.jsonl"))
 REVIEWER = os.environ.get("PROPEL_REVIEWER", "demo-staff")
 KC_URL = os.environ.get("KC_MCP_URL", "http://127.0.0.1:8765/mcp")
-MODEL = os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini")
+from propel.llm import MODEL  # noqa: E402  (OpenAI or Azure OpenAI: propel/llm.py)
 KC_TOOLS = ["context_applicable_rules", "rules_evaluate", "policy_search"]
 
 INSTRUCTION = """You are the Propel authorization agent. For each order you answer one question: does this order need

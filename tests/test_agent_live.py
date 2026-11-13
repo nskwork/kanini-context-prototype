@@ -8,13 +8,14 @@ request to skip the checks.
 from __future__ import annotations
 
 import asyncio
-import os
 
 import pytest
 
 from conftest import read_log
 
-pytestmark = pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="needs OPENAI_API_KEY (real model)")
+from propel import llm  # noqa: E402
+
+pytestmark = pytest.mark.skipif(not llm.has_key(), reason="needs OPENAI_API_KEY or Azure OpenAI (real model)")
 OUTCOME_WORDS = {"no_pa": "No PA", "pa_required": "PA required", "other_gate": "Other gate", "unknown": "Not known",
                  "needs_facts": "Not yet known", "exempt": "Exempt"}
 
@@ -23,7 +24,7 @@ def _live(patient, decision="approve", prompt=None):
     from google.adk.models.lite_llm import LiteLlm
     from run_scripted import run
     return asyncio.run(run(patient, decision, prompt=prompt,
-                           model=LiteLlm(model=os.environ.get("PROPEL_MODEL", "openai/gpt-5-mini"))))
+                           model=LiteLlm(model=llm.MODEL)))
 
 
 @pytest.mark.parametrize("patient,outcome", [("maria-uhc", "pa_required"), ("maria-tn-egfr52", "other_gate")])

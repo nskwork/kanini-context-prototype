@@ -10,9 +10,9 @@ Nothing here uses the pack: no rule, binding or page citation decides what A rea
 carry the AMA CPT notice of the MCD site, but their code tables list HCPCS and ICD-10-CM codes only, so they are
 given whole like the other documents.
 
-Ranking uses OpenAI embeddings (text-embedding-3-small) when a key is set, cached on disk so the library is
-embedded once; without a key, or with PROPEL_RAG=bm25 (tests, offline), it uses BM25 keyword ranking. The report
-names which ran.
+Ranking uses embeddings when the provider has an embedding model (OpenAI's text-embedding-3-small, or an Azure
+embedding deployment: propel/llm.py), cached on disk so the library is embedded once; without one, or with
+PROPEL_RAG=bm25 (tests, offline), it uses BM25 keyword ranking. The report names which ran.
 """
 from __future__ import annotations
 
@@ -30,7 +30,6 @@ from kanini_context.curation.pdftext import RAW, pages  # noqa: E402
 
 MANIFEST = json.loads((ROOT / "kanini_context" / "sources" / "manifest.json").read_text())
 CACHE = ROOT / "propel" / "baseline" / "cache"
-EMBED_MODEL = "text-embedding-3-small"
 PASSAGE_WORDS, OVERLAP_WORDS = 450, 60      # about 600 tokens a passage
 TOP_K = 16                                  # passages sent to the model, about 9,000 to 10,000 tokens
 
@@ -92,18 +91,18 @@ def _bm25(query: str, items: list[dict], k1: float = 1.5, b: float = 0.75) -> li
 _STORE: dict = {}
 
 
-def _embed(texts: list[str]) -> list[list[float]]:
+def _embed(texts: list[str], model: str) -> list[list[float]]:
     import litellm
     CACHE.mkdir(parents=True, exist_ok=True)
-    path = CACHE / f"embeddings-{EMBED_MODEL}.json"
-    if not _STORE:   # the embeddings file is read once per process, then kept in memory
-        _STORE.update(json.loads(path.read_text()) if path.exists() else {})
-    store = _STORE
+    path = CACHE / f"embeddings-{model.replace('/', '-')}.json"
+    if model not in _STORE:   # each model's embeddings file is read once per process, then kept in memory
+        _STORE[model] = json.loads(path.read_text()) if path.exists() else {}
+    store = _STORE[model]
     keys = [hashlib.sha256(t.encode()).hexdigest() for t in texts]
     todo = [(k, t) for k, t in zip(keys, texts) if k not in store]
     for i in range(0, len(todo), 96):
         batch = todo[i:i + 96]
-        resp = litellm.embedding(model=EMBED_MODEL, input=[t for _, t in batch])
+        resp = litellm.embedding(model=model, input=[t for _, t in batch])
         for (k, _), row in zip(batch, resp.data):
             store[k] = row["embedding"] if isinstance(row, dict) else row.embedding
     if todo:
@@ -118,10 +117,12 @@ def _cos(a: list[float], b: list[float]) -> float:
 def retrieve(query: str, k: int = TOP_K) -> tuple[list[dict], str]:
     """The k passages that best match the query, in library order, and the ranking method used."""
     items = passages()
-    if os.environ.get("OPENAI_API_KEY") and os.environ.get("PROPEL_RAG", "auto") != "bm25":
-        vecs = _embed([p["text"] for p in items] + [query])
+    from propel import llm
+    model = llm.embed_model()
+    if model and os.environ.get("PROPEL_RAG", "auto") != "bm25":
+        vecs = _embed([p["text"] for p in items] + [query], model)
         q = vecs[-1]
-        scores, method = [_cos(v, q) for v in vecs[:-1]], f"embeddings ({EMBED_MODEL})"
+        scores, method = [_cos(v, q) for v in vecs[:-1]], f"embeddings ({model})"
     else:
         scores, method = _bm25(query, items), "BM25 keyword ranking"
     best = sorted(range(len(items)), key=lambda i: -scores[i])[:k]

@@ -4,7 +4,7 @@
 
 <br>
 
-![tests](https://img.shields.io/badge/tests-75%20of%2075%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-77%20of%2077%20passing-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -301,6 +301,7 @@ With `--scripted` it uses a scripted stand-in model and needs no API key. The pa
 | Scope tests 9 and 21 to 23 with the real model (`tests/test_agent_live.py`) | ✅ pass with GPT-5 mini |
 | Pack tests: checks, approval, freshness, decision log, card guard (`tests/test_pack.py`) | ✅ pass |
 | Dashboard: release graph and schema, live runs of A, B and C (`tests/test_dashboard.py`) | ✅ pass |
+| Model provider: Azure OpenAI or OpenAI (`tests/test_llm.py`) | ✅ pass |
 | Schema specification v1.5, 61 regression tests (`kanini_context/db/spec_regression/`) | ✅ same verdicts as the specification |
 
 <details>
@@ -308,7 +309,7 @@ With `--scripted` it uses a scripted stand-in model and needs no API key. The pa
 
 <br>
 
-The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. The last full run, on the engineer's laptop on 13 Nov 2026, passed every test.
+The 23 tests of the prototype scope (12 Nov 2026, section 6), in `tests/test_scope.py` under the same numbers. They are strict: on a release with an unscreened CMS program or a source past its freshness limit, they fail and name it. The last full run, on the engineer's laptop on 13 Nov 2026, passed every test; the two model-provider tests were added after it.
 
 | # | Scope test | The scope expects | Result | Difference from the scope's example |
 | --: | :-- | :-- | :--: | :-- |
@@ -385,19 +386,21 @@ An order's plan and state pick out a Plan and its Jurisdiction. From there the r
 
 ## How to run it
 
-Needs Docker and Python 3.12 or 3.13.
+Needs Docker and Python 3.12 or 3.13, and a GPT-5 mini model on either Azure OpenAI or OpenAI.
+
+The model is set in `.env`. With `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_KEY` filled in, every LLM call (both agents, the comparison and the dashboard) goes to the Azure deployment named in `AZURE_OPENAI_DEPLOYMENT_NAME`, using `AZURE_OPENAI_API_VERSION`. With those empty, it uses `OPENAI_API_KEY`. The dashboard's header shows which one is in use. Document search ranks passages by embeddings when there is an embedding model (OpenAI's `text-embedding-3-small`, or `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` on Azure) and by keywords otherwise; the recorded test runs used OpenAI embeddings.
 
 ```bash
 docker compose up -d db                                     # PostgreSQL 16 + Apache AGE 1.6.0
 python -m venv .venv && .venv\Scripts\activate              # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                                        # add OPENAI_API_KEY
+cp .env.example .env                                        # add the Azure OpenAI settings, or OPENAI_API_KEY
 
 python -m kanini_context.sources.place ~/Downloads          # put the saved source copies in place (matched by hash)
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 75 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 77 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
