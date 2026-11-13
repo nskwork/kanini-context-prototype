@@ -118,12 +118,13 @@
   function nodeLabel(n) {
     if (S.view === "onto") return n.id;
     const id = String(n.id ?? "");
-    if (n.kind === "Rule") return "rule " + id.split("/").pop();
-    if (n.kind === "Source") return "source · " + (n.doc || id);
+    if (n.kind === "Rule") return "Rule " + id.split("/").pop();
+    if (n.kind === "Source") return "Source: " + (n.doc || id);
+    if (n.kind === "Snapshot") return "Saved copy";
     if (n.kind === "Concept") return n.label || id;
-    if (n.kind === "Authority" && n.authority_kind === "pa_program") return id.replace(/^CMS-/, "");   // PA programs: short names
+    if (n.kind === "Authority" && n.authority_kind === "pa_program") return id.replace(/^CMS-/, "").replace(/-/g, " ");   // PA programs: short names
     if (n.kind === "DataElement" && n.name) return n.name.length > 24 ? n.name.slice(0, 22) + "…" : n.name;
-    if (n.name) return n.name;
+    if (n.name) return n.name.length > 30 ? n.name.slice(0, 28) + "…" : n.name;
     if (n.kind === "Code" || n.kind === "DataElement") return id.split("|").slice(1).join(" ") || id;
     return id;
   }
@@ -156,7 +157,7 @@
   }
   function tip(e, n) {
     const t = $("tip"), r = svg.node().getBoundingClientRect();
-    t.innerHTML = `<b>${esc(n.kind)}</b> · ${esc(nodeLabel(n))}` + (n.citation ? `<br>${esc(n.citation)}${n.page ? " · page " + esc(n.page) : ""}` : "") +
+    t.innerHTML = `<b>${esc(nodeLabel(n))}</b><br>${esc(n.kind)}` + (n.citation ? `<br>${esc(n.citation)}${n.page ? " · page " + esc(n.page) : ""}` : "") +
       (n.valid_from ? `<br>from ${esc(n.valid_from)}` : "") + (n.basis ? ` · ${esc(n.basis)}` : "") + `<br>${adj.get(n)?.length || 0} links`;
     t.style.left = e.clientX - r.left + 14 + "px"; t.style.top = e.clientY - r.top + 10 + "px";
     t.classList.remove("hidden");
@@ -288,19 +289,20 @@
   async function detail(n) {
     const d = $("detail");
     d.classList.remove("hidden");
-    let body = `<button type="button" class="close" aria-label="Close">close</button><h4>${esc(nodeLabel(n))}</h4><div class="mono" style="font-size:11px;color:var(--mute)">${esc(n.kind)}</div>`;
-    const nb = (adj.get(n) || []).slice(0, 14).map(([m, l]) => `${esc(l.source === n ? l.rel.toLowerCase() + " →" : "← " + l.rel.toLowerCase())} ${esc(nodeLabel(m))}`);
+    let body = `<button type="button" class="close" aria-label="Close">Close</button><div class="kind">${esc(n.kind)}</div><h4>${esc(n.name || nodeLabel(n))}</h4>`;
+    const rel = (r) => r.toLowerCase().replace(/_/g, " ");
+    const nb = (adj.get(n) || []).slice(0, 14).map(([m, l]) => `${esc(l.source === n ? rel(l.rel) + " →" : "← " + rel(l.rel))} ${esc(nodeLabel(m))}`);
     try {
       if (S.view === "inst" && n.kind === "Rule") {
         const r = await (await fetch("/api/rule?ref=" + encodeURIComponent(n.id))).json();
-        body += `<div class="quote">${esc(r.quote)}<span class="ref">${esc(r.citation || "")} · page ${esc((r.locator || {}).page)} · ${esc(r.rule_ref || "")}</span></div>`;
+        body += `<div class="quote">${esc(r.quote)}<span class="ref">${esc(r.citation || "")} · page ${esc((r.locator || {}).page)}</span></div><div class="meta"><span class="code">${esc(r.rule_ref || "")}</span></div>`;
       } else if (S.view === "inst" && n.kind === "Source") {
         const s = await (await fetch("/api/source/" + encodeURIComponent(n.id))).json();
         const last = (s.checks || []).slice(-1)[0] || {};
-        body += `<div style="margin-top:8px">${esc(s.title)}<br><span class="mono" style="font-size:11px;color:var(--mute)">${esc(s.edition)}<br>sha256 ${esc((s.sha256 || "not recorded").slice(0, 16))}…<br>last checked ${esc((last.at || "").slice(0, 10))} ${esc(last.note || "")}</span></div>`;
+        body += `<div>${esc(s.title)}</div><div class="meta">${esc(s.edition)}<br>Last checked ${esc((last.at || "").slice(0, 10))}: ${esc(last.note || "")}<br>SHA-256 <span class="code">${esc((s.sha256 || "not recorded").slice(0, 16))}…</span></div>`;
       }
     } catch (_) { /* the panel still shows the node's links */ }
-    body += `<div class="mono" style="font-size:11px;margin-top:8px;line-height:1.6">${nb.join("<br>")}${(adj.get(n) || []).length > 14 ? "<br>…" : ""}</div>`;
+    body += `<div class="links">${nb.join("<br>")}${(adj.get(n) || []).length > 14 ? "<br>…" : ""}</div>`;
     d.innerHTML = body;
     d.querySelector(".close").onclick = () => d.classList.add("hidden");
   }
@@ -320,18 +322,18 @@
     const ev = (p.evidence || []).map((e) => `${e.logic === "any" ? "One of" : "All of"} (${e.citation}):<br>• ` + (e.documents || []).map(esc).join("<br>• "));
     const notChecked = ((p.coverage_criteria || {}).not_checked || []);
     c.innerHTML = `<h3>Decision card · ${esc(S.order?.order_id || "")}</h3>
-      <div style="font-family:Outfit;font-weight:800;font-size:26px;color:${color};text-shadow:0 0 14px ${color};margin-top:6px">${esc(label)}</div>
-      <div style="font-size:12.5px;color:${color}">${p.safe_to_act ? "safe to act" : "not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.join(", ")) : ""}</div>
+      <div class="verdict">${esc(label)}</div>
+      <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map((x) => x.replace(/_/g, " ")).join(", ")) : ""}</div>
       <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
       <div class="k">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
       ${clock ? `<div class="k">Deadline</div><div class="v">${esc(clock)}</div>` : ""}
-      <div class="k">Rule</div><div class="rule">${esc(prim.rule_ref || "none")} · ${esc(prim.citation || "")}</div>
+      <div class="k">Rule</div><div class="v">${esc(prim.citation || "none")}</div><div class="rule">${esc(prim.rule_ref || "")}</div>
       ${quote && quote.quote ? `<div class="quote"><mark>${esc(quote.quote)}</mark><span class="ref">${esc(quote.citation || "")}${quote.page ? " · page " + esc(quote.page) : ""}</span></div>` : ""}
       ${route ? `<div class="k">Submit via</div><div class="v">${route.split("<br>").map(esc).join("<br>")}</div>` : ""}
       ${ev.length ? `<div class="k">Evidence to send</div><div class="v">${ev.join("<br>")}</div>` : ""}
       ${notChecked.length ? `<div class="k">Not checked here, confirm</div><div class="v">${notChecked.slice(0, 2).map(esc).join("<br>")}</div>` : ""}
-      <div class="k">Pack</div><div class="v mono" style="font-size:11px">${esc(p.pack_release)} · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
+      <div class="k">Pack</div><div class="v">Release <span class="code">${esc(p.pack_release)}</span> · sources ${esc(p.freshness)}${(p.review_exceptions || []).length ? " · approved by one engineer" : ""}</div>
       <div class="agent-text hidden" id="agent-text"></div>`;
     $("ok").onclick = () => confirm(true);
     $("nok").onclick = () => confirm(false);
@@ -339,7 +341,7 @@
     o.classList.remove("hidden"); o.style.setProperty("--oc", color);
     $("o-label").textContent = label;
     const why = p.outcome === "unknown" ? (p.reason_text || (p.not_safe_because || [])[0] || p.reason) : prim.citation;
-    $("o-sub").textContent = (p.safe_to_act ? "safe to act" : "not safe to act") + (why ? " · " + why : "");
+    $("o-sub").textContent = (p.safe_to_act ? "Safe to act" : "Not safe to act") + (why ? " · " + why : "");
   }
 
   /* ---------------------------------------------------------------- the race: A from the report, B and C live */
@@ -355,8 +357,8 @@
       el.className = "lane"; el.style.setProperty("--lc", color);
       el.innerHTML = `<span class="L">${L}</span><div><div class="t">${title}</div><div class="s" id="s${L}"></div></div>
         <div class="track"><canvas id="c${L}"></canvas></div>
-        <div class="nums"><div><div class="h">INPUT TOKENS</div><div class="n" id="n${L}1">–</div></div>
-        <div><div class="h">CALLS · TIME</div><div class="n" id="n${L}2">–</div></div><div><div class="h">RIGHT</div><div class="n" id="n${L}3">–</div></div></div>`;
+        <div class="nums"><div><div class="h">Input tokens</div><div class="n" id="n${L}1">–</div></div>
+        <div><div class="h">Calls · time</div><div class="n" id="n${L}2">–</div></div><div><div class="h">Right</div><div class="n" id="n${L}3">–</div></div></div>`;
       box.appendChild(el);
       lanes[L] = { color, canvas: el.querySelector("canvas"), parts: [], target: 0, flash: 0 };
     });
@@ -475,9 +477,9 @@
   }
   async function loadLog() {
     const rows = await (await fetch("/api/log")).json();
-    $("log").innerHTML = "Decision log · " + (rows.slice(-4).reverse().map((r) =>
-      r.decision === "rejected" ? `<i>rejected</i> ${esc(r.order)} · ${esc(r.reviewer)} · no outcome logged`
-        : `<b>approved</b> ${esc(r.order)} · ${esc(r.outcome)} · ${esc(r.ruleRef || r.rule_ref)} · ${esc(r.approved_by || r.reviewer || "")}`).join("   |   ") || "empty");
+    $("log").innerHTML = "<b style=\"color:var(--mute)\">Decision log</b>  " + (rows.slice(-4).reverse().map((r) =>
+      r.decision === "rejected" ? `<i>Rejected</i> ${esc(r.order)} by ${esc(r.reviewer)}, no outcome logged`
+        : `<b>Approved</b> ${esc(r.order)} · ${esc(OUTCOME[r.outcome]?.[0] || r.outcome)} · <span class="code">${esc(r.ruleRef || r.rule_ref)}</span> · ${esc(r.approved_by || r.reviewer || "")}`).join("  ·  ") || "empty");
   }
 
   /* ---------------------------------------------------------------- orders, views, start-up */
@@ -485,10 +487,16 @@
     S.order = o;
     if (S.es) { S.es.close(); S.es = null; }
     document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.p === o.patient)));
-    $("q-title").textContent = `${o.description.split(" (")[0]} · ${o.code}`;
-    const f = o.facts, labs = ["hgb_g_dl", "hct_pct", "egfr", "creatinine_date"].filter((k) => f[k] != null).map((k) => `${k} ${f[k]}`).join(" · ");
-    $("q-facts").innerHTML = `${esc(o.order_id)} · ${esc(o.display_name)}<br>${esc(o.plan)} · ${esc(o.state)} · ${esc(o.date_of_service)}<br>` +
-      `${esc((f.diagnosis_codes || []).join(", "))}<br>${esc(labs || "no lab results on file")}`;
+    $("q-title").innerHTML = `${esc(o.description.split(" (")[0].split(",")[0])} <span class="code">${esc(o.code)}</span>`;
+    const f = o.facts, fn = o.fact_names || {};
+    const val = (k) => {
+      const v = f[k], meta = fn[k] && fn[k].name !== k ? fn[k] : { name: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, " "), unit: "" };
+      return [meta.name.replace(/ \(date of most recent result\)/, " date").replace(/^Diagnosis: .*/, "Diagnoses"), Array.isArray(v) ? v.join(", ") : `${v}${meta.unit && meta.unit !== "%" ? " " + meta.unit : meta.unit}`];
+    };
+    const rows = [["Patient", o.display_name.split(",")[0]], ["Order", o.order_id], ["Coverage", o.plan_name], ["State", o.state_name], ["Service date", o.date_of_service]]
+      .concat(["diagnosis_codes", "hgb_g_dl", "hct_pct", "egfr", "creatinine_date", "dialysis_status"].filter((k) => f[k] != null).map(val));
+    if (f.hgb_g_dl == null && f.hct_pct == null) rows.push(["Hemoglobin", "not on file"]);
+    $("q-facts").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
     $("outcome").classList.add("hidden"); card(null); unfocus(); $("trace").innerHTML = "";
     S.live = { mode: null, turns: 0, tin: 0, tout: 0, t0: 0, ms: null, done: false };
     S.run = null;
@@ -512,9 +520,9 @@
     const get = (u, fb) => fetch(u).then((r) => (r.ok ? r.json() : fb)).catch(() => fb);
     const [st, orders, g, cmp] = await Promise.all([get("/api/status", {}), get("/api/orders", []), get("/api/graph", { nodes: [], edges: [] }), get("/api/compare", {})]);
     S.scripted = !!st.scripted;
-    $("status").innerHTML = `release <b>${esc(st.release)}</b> · ${st.rules} rules · ${st.sources} sources<br>model <b>${esc(st.model)}</b>`;
+    $("status").innerHTML = `Release <span class="code">${esc(st.release)}</span> · ${st.rules} rules · ${st.sources} sources<br>Model <span class="code">${esc(st.model)}</span>`;
     S.orders = orders; S.inst = g; S.compare = cmp || {};
-    $("orders").innerHTML = orders.map((o) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.plan === "original-medicare" ? "Medicare" : o.plan)} · ${esc(o.state)}</span></button>`).join("");
+    $("orders").innerHTML = orders.map((o) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.state)}</span></button>`).join("");
     document.querySelectorAll(".chip").forEach((c) => (c.onclick = () => pick(orders.find((o) => o.patient === c.dataset.p))));
     buildLanes();
     setGraph(g, "inst");

@@ -16,14 +16,14 @@
       <span class="sub">Command Center</span>
     </div>
     <nav class="orders" id="orders" aria-label="Orders"></nav>
-    <div class="status mono" id="status">loading…</div>
+    <div class="status" id="status">loading…</div>
   </header>
 
   <section class="stage">
     <div class="question" id="question">
       <div class="eyebrow">Does this order need prior authorization?</div>
       <h1 id="q-title">Pick an order above</h1>
-      <div class="facts mono" id="q-facts"></div>
+      <dl class="facts" id="q-facts"></dl>
       <div class="actions">
         <button type="button" class="btn btn-agent" id="run-agent">Ask the agent</button>
         <button type="button" class="btn btn-flow" id="run-flow">Run without AI</button>
@@ -44,12 +44,12 @@
         <div class="zoom">
           <button type="button" aria-label="Zoom in" id="zin">+</button>
           <button type="button" aria-label="Zoom out" id="zout">−</button>
-          <button type="button" aria-label="Fit the graph" id="zfit">fit</button>
-          <button type="button" aria-label="Show the whole graph" id="zall">all</button>
+          <button type="button" aria-label="Fit the graph" id="zfit">Fit</button>
+          <button type="button" aria-label="Show the whole graph" id="zall">All</button>
         </div>
       </div>
-      <div class="legend mono" id="legend"></div>
-      <div class="tip mono hidden" id="tip"></div>
+      <div class="legend" id="legend"></div>
+      <div class="tip hidden" id="tip"></div>
     </div>
 
     <aside class="side">
@@ -63,10 +63,10 @@
   <section class="band">
     <div class="band-head">
       <h2>Same order, three ways to answer it</h2>
-      <div class="trace mono" id="trace"></div>
+      <div class="trace" id="trace"></div>
     </div>
     <div class="lanes" id="lanes"></div>
-    <div class="log mono" id="log"></div>
+    <div class="log" id="log"></div>
   </section>
 </div>
 <script src="/static/vendor/d3.min.js"></script>

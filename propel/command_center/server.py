@@ -68,12 +68,22 @@ def status():
 
 @app.get("/api/orders")
 def orders():
+    """The synthetic orders, with readable names from the pack: the plan, the state and each fact (name and unit)."""
+    with db() as c:
+        plans = {k: t.split(" (")[0] for k, t in c.execute(
+            "SELECT e.natural_key, p.plan_type FROM kc_core.plan p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall()}
+        states = dict(c.execute("SELECT e.natural_key, j.name FROM kc_core.jurisdiction j JOIN kc_core.entity e ON e.entity_id = j.entity_id").fetchall())
+        facts = {f: {"name": n, "unit": (u or "").replace("{1.73_m2}", "1.73 m²")} for f, n, u in c.execute(
+            "SELECT DISTINCT ON (fact) fact, name, unit FROM kc_core.data_element WHERE fact IS NOT NULL ORDER BY fact, name").fetchall()}
     out = []
     for pid, p in PATIENTS.items():
         for o in p["orders"]:
+            cov = p["coverage"]
             out.append({"patient": pid, "display_name": p["display_name"], "order_id": o["order_id"], "code": o["code"],
                         "description": o["description"], "date_of_service": o["date_of_service"],
-                        "plan": p["coverage"]["plan"], "state": p["coverage"]["state"], "facts": p["facts"]})
+                        "plan": cov["plan"], "plan_name": plans.get(cov["plan"], cov["plan"]),
+                        "state": cov["state"], "state_name": states.get(cov["state"], cov["state"]),
+                        "facts": p["facts"], "fact_names": {k: facts.get(k, {"name": k, "unit": ""}) for k in p["facts"]}})
     return out
 
 
@@ -100,11 +110,18 @@ def graph():
                                             " AS (a agtype, b agtype, l agtype)").fetchall()]
         c.execute('SET search_path = "$user", public')
         names = dict(c.execute("SELECT e.natural_key, d.name FROM kc_core.data_element d JOIN kc_core.entity e ON e.entity_id = d.entity_id").fetchall())
+        names.update({k: t.split(" (")[0] for k, t in c.execute(
+            "SELECT e.natural_key, p.plan_type FROM kc_core.plan p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall()})
+        names.update(c.execute("SELECT e.natural_key, coalesce(p.short_name, p.legal_name) FROM kc_core.payer p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall())
+        names.update(c.execute("SELECT e.natural_key, p.name FROM kc_core.program p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall())
+        names.update(c.execute("SELECT e.natural_key, j.name FROM kc_core.jurisdiction j JOIN kc_core.entity e ON e.entity_id = j.entity_id").fetchall())
+        names.update(c.execute("""SELECT e.natural_key, coalesce(py.short_name, '') || ' ' || en.interface FROM kc_core.endpoint en
+                                   JOIN kc_core.entity e ON e.entity_id = en.entity_id JOIN kc_core.payer py ON py.entity_id = en.payer_id""").fetchall())
         akind = {}
         for key, cit, kind in c.execute("SELECT e.natural_key, a.citation, a.kind FROM kc_core.authority a JOIN kc_core.entity e ON e.entity_id = a.entity_id").fetchall():
             names[key], akind[key] = cit, kind
     for n in nodes:   # readable names from the pack: data elements by name, authorities by citation and kind
-        if n["kind"] in ("DataElement", "Authority") and n.get("id") in names:
+        if n["kind"] in ("DataElement", "Authority", "Plan", "Payer", "Program", "Jurisdiction", "Endpoint") and n.get("id") in names:
             n["name"] = names[n["id"]]
         if n["kind"] == "Authority" and n.get("id") in akind:
             n["authority_kind"] = akind[n["id"]]
