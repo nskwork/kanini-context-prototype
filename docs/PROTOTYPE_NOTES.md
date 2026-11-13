@@ -74,7 +74,8 @@ A rule reference is `rule_key@edition`, the edition being the date the rule's ed
 4. **Silence is never "no".** When the pack holds coverage criteria for a service but none apply to the plan, place or date, the answer is "no coverage policy loaded for CA" or "no edition loaded for 2026-09-01", never a pass (scope tests 4 and 14).
 5. **Criteria are tested as written.** L39237 group 1 is "Hb < 10 or HCT < 30%", so either result settles it (scope tests 5 and 17).
 6. **Answers come from the pack, not from code.** Wording, the deciding rule, freshness limits, the last covered date, the plans and facts in the tool descriptions, and the comparison's documents all come from the loaded data. A new drug was added by editing rule files only, and answered with no code change.
-7. **Codes keep open dates.** The billing articles list the HCPCS codes but not when the code set created them, and the HCPCS file is not loaded, so code rows carry no invented start date.
+7. **The agent reads short answers.** It works in four model turns (the patient record; the applicable rules and the evaluation together; the deciding passage; the card with the record request). The model sees one plain copy of each tool result, with only the fields the card uses; the full `rules_evaluate` packet goes to the decision log. Reasoning effort is low (`PROPEL_REASONING_EFFORT`), the same in the comparison's mode A.
+8. **Codes keep open dates.** The billing articles list the HCPCS codes but not when the code set created them, and the HCPCS file is not loaded, so code rows carry no invented start date.
 
 ## 6. Not covered by the prototype
 

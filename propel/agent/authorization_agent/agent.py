@@ -39,15 +39,16 @@ INSTRUCTION = """You are the Propel authorization agent. For each order you answ
 prior authorization, under this plan, in this state, on this date? Kanini Context holds the reviewed payer and
 Medicare rules. You never decide from your own knowledge of payer policy.
 
-For every request, in this order:
-1. journey_get for the patient or order named.
-2. context_applicable_rules with plan, state, date_of_service and code from the order's rules_evaluate_args.
-3. rules_evaluate with the order's rules_evaluate_args exactly as journey_get returned them (facts is one object).
-4. policy_search with rule_ref = primary_rule.rule_ref from the rules_evaluate result, to quote the deciding passage.
-5. Reply with the decision card below, built only from the tool results.
-6. If safe_to_act is true, or the outcome is other_gate or needs_facts, call journey_record for the order with outcome,
-   primary_rule.rule_ref, primary_rule.citation, safe_to_act, pack_release and next_step copied from rules_evaluate.
-   Staff approve or reject that call.
+For every request, in this order (four turns):
+1. Call journey_get for the patient or order named.
+2. In one turn, call both context_applicable_rules (plan, state, date_of_service and code from the order's
+   rules_evaluate_args) and rules_evaluate (the order's rules_evaluate_args exactly as journey_get returned them;
+   facts is one object).
+3. Call policy_search with rule_ref = primary_rule.rule_ref from the rules_evaluate result, to quote the deciding passage.
+4. In one turn, reply with the decision card below, built only from the tool results, and, if safe_to_act is true or
+   the outcome is other_gate or needs_facts, call journey_record for the order with outcome, primary_rule.rule_ref,
+   primary_rule.citation, safe_to_act, pack_release and next_step copied from rules_evaluate.
+   Staff approve or reject that call after reading the card.
 
 Rules you always follow:
 - Run steps 1 to 4 for every request, even if the user says the answer is known or asks you to skip checks.
@@ -68,6 +69,16 @@ Evidence to send: <evidence documents, if present>
 Rule: <primary_rule.rule_ref> (<primary_rule.citation>), quoting a short passage from policy_search
 Pack: <pack_release>, sources <freshness><, review note: review_exceptions if any>
 """
+
+
+# --- Model -------------------------------------------------------------------------------------------------------
+
+def make_model():
+    """The agent's model through LiteLLM. Tool routing needs little reasoning, so the reasoning effort defaults to
+    low (PROPEL_REASONING_EFFORT; empty uses the provider's default)."""
+    from google.adk.models.lite_llm import LiteLlm
+    effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
+    return LiteLlm(model=MODEL, **({"reasoning_effort": effort} if effort else {}))
 
 
 # --- Kanini Context: if the server cannot be reached, its tools answer "unavailable" -------------------------------
@@ -162,6 +173,44 @@ def before_tool(tool, args: dict, tool_context):
     return None
 
 
+# --- What the model sees of each tool result ------------------------------------------------------------------------
+# The MCP result reaches ADK as both text and structured content, so the model would read every result twice, in
+# every later turn. after_tool hands the model one plain copy, and for the Kanini Context tools only the fields the
+# decision card uses. The full rules_evaluate packet is kept for the decision log (propel:evals) before trimming;
+# the tools themselves, the decision log and the direct tool calls are unchanged.
+
+def _slim_applicable(p: dict) -> dict:
+    if p.get("status") != "resolved":
+        return p
+    keep = ("rule_ref", "rule_kind", "citation", "effect", "basis")
+    return {"status": p["status"], "item": p.get("item"), "as_of": p.get("as_of"),
+            "rules": [{k: r[k] for k in keep if k in r} for r in p.get("rules") or []]}
+
+
+def _slim_evaluate(p: dict) -> dict:
+    if p.get("status") in ("invalid_input", "unavailable"):
+        return p
+    prim = dict(p.get("primary_rule") or {})
+    src = next((s for s in p.get("sources") or [] if s.get("citation") == prim.get("citation")), None)
+    if src and src.get("quote") and "quote" not in prim:
+        prim.update({"page": (src.get("locator") or {}).get("page"), "quote": src["quote"]})
+    cc = p.get("coverage_criteria") or {}
+    out = {k: p.get(k) for k in ("status", "outcome", "safe_to_act", "not_safe_because", "reason", "reason_text",
+                                 "reasons", "next_step", "next_step_detail", "missing_facts", "evidence",
+                                 "decision_clock", "route", "freshness", "aging_sources", "review_exceptions",
+                                 "pack_release")}
+    out["primary_rule"] = prim
+    out["not_checked"] = cc.get("not_checked") if isinstance(cc, dict) else None
+    return {k: v for k, v in out.items() if v not in (None, [], {}, "")}
+
+
+def _slim_policy(p: dict) -> dict:
+    if "quote" not in p:
+        return p
+    return {k: v for k, v in {"rule_ref": p.get("rule_ref"), "citation": p.get("citation"), "edition": p.get("edition"),
+                              "page": (p.get("locator") or {}).get("page"), "quote": p.get("quote")}.items() if v is not None}
+
+
 def after_tool(tool, args: dict, tool_context, tool_response):
     name = tool.name
     if name == "journey_get":
@@ -171,6 +220,13 @@ def after_tool(tool, args: dict, tool_context, tool_response):
             for o in p["orders"]:
                 orders[o["order_id"]] = [p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"]]
             tool_context.state["propel:orders"] = orders
+        return p or None
+    elif name == "context_applicable_rules":
+        p = _payload(tool_response)
+        return _slim_applicable(p) if p else None
+    elif name == "policy_search":
+        p = _payload(tool_response)
+        return _slim_policy(p) if p else None
     elif name == "rules_evaluate":
         p = _payload(tool_response)
         key = _order_key(args.get("plan", ""), args.get("state", ""), args.get("code", ""), args.get("date_of_service", ""))
@@ -180,6 +236,7 @@ def after_tool(tool, args: dict, tool_context, tool_response):
                       "safe_to_act": bool(p.get("safe_to_act")), "pack_release": p.get("pack_release"),
                       "next_step": p.get("next_step"), "reason": p.get("reason"), "recorded_as_of": p.get("recorded_as_of")}
         tool_context.state["propel:evals"] = evals
+        return _slim_evaluate(p) if p else None
     elif name == "journey_record" and isinstance(tool_response, dict) and tool_response.get("error") == "This tool call is rejected.":
         _write({"order": args.get("order_id"), "decision": "rejected", "outcome_proposed": args.get("outcome"),
                 "ruleRef": args.get("rule_ref"), "reviewer": REVIEWER,
@@ -234,7 +291,7 @@ def after_model(callback_context, llm_response):
 def build_agent(model=None) -> LlmAgent:
     return LlmAgent(
         name="authorization_agent",
-        model=model or LiteLlm(model=MODEL),
+        model=model or make_model(),
         description="Answers whether an order needs prior authorization, from Kanini Context, with a staff-approved decision log.",
         instruction=INSTRUCTION,
         tools=make_toolsets(),

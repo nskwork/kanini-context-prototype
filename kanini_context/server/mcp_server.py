@@ -46,7 +46,7 @@ def _registry() -> tuple[str, str, str]:
             facts = c.execute("""SELECT string_agg(fact || ' (' || CASE value_type
                                          WHEN 'enum' THEN (SELECT string_agg(x, '|') FROM jsonb_array_elements_text(allowed) x)
                                          WHEN 'code_list' THEN 'list of codes' WHEN 'date' THEN 'YYYY-MM-DD'
-                                         ELSE value_type END || '): ' || description, '; ' ORDER BY fact)
+                                         ELSE value_type END || ')', '; ' ORDER BY fact)
                                     FROM kc_meta.fact_type""").fetchone()[0]
             return plans or "", services or "", facts or ""
     except psycopg.Error:

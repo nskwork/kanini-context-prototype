@@ -292,3 +292,16 @@ def test_code_list_screen_fails_when_a_screened_code_is_listed(monkeypatch, tmp_
     monkeypatch.setattr(checks, "locate_text", lambda f, loc: asc_text if f == asc else real_locate(f, loc))
     rep = checks.check_file(ROOT / "kanini_context/rules/cms-pa-programs.json")
     assert any("J0885 (esa-ckd-nd) is on the program's code list" in e for e in rep.errors)
+
+
+def test_model_sees_a_trimmed_single_copy_of_rules_evaluate(db):
+    # The agent hands the model one plain copy with the fields the card uses; the decision log keeps the full packet.
+    from propel.agent.authorization_agent.agent import _slim_evaluate
+    full = db.execute("SELECT kc_api.evaluate_order('uhc-ma','TN','HCPCS|J1439',%s::date,%s::jsonb)",
+                      (DOS, json.dumps(facts(diagnosis_codes=["D50.9"])))).fetchone()[0]
+    slim = _slim_evaluate(full)
+    for k in ("outcome", "safe_to_act", "next_step_detail", "pack_release"):
+        assert slim[k] == full[k]
+    assert slim["primary_rule"]["rule_ref"] == full["primary_rule"]["rule_ref"] and slim["primary_rule"].get("quote")
+    assert "sources" not in slim and "rule_refs" not in slim
+    assert len(json.dumps(slim)) < len(json.dumps(full)) / 2

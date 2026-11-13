@@ -90,6 +90,14 @@ def docs_text(docs: dict[str, list[int] | None]) -> str:
     return "\n\n".join(out)
 
 
+def full_docs_tokens(pid: str) -> int:
+    """Tokens of A's documents given whole (no page cuts), for the note under the table."""
+    import litellm
+    p, o, _ = order(pid)
+    docs = docs_for(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
+    return litellm.token_counter(model=MODEL.split("/")[-1], text=docs_text({k: None for k in docs}))
+
+
 def prompt_for(pid: str) -> str:
     p, o, f = order(pid)
     docs = docs_for(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
@@ -116,8 +124,9 @@ def run_c(pid: str) -> dict:
 def run_a(pid: str) -> dict:
     import litellm
     t = time.perf_counter()
+    effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
     resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt_for(pid)}],
-                              response_format={"type": "json_object"})
+                              response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
     ms = (time.perf_counter() - t) * 1000
     try:
         ans = json.loads(resp.choices[0].message.content)
@@ -131,11 +140,10 @@ def run_a(pid: str) -> dict:
 # --- B: the agent with Kanini Context ----------------------------------------------------------------------------
 
 async def run_b_async(pid: str) -> dict:
-    from google.adk.models.lite_llm import LiteLlm
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
-    from propel.agent.authorization_agent.agent import build_agent
+    from propel.agent.authorization_agent.agent import build_agent, make_model
 
     usage = {"calls": 0, "in": 0, "out": 0}
 
@@ -147,7 +155,7 @@ async def run_b_async(pid: str) -> dict:
             usage["out"] += um.candidates_token_count or 0
         return None
 
-    agent = build_agent(model=LiteLlm(model=MODEL))
+    agent = build_agent(model=make_model())
     guard = agent.after_model_callback   # keep the agent's own decision-card guard, and count usage after it
 
     def guarded(callback_context, llm_response):
@@ -159,20 +167,14 @@ async def run_b_async(pid: str) -> dict:
     s = await svc.create_session(app_name="compare", user_id="staff")
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {pid}.")])
     outcome, t = None, time.perf_counter()
-    for _ in range(3):
-        confirm = None
-        async for ev in runner.run_async(user_id="staff", session_id=s.id, new_message=msg):
-            for part in (ev.content.parts if ev.content else []) or []:
-                if part.function_call and part.function_call.name == "adk_request_confirmation":
-                    confirm = part.function_call.id
-                if part.function_response and part.function_response.name == "rules_evaluate":
-                    r = part.function_response.response or {}
-                    r = r.get("structuredContent") or (json.loads(r["content"][0]["text"]) if r.get("content") else r)
-                    outcome = r.get("outcome")
-        if not confirm:
-            break
-        msg = types.Content(role="user", parts=[types.Part(function_response=types.FunctionResponse(
-            id=confirm, name="adk_request_confirmation", response={"confirmed": False}))])   # never write to the demo log
+    # The run ends with the decision card, and with the staff confirmation prompt when the agent proposes a record.
+    # Nothing is confirmed, so nothing is written; the staff member's click and the model's reply to it are not counted.
+    async for ev in runner.run_async(user_id="staff", session_id=s.id, new_message=msg):
+        for part in (ev.content.parts if ev.content else []) or []:
+            if part.function_response and part.function_response.name == "rules_evaluate":
+                r = part.function_response.response or {}
+                r = r.get("structuredContent") or (json.loads(r["content"][0]["text"]) if r.get("content") else r)
+                outcome = r.get("outcome")
     for ts in agent.tools:
         await ts.close()
     return {"outcome": outcome, "safe_to_act": None, "llm_calls": usage["calls"], "tokens_in": usage["in"],
@@ -217,12 +219,15 @@ def main(argv: list[str]) -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     import litellm
 
-    report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL, "scenarios": {}}
+    effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip() or "provider default"
+    report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL,
+              "reasoning_effort": effort, "scenarios": {}}
     for sc, pid in SCENARIOS:
         c_runs = [run_c(pid) for _ in range(args.runs)]
         ref = c_runs[0]["outcome"]
         entry = {"patient": pid, "reference_outcome": ref, "rule": c_runs[0]["rule"], "C": summarise(c_runs, ref),
-                 "A_prompt_tokens": litellm.token_counter(model=MODEL.split("/")[-1], text=prompt_for(pid))}
+                 "A_prompt_tokens": litellm.token_counter(model=MODEL.split("/")[-1], text=prompt_for(pid)),
+                 "A_full_docs_tokens": full_docs_tokens(pid)}
         if not args.offline:
             entry["A"] = summarise([run_a(pid) for _ in range(args.runs)], ref)
             entry["B"] = summarise([run_b(pid) for _ in range(args.runs)], ref)
@@ -233,7 +238,7 @@ def main(argv: list[str]) -> int:
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
     (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2))
-    lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, {args.runs} runs per scenario)", "",
+    lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, reasoning effort {effort}, {args.runs} runs per scenario)", "",
              "| Scenario | Rules say | A: LLM reads policies | B: agent + Kanini | C: workflow + Kanini |",
              "| --- | --- | --- | --- | --- |"]
     for sc, e in report["scenarios"].items():
@@ -244,6 +249,15 @@ def main(argv: list[str]) -> int:
             return (f"{s['matches_rules']}/{s['runs']} match; {s['llm_calls']:.1f} LLM calls; "
                     f"{s['tokens_in']:,.0f} in / {s['tokens_out']:,.0f} out tokens; {s['seconds']:.2f} s")
         lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | {cell('A')} | {cell('B')} | {cell('C')} |")
+    if not args.offline:
+        lines += ["", "A's answers per scenario: " + "; ".join(f"{sc} {e['A']['outcomes']}" for sc, e in report["scenarios"].items())]
+    lines += ["", "Notes:",
+              "- A reads only the documents the pack binds to the order, with licensed billing articles cut to the cited pages. "
+              "Given whole, the same documents are " + ", ".join(f"{e['A_full_docs_tokens']:,}" for e in report["scenarios"].values())
+              + " tokens per scenario. Without the pack, A would also have to find them among every payer's documents.",
+              "- B counts the model calls up to the decision card and the staff confirmation prompt; the staff click is not counted. "
+              "B's first call looks up the patient record, which A is handed in its prompt.",
+              "- C is the same rules_evaluate call made by plain code: no model."]
     (OUT / f"compare-{stamp}.md").write_text("\n".join(lines) + "\n")
     print(f"\nreport: propel/baseline/results/compare-{stamp}.md")
     return 0

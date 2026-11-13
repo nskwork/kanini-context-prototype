@@ -38,6 +38,18 @@ def _call(name: str, args: dict) -> LlmResponse:
     return LlmResponse(content=types.Content(role="model", parts=[types.Part(function_call=types.FunctionCall(name=name, args=args))]))
 
 
+def _calls(*calls: tuple[str, dict]) -> LlmResponse:
+    """Several function calls in one turn, as a model makes parallel calls."""
+    return LlmResponse(content=types.Content(role="model", parts=[
+        types.Part(function_call=types.FunctionCall(name=n, args=a)) for n, a in calls]))
+
+
+def _card_and_call(t: str, name: str, args: dict) -> LlmResponse:
+    """A reply holding the decision card and a tool call in the same turn."""
+    return LlmResponse(content=types.Content(role="model", parts=[
+        types.Part(text=t), types.Part(function_call=types.FunctionCall(name=name, args=args))]))
+
+
 def _text(t: str) -> LlmResponse:
     return LlmResponse(content=types.Content(role="model", parts=[types.Part(text=t)]))
 
@@ -68,11 +80,8 @@ class ScriptedModel(BaseLlm):
             return
         args = o["rules_evaluate_args"]
         base = {k: args[k] for k in ("plan", "state", "code", "date_of_service")}
-        if "context_applicable_rules" not in names:
-            yield _call("context_applicable_rules", base)
-            return
         if "rules_evaluate" not in names:
-            yield _call("rules_evaluate", args)
+            yield _calls(("context_applicable_rules", base), ("rules_evaluate", args))   # one turn, as instructed
             return
         ev = last["rules_evaluate"]
         if ev.get("reason") == "kanini_context_unreachable":
@@ -87,13 +96,14 @@ class ScriptedModel(BaseLlm):
                         f"{ev.get('next_step_detail')}")   # the instruction records only actionable or settled outcomes
             return
         if "journey_record" not in names:
-            # a careless model might write a different outcome here; the before_tool callback replaces it
-            yield _call("journey_record", {"order_id": o["order_id"], "outcome": "no_pa", "rule_ref": "made-up",
-                                           "source": "made-up", "safe_to_act": True})
+            # the card and the record call in one turn; a careless model might write a different outcome in the call,
+            # and the before_tool callback replaces it
+            card = (f"Decision card · {o['order_id']} · {j['display_name']}\nOutcome: No PA · safe to act\nWhy: (model's own words)"
+                    if self.wrong_card else   # a card that claims "No PA" whatever the rules said
+                    f"Decision card · {o['order_id']} · outcome {ev.get('outcome')} · "
+                    f"{'safe to act' if ev.get('safe_to_act') else 'not safe to act'} · {prim.get('citation')}")
+            yield _card_and_call(card, "journey_record", {"order_id": o["order_id"], "outcome": "no_pa", "rule_ref": "made-up",
+                                                          "source": "made-up", "safe_to_act": True})
             return
         rec = last["journey_record"]
-        if self.wrong_card:   # a card that claims "No PA" whatever the rules said
-            yield _text(f"Decision card · {o['order_id']} · {j['display_name']}\nOutcome: No PA · safe to act\nWhy: (model's own words)")
-            return
-        yield _text(f"Decision card · {o['order_id']} · outcome {ev.get('outcome')} · "
-                    f"{'safe to act' if ev.get('safe_to_act') else 'not safe to act'} · {prim.get('citation')} · record: {json.dumps(rec)[:200]}")
+        yield _text(f"record: {json.dumps(rec)[:200]}")
