@@ -18,6 +18,13 @@
     other_gate: ["Other gate", "#fbbf24"], needs_facts: ["Not yet known", "#fbbf24"], unknown: ["Not known", "#fb7185"]
   };
 
+  const words = (s) => String(s || "").replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  const TOOL_LABEL = {   // the agent's tool calls in plain words (the tool name shows on hover)
+    journey_get: "patient record", context_applicable_rules: "find the rules", rules_evaluate: "check the rules",
+    policy_search: "quote the source", journey_record: "log the decision"
+  };
+
   const S = { orders: [], order: null, inst: null, onto: null, view: "inst", compare: {}, run: null, es: null,
     live: { mode: null, turns: 0, tin: 0, tout: 0, t0: 0, ms: null, eval: null, quote: null } };
 
@@ -48,6 +55,7 @@
   const zoom = d3.zoom().scaleExtent([0.25, 6]).on("zoom", (e) => {
     root.attr("transform", e.transform);
     zoomK = e.transform.k;
+    gNodes.selectAll("text").attr("transform", `scale(${Math.min(1.6, Math.max(0.75, 1 / Math.sqrt(zoomK)))})`);
     labelPass();
   });
   svg.call(zoom).on("dblclick.zoom", null);
@@ -71,7 +79,7 @@
     sim = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).distance(mode === "onto" ? 72 : 46).strength(0.12))
       .force("charge", d3.forceManyBody().strength(mode === "onto" ? -120 : -65))
-      .force("collide", d3.forceCollide((n) => (mode === "onto" ? 30 : n.on ? 42 : n.prog || n.unscr ? 22 : 10)))
+      .force("collide", d3.forceCollide((n) => (mode === "onto" ? 36 : n.on ? 42 : n.prog || n.unscr ? 22 : 10)))
       .force("radial", d3.forceRadial(shell, 0, 0).strength(mode === "onto" ? 0.32 : 0.55))
       .force("drift", () => {   // slow breathing so the sky never freezes
         const t = (performance.now() - t0) / 1000;
@@ -102,10 +110,12 @@
   function ontoShells() {   // the ontology: classes in shells by depth under their root class
     const parent = new Map();
     links.filter((l) => l.rel === "subClassOf").forEach((l) => parent.set(l.source, l.target));
-    nodes.forEach((n, i) => {
+    const seen = {};   // siblings under one root alternate between three rings, so their labels do not stack
+    nodes.forEach((n) => {
       let d = 0, r = n;
       while (parent.has(r) && d < 6) { r = parent.get(r); d++; }
-      n.root = r.id; n.depth = d; n.shell = d === 0 ? 105 : d === 1 ? 205 + (i % 3) * 32 : 340;
+      const k = (seen[r.id] = (seen[r.id] || 0) + 1);
+      n.root = r.id; n.depth = d; n.shell = d === 0 ? 100 : d === 1 ? 195 + (k % 3) * 38 : 340;
     });
   }
 
@@ -116,9 +126,9 @@
     return KIND_COLOR[n.kind] || "#94a3b8";
   }
   function nodeLabel(n) {
-    if (S.view === "onto") return n.id;
+    if (S.view === "onto") return words(n.id);
     const id = String(n.id ?? "");
-    if (n.kind === "Rule") return "Rule " + id.split("/").pop();
+    if (n.kind === "Rule") return cap(words(n.rule_kind || "rule"));   // the policy node beside it carries the citation
     if (n.kind === "Source") return "Source: " + (n.doc || id);
     if (n.kind === "Snapshot") return "Saved copy";
     if (n.kind === "Concept") return n.label || id;
@@ -145,7 +155,7 @@
   function labelPass() {
     const big = new Set(["Plan", "Payer", "Authority", "Concept", "Class"]);
     gNodes.selectAll("text").style("opacity", (n) =>
-      n.kind === "Source" && n.on && zoomK < 2.1 ? 0   // its authority carries the same name; the source shows on hover or deep zoom
+      ["Source", "Program", "ValueSet", "Snapshot"].includes(n.kind) && n.on && zoomK < 2.1 ? 0   // repeats a nearby name: on hover or deep zoom
       : n.on || n.cand || n.unscr || (n.prog && n.kind !== "Rule") ? 1 : n.prog ? 0 : zoomK >= 2.1 ? 0.85 : zoomK >= 1.25 && big.has(n.kind) ? 0.75 : S.view === "onto" && (n.depth <= 1 || zoomK >= 1.3) ? 0.75 : 0);
   }
   function legend(mode) {
@@ -153,7 +163,7 @@
     nodes.forEach((n) => { const k = mode === "onto" ? n.root : n.kind; counts[k] = (counts[k] || 0) + 1; });
     const pal = mode === "onto" ? ROOT_COLOR : KIND_COLOR;
     $("legend").innerHTML = (mode === "onto" ? "<span>classes by root ·</span>" : `<span>${nodes.length} nodes · ${links.length} edges ·</span>`) +
-      Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span><i style="background:${pal[k] || "#94a3b8"}"></i>${esc(k)} ${n}</span>`).join("");
+      Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span><i style="background:${pal[k] || "#94a3b8"}"></i>${esc(cap(words(k)))} ${n}</span>`).join("");
   }
   function tip(e, n) {
     const t = $("tip"), r = svg.node().getBoundingClientRect();
@@ -167,7 +177,7 @@
     if (!pts.length) return;
     const [w, h] = size();
     const x0 = d3.min(pts, (n) => n.x), x1 = d3.max(pts, (n) => n.x), y0 = d3.min(pts, (n) => n.y), y1 = d3.max(pts, (n) => n.y);
-    const k = Math.min(2.4, 0.74 / Math.max((x1 - x0 + 90) / w, (y1 - y0 + 90) / h));
+    const k = Math.min(2.4, 0.7 / Math.max((x1 - x0 + 100) / w, (y1 - y0 + 100) / h));
     const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
     (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
@@ -339,7 +349,7 @@
       <div class="verdict">${esc(label)}</div>
       <div class="state">${p.safe_to_act ? "Safe to act" : "Not safe to act"}${(p.not_safe_because || []).length ? " · " + esc(p.not_safe_because.map(why).join("; ")) : ""}</div>
       <div class="approve"><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>
-      <div class="k">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
+      <div class="k first">Why</div><ul>${(p.reasons || []).slice(0, 6).map((r) => `<li>${esc(r)}</li>`).join("") || `<li>${esc(p.reason_text || p.reason || "")}</li>`}</ul>
       <div class="k">Next step</div><div class="v">${esc(p.next_step_detail || p.next_step)}</div>
       ${clock ? `<div class="k">Deadline</div><div class="v">${esc(clock)}</div>` : ""}
       <div class="k">Rule</div><div class="v">${esc(prim.citation || "none")}</div><div class="rule">${esc(prim.rule_ref || "")}</div>
@@ -420,10 +430,10 @@
   }
 
   /* ---------------------------------------------------------------- runs */
-  function chip(text, cls) {
+  function chip(text, cls, title) {
     const t = $("trace"), last = t.lastElementChild;
     if (last && last.textContent === text) return;   // a confirmed call is reported again when it resumes
-    const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; t.appendChild(s);
+    const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; if (title) s.title = title; t.appendChild(s);
   }
   function setBusy(b) {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
     $("run-agent").textContent = b && S.live.mode === "agent" ? "Asking… (press to restart)" : "Ask the AI agent";
@@ -452,7 +462,8 @@
       if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
       laneNumbers();
     } else if (e.kind === "tool_call") {
-      if (L.mode === "agent" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.textContent === "journey_record"))) chip(e.name, "tool");
+      const lbl = TOOL_LABEL[e.name] || e.name;
+      if (L.mode === "agent" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.textContent === lbl))) chip(lbl, "tool", e.name);
     } else if (e.kind === "tool_result") {
       if (e.name === "context_applicable_rules") lightCandidates(e.payload);
       if (e.name === "rules_evaluate") {
@@ -465,7 +476,6 @@
         const src = nodes.find((n) => n.kind === "Source" && n.doc === e.payload.citation);
         if (src) { src.on = true; paint(); }
       }
-      if (e.name === "journey_get" && e.payload && e.payload.status === "found") chip("got the patient record");
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
       L.ms = performance.now() - L.t0; L.done = true; setBusy(false); laneNumbers();
@@ -536,7 +546,7 @@
     S.scripted = !!st.scripted;
     $("status").innerHTML = `Release <span class="code">${esc(st.release)}</span> · ${st.rules} rules · ${st.sources} sources<br>Model <span class="code">${esc(st.model)}</span>`;
     S.orders = orders; S.inst = g; S.compare = cmp || {};
-    $("orders").innerHTML = orders.map((o) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.state)}</span></button>`).join("");
+    $("orders").innerHTML = orders.map((o) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.payer)} · ${esc(o.state)}</span></button>`).join("");
     document.querySelectorAll(".chip").forEach((c) => (c.onclick = () => pick(orders.find((o) => o.patient === c.dataset.p))));
     buildLanes();
     setGraph(g, "inst");

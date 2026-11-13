@@ -72,6 +72,8 @@ def orders():
     with db() as c:
         plans = {k: t.split(" (")[0] for k, t in c.execute(
             "SELECT e.natural_key, p.plan_type FROM kc_core.plan p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall()}
+        payers = dict(c.execute("""SELECT e.natural_key, coalesce(py.short_name, py.legal_name) FROM kc_core.plan p
+                                    JOIN kc_core.entity e ON e.entity_id = p.entity_id JOIN kc_core.payer py ON py.entity_id = p.payer_id""").fetchall())
         states = dict(c.execute("SELECT e.natural_key, j.name FROM kc_core.jurisdiction j JOIN kc_core.entity e ON e.entity_id = j.entity_id").fetchall())
         facts = {f: {"name": n, "unit": (u or "").replace("{1.73_m2}", "1.73 m²")} for f, n, u in c.execute(
             "SELECT DISTINCT ON (fact) fact, name, unit FROM kc_core.data_element WHERE fact IS NOT NULL ORDER BY fact, name").fetchall()}
@@ -81,7 +83,7 @@ def orders():
             cov = p["coverage"]
             out.append({"patient": pid, "display_name": p["display_name"], "order_id": o["order_id"], "code": o["code"],
                         "description": o["description"], "date_of_service": o["date_of_service"],
-                        "plan": cov["plan"], "plan_name": plans.get(cov["plan"], cov["plan"]),
+                        "plan": cov["plan"], "plan_name": plans.get(cov["plan"], cov["plan"]), "payer": payers.get(cov["plan"], ""),
                         "state": cov["state"], "state_name": states.get(cov["state"], cov["state"]),
                         "facts": p["facts"], "fact_names": {k: facts.get(k, {"name": k, "unit": ""}) for k in p["facts"]}})
     return out
@@ -113,7 +115,8 @@ def graph():
         names.update({k: t.split(" (")[0] for k, t in c.execute(
             "SELECT e.natural_key, p.plan_type FROM kc_core.plan p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall()})
         names.update(c.execute("SELECT e.natural_key, coalesce(p.short_name, p.legal_name) FROM kc_core.payer p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall())
-        names.update(c.execute("SELECT e.natural_key, p.name FROM kc_core.program p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall())
+        names.update({k: n.split(" (")[0] for k, n in c.execute("SELECT e.natural_key, p.name FROM kc_core.program p JOIN kc_core.entity e ON e.entity_id = p.entity_id").fetchall()})
+        names.update(c.execute("SELECT e.natural_key, v.name FROM kc_core.value_set v JOIN kc_core.entity e ON e.entity_id = v.entity_id").fetchall())
         names.update(c.execute("SELECT e.natural_key, j.name FROM kc_core.jurisdiction j JOIN kc_core.entity e ON e.entity_id = j.entity_id").fetchall())
         names.update(c.execute("""SELECT e.natural_key, coalesce(py.short_name, '') || ' ' || en.interface FROM kc_core.endpoint en
                                    JOIN kc_core.entity e ON e.entity_id = en.entity_id JOIN kc_core.payer py ON py.entity_id = en.payer_id""").fetchall())
@@ -121,7 +124,7 @@ def graph():
         for key, cit, kind in c.execute("SELECT e.natural_key, a.citation, a.kind FROM kc_core.authority a JOIN kc_core.entity e ON e.entity_id = a.entity_id").fetchall():
             names[key], akind[key] = cit, kind
     for n in nodes:   # readable names from the pack: data elements by name, authorities by citation and kind
-        if n["kind"] in ("DataElement", "Authority", "Plan", "Payer", "Program", "Jurisdiction", "Endpoint") and n.get("id") in names:
+        if n["kind"] in ("DataElement", "Authority", "Plan", "Payer", "Program", "Jurisdiction", "ValueSet", "Endpoint") and n.get("id") in names:
             n["name"] = names[n["id"]]
         if n["kind"] == "Authority" and n.get("id") in akind:
             n["authority_kind"] = akind[n["id"]]
@@ -266,6 +269,8 @@ async def run_agent(run: Run):
 
     def after_model(callback_context, llm_response):
         out = own_model(callback_context, llm_response)   # the card guard first, so the page shows the corrected card
+        if run.stale:   # the stopping turn of a replaced run is not a model call
+            return out
         um = llm_response.usage_metadata
         usage["turn"] += 1
         tin, tout = (um.prompt_token_count or 0, um.candidates_token_count or 0) if um else (0, 0)
@@ -298,7 +303,7 @@ async def run_agent(run: Run):
                 for part in (ev.content.parts if ev.content else []) or []:
                     if part.function_call and part.function_call.name == "adk_request_confirmation":
                         confirm_id = part.function_call.id
-            if not confirm_id:
+            if not confirm_id or run.stale:   # a replaced run never waits for approval
                 break
             run.confirm = loop.create_future()
             await run.emit("confirm_request", llm_calls=usage["turn"], tokens_in=usage["in"], tokens_out=usage["out"])
