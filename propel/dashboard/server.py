@@ -290,6 +290,28 @@ async def run_agent(run: Run):
     agent = A.build_agent(model=model)
     loop = asyncio.get_running_loop()
     usage = {"turn": 0, "in": 0, "out": 0}
+    clock = {"t": time.perf_counter(), "t0": time.perf_counter(), "ai": 0.0, "tools": 0.0, "setup": None, "steps": []}   # where B's time goes
+
+    def lap(kind: str, label: str):
+        now = time.perf_counter()
+        if clock["setup"] is None and kind == "ai_start":   # until the first model call: agent, MCP connections, session
+            clock["setup"] = now - clock["t"]
+        if kind in ("ai_end", "tool_end"):
+            d = now - clock["t"]
+            clock["ai" if kind == "ai_end" else "tools"] += d
+            clock["steps"].append((label, round(d, 2)))
+        clock["t"] = now
+
+    def timing_report():
+        total = time.perf_counter() - clock["t0"]
+        rep = {"setup_s": round(clock["setup"] or 0, 2), "ai_s": round(clock["ai"], 2), "tools_s": round(clock["tools"], 2),
+               "total_s": round(total, 2), "steps": clock["steps"]}
+        rep["between_s"] = round(total - rep["setup_s"] - rep["ai_s"] - rep["tools_s"], 2)   # ADK and MCP work between steps
+        print(f"[dashboard] B timing for {run.patient}: total {rep['total_s']} s = start-up {rep['setup_s']} + AI {rep['ai_s']} "
+              f"+ tools {rep['tools_s']} + between steps {rep['between_s']}; "
+              + ", ".join(f"{k} {v} s" for k, v in clock["steps"]), flush=True)
+        return rep
+
     own_before, own_after, own_model = agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback
 
     def fire(kind, **data):   # called from the agent's synchronous callbacks
@@ -297,10 +319,12 @@ async def run_agent(run: Run):
         loop.create_task(run.wake())
 
     def before_tool(tool, args, tool_context):
+        lap("tool_start", tool.name)
         fire("tool_call", name=tool.name, args=dict(args), turn=usage["turn"])
         return own_before(tool, args, tool_context)
 
     def after_tool(tool, args, tool_context, tool_response):
+        lap("tool_end", tool.name)
         fire("tool_result", name=tool.name, payload=A._payload(tool_response))   # the full result, before it is trimmed for the model
         return own_after(tool, args, tool_context, tool_response)
 
@@ -310,6 +334,7 @@ async def run_agent(run: Run):
             return out
         um = llm_response.usage_metadata
         usage["turn"] += 1
+        lap("ai_end", f"AI step {usage['turn']}")
         tin, tout = (um.prompt_token_count or 0, um.candidates_token_count or 0) if um else (0, 0)
         usage["in"] += tin
         usage["out"] += tout
@@ -325,6 +350,7 @@ async def run_agent(run: Run):
         if run.stale:   # no model call: the run ends here and its MCP sessions close normally
             from google.adk.models.llm_response import LlmResponse
             return LlmResponse(content=types.Content(role="model", parts=[types.Part(text="Stopped: a newer run replaced this one.")]))
+        lap("ai_start", "")
         return own_before_model(callback_context, llm_request) if own_before_model else None
 
     agent.before_tool_callback, agent.after_tool_callback, agent.after_model_callback = before_tool, after_tool, after_model
@@ -343,6 +369,7 @@ async def run_agent(run: Run):
             if not confirm_id or run.stale:   # a replaced run never waits for approval
                 break
             run.confirm = loop.create_future()
+            await run.emit("timing", **timing_report())
             await run.emit("confirm_request", llm_calls=usage["turn"], tokens_in=usage["in"], tokens_out=usage["out"])
             try:
                 approved = await asyncio.wait_for(run.confirm, timeout=600)
@@ -352,6 +379,8 @@ async def run_agent(run: Run):
             await run.emit("confirm", approved=approved)
             msg = types.Content(role="user", parts=[types.Part(function_response=types.FunctionResponse(
                 id=confirm_id, name="adk_request_confirmation", response={"confirmed": approved}))])
+        if not any(e["kind"] == "timing" for e in run.events):
+            await run.emit("timing", **timing_report())
         if run.stale:
             await run.emit("abandoned")
         await asyncio.sleep(0)

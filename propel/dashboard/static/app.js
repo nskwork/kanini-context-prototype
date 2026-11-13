@@ -430,6 +430,7 @@
     // B: the agent, counted from its own model calls
     const b = lanes.B.st, scripted = S.scripted && (b.active || b.done) && !b.tin;
     $("sB").textContent = scripted ? "Rehearsal: scripted stand-in, no AI and no tokens"
+      : b.done && b.timing ? `This run: AI ${b.timing.ai_s.toFixed(1)} s · tools ${b.timing.tools_s.toFixed(1)} s · start-up ${b.timing.setup_s.toFixed(1)} s · between steps ${b.timing.between_s.toFixed(1)} s`
       : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : `The AI gets short answers from checked rules · ${last("B") || "press Run B"}`;
     $("nB1").innerHTML = scripted ? "–" : b.active || b.done ? fmt(b.tin) : "–";
     $("nB2").innerHTML = b.active || b.done ? `${b.turns} · ${secs(b)}<small> s</small>` : "–";
@@ -517,6 +518,8 @@
         chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
         if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
       }
+    } else if (e.kind === "timing") {
+      st.timing = e;
     } else if (e.kind === "reference") {
       st.ref = e.outcome; st.ok = e.matches;
     } else if (e.kind === "unavailable") {
