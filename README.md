@@ -10,7 +10,7 @@
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
 ![stack](https://img.shields.io/badge/PostgreSQL%2016%20%C2%B7%20Apache%20AGE%20%C2%B7%20FastMCP%20%C2%B7%20Google%20ADK-334155?style=flat-square)
 
-**[Results](#-results)** · **[What broke](#-what-broke-without-the-context-layer)** · **[How it works](#%EF%B8%8F-how-it-works)** · **[Dashboard](#%EF%B8%8F-dashboard)** · **[Tests](#-tests-and-scope-coverage)** · **[Schema](#-the-schema)** · **[Run it](#%EF%B8%8F-run-it)**
+**[Results](#-results)** · **[Every run](#-every-test-every-run)** · **[What broke](#-what-broke-without-the-context-layer)** · **[How it works](#%EF%B8%8F-how-it-works)** · **[Dashboard](#%EF%B8%8F-dashboard)** · **[Tests](#-tests-and-scope-coverage)** · **[Schema](#-the-schema)** · **[Run it](#%EF%B8%8F-run-it)**
 
 <sub>Prepared by NANDHU S K</sub>
 
@@ -25,7 +25,7 @@
 
 <img src="docs/assets/results.svg" alt="The same agent without Kanini Context, with it, and Kanini Context with no AI" width="100%">
 
-<sub>Drawn from the reports in <code>propel/baseline/results/</code> by <code>docs/assets/make_figures.py</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines).</sub>
+<sub>Drawn from the reports in <code>propel/baseline/results/</code> by <code>docs/assets/make_figures.py</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines). Every run, order by order: <a href="#-every-test-every-run">Every test, every run</a>.</sub>
 
 | | **A** · same agent, no context | **B** · agent with Kanini Context (reduce) | **C** · Kanini Context, no AI (eliminate) |
 | :-- | :--: | :--: | :--: |
@@ -85,24 +85,74 @@ Whether the key is right rests on the rules: each quotes its source page and was
 | `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ✅ 5/5 | key | ❌ 0/5 · ❌ 0/5 | ❌ 0/5 · ❌ 0/5 |
 | `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 2/5 · ❌ 2/5 | ⚠️ 3/5 · ⚠️ 3/5 |
 
-<details>
-<summary><b>Other baselines: one call over the library (search, every document)</b></summary>
-
 <br>
 
-Two plain LLM applications, each answering in one call from the same 16-document library, tested twice (`compare-20261113-0850` at 08:42 and `compare-20261113-1031` at 10:23 Central time, 13 Nov 2026). The second run kept every answer with the AI's own reasons, quoted in "What broke" below.
+## 🧪 Every test, every run
 
-| | **Search (RAG)**: the 16 best-matching passages | **Every document**: the whole library |
-| :-- | :--: | :--: |
-| **Against the answer key, first run** | 11 of 30 | 18 of 30 |
-| **Against the answer key, second run** | 16 of 30 | 20 of 30 |
-| **Both runs** | 27 of 60 | 38 of 60 |
-| **Input tokens per order** | 7,605 to 9,343 | 147,514 to 147,531 |
-| **Answer changed between runs of the same order** | on 3 of 6 orders, then 2 of 6 | on 4 of 6 orders, then 3 of 6 |
+Every comparison kept in `propel/baseline/results/`, on the same six orders, five answers per order per run. Besides lane A, two plain LLM applications were tested, each answering in a single call from the same 16-document library: **search (RAG)**, sent the 16 passages that best match the order, and **every document**, sent the whole library. One more run handed a single call exactly the pages Kanini Context picked for each order.
 
-The same test, run twice an hour and forty minutes apart, moved by five and by two answers: the score of a method without the context layer depends on the run. Given exactly the pages Kanini Context picked for each order, a single call still matched only 21 of 30 at low reasoning effort and 23 of 30 at medium (`compare-20261112-2210`, `compare-20261112-2238`).
+<img src="docs/assets/history.svg" alt="Every test run, order by order: answers that matched the approved rules out of five" width="100%">
 
-</details>
+| When (Central) | What was tested | What the AI was given | Right | Input tokens per order | Report |
+| :-- | :-- | :-- | :--: | :--: | :-- |
+| 12 Nov, 21:58 | One call, low effort | the pages Kanini Context picked for the order | 21 of 30 | 22,455 to 39,313 | `compare-20261112-2210` |
+| 12 Nov, 22:20 | One call, medium effort | the same pages | 23 of 30 | 22,455 to 39,313 | `compare-20261112-2238` |
+| 12 Nov, 22:49 | **B**: agent + Kanini Context | the rules' answer, no document text | **30 of 30** | 10,512 to 13,671 | `compare-20261112-2256` |
+| 13 Nov, 08:42 | Search (RAG), run 1 | 16 passages ranked by embeddings | 11 of 30 | 7,605 to 9,343 | `compare-20261113-0850` |
+| 13 Nov, 08:42 | Every document, run 1 | all 16 documents | 18 of 30 | about 147,500 | `compare-20261113-0850` |
+| 13 Nov, 10:09 | **A**: same agent, no context, run 1 | search and page tools over the library | 16 of 30 | about 22,700 | `compare-20261113-1017` |
+| 13 Nov, 10:23 | Search (RAG), run 2 | **the identical 16 passages** | 16 of 30 | 7,605 to 9,343 | `compare-20261113-1031` |
+| 13 Nov, 10:23 | Every document, run 2 | **the identical library** | 20 of 30 | about 147,500 | `compare-20261113-1031` |
+| 13 Nov, 10:48 | **A**: same agent, no context, run 2 | search and page tools over the library | 18 of 30 | 18,387 to 27,025 | `compare-20261113-1056` |
+
+> [!WARNING]
+> **The same prompt gave a different score.** Search (RAG) was sent the identical 16 passages for every order in both of its runs, and every document the identical library, yet the scores moved from 11 to 16 of 30 and from 18 to 20 of 30. Without the context layer the answer depends on the run, not only on the input.
+
+### The five ways it broke
+
+Wrong answers out of five, per run (run 1 · run 2). Each row is one kind of mistake; the orders are in the figure above, and the AI's own words for each are in [What broke](#-what-broke-without-the-context-layer).
+
+| Mistake | Order, and what the rules say | A · no context | Search (RAG) | Every document | Pages picked by Kanini Context | B |
+| :-- | :-- | :--: | :--: | :--: | :--: | :--: |
+| 🗺️ **Read the wrong region's policy** | `maria-oh`: No PA, Ohio allows eGFR < 60 | 4 · 3 | **5 · 5** | 3 · 1 | 0 · 0 | 0 |
+| 🔇 **Read silence as a rule** | `maria-uhc-esa`: Not known, route to staff | 4 · 5 | **5 · 5** | 4 · 5 | **5 · 5** | 0 |
+| 🩸 **Missed a missing fact** | `maria-nohgb`: Not yet known, get the hemoglobin | 1 · 1 | 3 · 3 | 2 · 2 | 3 · 1 | 0 |
+| ➕ **Invented a requirement** | `maria-tn`: No PA | 3 · 2 | 2 · 0 | 0 · 1 | 0 · 0 | 0 |
+| 📋 **Asked for facts the plan's list does not need** | `maria-uhc`: PA required | 1 · 1 | 4 · 1 | 2 · 0 | 1 · 1 | 0 |
+| Other one-off answers | | 1 · 0 | 0 · 0 | 1 · 1 | 0 · 0 | 0 |
+| **Wrong, all six orders** | | **14 · 12** | **19 · 14** | **12 · 10** | **9 · 7** | **0** |
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**🟠 Search (RAG): what broke it**
+
+- **It never retrieved the deciding page** on any of the four Original Medicare orders: LCD L39237 page 7 for Tennessee, L34356 page 8 for Ohio. It found it only for `maria-uhc` (the UHC list, page 17).
+- **It retrieved the wrong state.** For the Ohio order, 12 of the 16 passages came from Tennessee's policy and 2 from Ohio's: 0 of 5 in both runs, every answer "Other gate" under Tennessee's limit of 45. The Tennessee orders got 2 passages of Ohio's.
+- Cheapest of the no-context ways (about 8,200 tokens), and the least accurate: 27 of 60.
+
+</td>
+<td width="33%" valign="top">
+
+**🟣 Every document: what broke it**
+
+- **It costs about 147,500 tokens per order**, about 13 times B, on every order, for 38 of 60.
+- **Having the right page did not help.** The Ohio and Tennessee policies were both in the prompt; it still applied Tennessee's limits to Ohio in 3 of 5 runs, then 1 of 5.
+- **It read the cancer-only listing as a rule** for the anemia drug in 9 of 10 answers.
+
+</td>
+<td width="33%" valign="top">
+
+**⚪ Pages picked by Kanini Context**
+
+- Given exactly the documents the pack binds to each order, so the wrong-region mistake disappears: 21 then 23 of 30.
+- **The answer still has to be worked out by the model**, and it still misread silence as a rule on all 10 answers for the anemia drug, and missed the missing hemoglobin in 4 of 10.
+- Not a fair no-context baseline (the pack did the finding), so it is not lane A.
+
+</td>
+</tr>
+</table>
 
 <br>
 
@@ -281,50 +331,11 @@ Every difference is explained in `docs/COVERAGE.md`, section 6.
 
 The database is the specification's schema. The release also writes it out as an OWL ontology (`kanini_context/release/kanini-context.ttl`) and an Apache AGE graph, all from the same registry.
 
-```mermaid
-classDiagram
-  direction LR
-  class CoverageItem
-  CoverageItem <|-- Payer
-  CoverageItem <|-- Plan
-  CoverageItem <|-- Program
-  CoverageItem <|-- Jurisdiction
-  class Authority
-  Authority <|-- Lcd
-  Authority <|-- BillingArticle
-  Authority <|-- PayerList
-  Authority <|-- PayerPolicy
-  Authority <|-- Regulation
-  Authority <|-- PaProgram
-  class Rule
-  Rule <|-- ApprovalRequired
-  Rule <|-- Exemption
-  Rule <|-- DocumentationRequirement
-  Rule <|-- Obligation
-  Rule <|-- CoverageCriteria
-  Obligation <|-- DecisionTimeframe
-  Obligation <|-- AppealWindow
-  class TerminologyItem
-  TerminologyItem <|-- Concept
-  TerminologyItem <|-- Code
-  TerminologyItem <|-- ValueSet
-  Plan --> Payer : operatedBy
-  Plan --> Program : offeredUnder
-  Plan --> Jurisdiction : locatedIn
-  Authority --> CoverageItem : binds
-  Authority --> Rule : states
-  Authority --> Snapshot : issuedIn
-  Snapshot --> Source
-  Rule --> TerminologyItem : about
-  Rule --> DataElement : requires
-  Rule --> KnowledgeArtifact : documentedBy
-  Concept --> Code : mapsTo
-  Code --> ValueSet : belongsTo
-  Payer --> Endpoint : exposes
-  Authority --> Authority : supersedes / preempts / defersTo
-```
+<img src="docs/assets/schema.svg" alt="The Kanini Context schema: coverage, authorities and rules, provenance, terminology, and the facts a rule needs" width="100%">
 
-<sub>Core of the model. The full ontology has 53 classes, including every program, authority and endpoint kind.</sub>
+<sub>Drawn from the release's ontology file by <code>docs/assets/make_figures.py</code>, so it shows the classes, fields and relations as built. The dashboard's Schema tab shows the same model interactively, with every field.</sub>
+
+**How an order travels through it:** the order's plan and state select a **Plan** and its **Jurisdiction** (coverage) → the **Authorities** that *bind* them → the **Rules** they *state* that are *about* the order's **Code** (directly or through a **ValueSet**), in force on the date of service → each rule's **DataElements** are checked against the order's facts → the answer carries the rule's **source quote and locator**, and the **Snapshot** it was read from.
 
 | | Specification v1.5 | Built in the prototype |
 | :-- | :--: | :--: |
