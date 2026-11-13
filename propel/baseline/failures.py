@@ -107,6 +107,10 @@ def _quote(run: dict) -> dict:
             break
     if run.get("outcome") == "needs_facts":   # what it asked for is what went wrong
         nxt = next((ln.split("Next step:", 1)[1].strip() for ln in card.splitlines() if "Next step:" in ln), "")
+        if nxt.endswith(":"):   # "…includes either:" with the items as bullets below
+            k = next((i for i, ln in enumerate(card.splitlines()) if "Next step:" in ln), None)
+            items = [x.strip(" -*") for x in card.splitlines()[k + 1:k + 4] if x.strip().startswith(("-", "*"))] if k is not None else []
+            nxt = (nxt + " " + " / ".join(items)).strip()
         why = nxt or why
     if not card and run.get("reasons"):   # a one-call answer: its list of reasons
         rs = [str(r) for r in run["reasons"]]
