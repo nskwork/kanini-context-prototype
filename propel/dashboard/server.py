@@ -180,20 +180,22 @@ def compare():
             if tgt["patient"] != e["patient"]:
                 continue
             lanes = {"A": e.get("A_agent"), "A_rag": e.get("A_rag"), "A_whole": e.get("A_whole"), "B": e.get("B"), "C": e.get("C"),
-                     "A_sent": e.get("A_rag_sent"), "A_whole_tokens": e.get("A_whole_prompt_tokens")}
+                     "A_sent": e.get("A_rag_sent"), "A_whole_tokens": e.get("A_whole_prompt_tokens"), "A_runs": e.get("A_agent_runs")}
             for lane, v in lanes.items():
                 if v and lane not in tgt:
                     tgt[lane] = v
                     out["files"].setdefault(lane, f.name)
-                    if lane in ("A", "A_rag"):
+                    if lane in ("A", "A_rag", "A_whole"):
                         out.setdefault("at", {})[lane] = rep.get("at")
     if not out["scenarios"]:
         return {}
     out["file"] = out["files"].get("A") or next(iter(out["files"].values()), "")
     try:   # what broke, order by order, for the Testing tab (same text as the README section)
         from propel.baseline import failures
-        out["explain"] = failures.explain({"at": (out.get("at") or {}).get("A_rag"), "scenarios": out["scenarios"]})
-        out["explain"]["when"] = failures._when(out["explain"]["at"])
+        at = out.get("at") or {}
+        out["explain"] = failures.explain({"at": at.get("A") or at.get("A_rag"), "scenarios": out["scenarios"]})
+        names = {"A": "Same agent, no context", "A_rag": "Search (RAG)", "A_whole": "Every document"}
+        out["explain"]["when"] = "; ".join(f"{names[k]} {failures._when(v)}" for k, v in at.items() if k in names)
     except Exception as ex:
         print(f"[dashboard] testing explanation not available: {ex}", flush=True)
     return out

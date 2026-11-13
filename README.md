@@ -20,71 +20,94 @@ Prepared by NANDHU S K
 
 ## Latest results · 13 Nov 2026
 
-Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Reports: `propel/baseline/results/compare-20261113-0850.md` (A and A'), `compare-20261112-2256.md` (B).
+The prototype's objective: show the value of the context layer, and how it reduces or eliminates repeated LLM calls for information that is already in the context. So the comparison is the same agent with and without it. Six synthetic orders, five runs each, GPT-5 mini at reasoning effort low. Reports in `propel/baseline/results/`: `compare-20261113-1017` (A), `compare-20261112-2256` (B), `compare-20261113-0850` (earlier baselines).
 
-> **How to read this table.** C is the answer key: the engineer-approved rules applied by plain code, with no AI. Every lane is checked against it, so C cannot score anything but full marks, and its column shows cost and repeatability, not accuracy. Whether the key itself is right rests on the rules: each one quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). A and A' are a plain LLM application with no Kanini Context, answering from the same 16-document policy library, and are graded against the key. B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
+> **How to read this table.** A is the Propel agent with no Kanini Context: same model, same patient-record tool, and document tools (list, search, read pages) in place of the context layer, so it finds and reads the policy itself for every order. B is the same agent with Kanini Context. C is Kanini Context with no AI. C is the answer key: the engineer-approved rules applied by plain code, so it cannot score anything but full marks; its column shows cost and repeatability. Whether the key is right rests on the rules: each quotes its source page and was checked by the engineer, and the six expected answers match the scope's scenarios (scenario 3 changed as `docs/SCOPE_FINDINGS.md` explains). B takes its answer from the rules by design, so its check is that the agent asked the rules the right question.
 
-| | **A** · AI + RAG over the library | **A'** · AI reads the whole library | **B** · AI agent asks Kanini Context | **C** · no AI: the approved rules, applied directly |
-| :-- | :--: | :--: | :--: | :--: |
-| **What the AI is given** | the 16 passages that best match the order | all 16 documents, whole | the rules' answer for the order, through tools | no AI |
-| **Against the answer key** | 11 of 30 match | 18 of 30 match | 30 of 30 used the rules' answer | *is the key* |
-| **Model calls per order** | 1 (plus one embedding lookup) | 1 | 4 to 5 | **0** |
-| **Input tokens per order** | 7,605 to 9,343 | 147,525 | 10,512 to 13,671 | **0** |
-| **Time per order** | 4.6 to 6.7 s | 7.1 to 11 s | 7.1 to 16 s, once its tool connections are open | **0.03 s** |
-| **Same answer every run** | no | no | yes | yes |
+| | **A** · same agent, no context | **B** · agent with Kanini Context (reduce) | **C** · Kanini Context, no AI (eliminate) |
+| :-- | :--: | :--: | :--: |
+| **Against the answer key** | 16 of 30 match | 30 of 30 used the rules' answer | *is the key* |
+| **Model calls per order** | 4.6 to 5.8 | 4 to 5 | **0** |
+| **Input tokens per order** | 18,822 to 31,014 (average 22,700) | 10,512 to 13,671 | **0** |
+| **Document text read per order** | 1.2 to 2.2 searches, 2.2 to 2.6 pages | none | none |
+| **Time per order** | 12.5 to 18.6 s | 7.1 to 16 s | **0.03 s** |
+| **Same answer every run** | no: changed between runs on 6 of 6 orders | yes | yes |
 
 **In plain words**
 
-- **Without Kanini Context, the AI gets it wrong often.** Searching the library (RAG), it matched the rules 11 times in 30; reading every document, 18 in 30, at about 148,000 tokens per order.
-- **Retrieval picks the wrong region.** For the Ohio order, RAG brought back twelve passages of the Tennessee billing article and only one page each of Ohio's LCD (not its coverage criteria page) and Ohio's article. The AI answered "other gate" in 5 runs of 5: the Tennessee answer for eGFR 52, where Ohio allows < 60. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.
-- **Silence is read as a rule.** On the anemia drug under UnitedHealthcare, where the list names it only with a cancer diagnosis, both A and A' said "PA required" (one run of A' said "No PA"); none routed it to staff, the answer the documents support.
-- **On some orders RAG is right, and cheaper than B.** For the Tennessee eGFR 52 order it matched 5 of 5 with about 8,000 tokens against B's 12,000 to 14,000. One run on one order says little: over the six orders it matched 11 of 30, and the dashboard shows that overall score beside every mark. The answer that is cheaper than RAG and right every time is C, not B.
-- **C is the point.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time. C is not "more accurate" than A; it is the reviewed answer, delivered with no model call.
-- **B is the assistant.** When staff want an explanation, the agent uses 4 to 5 short model calls, about 12,000 tokens, and can only state what the rules returned. Its own decision card agreed with the rules every time it wrote one before approval (8 of 8); when it sends the record request alone, the card is written from the rules, so staff always see it before approving.
-- **Even the right pages are not enough.** In an earlier run A was handed exactly the pages Kanini Context picked for each order and still matched only 21 of 30 at low reasoning effort, 23 of 30 at medium (`compare-20261112-2210.md`, `compare-20261112-2238.md`).
-- **Not counted in any lane:** the one-off model use when the rules were drafted from the documents, and embedding the library once for RAG.
+- **Without the context layer, the agent works it out again for every order, and gets it wrong half the time.** It searched and read the policy on every order, used about twice B's tokens, matched the rules 16 times in 30, and gave more than one answer to the same question on every one of the six orders.
+- **It reads the wrong region's policy.** On the Ohio order it answered "Other gate" in 4 of 5 runs, citing Tennessee's billing article and its eGFR limit of 45; Ohio's limit is 60. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.
+- **It reads silence as a rule.** On the anemia drug under UnitedHealthcare it said "PA required" in 4 of 5 runs, writing that the plan's list "explicitly lists J0885 as requiring prior authorization". The list names J0885 only under cancer supportive care, for a cancer diagnosis (page 7), and this patient has none; the documents do not settle the order, so it goes to staff.
+- **It invents requirements.** On the Tennessee order that needs no PA, it answered "Not yet known" in 3 of 5 runs, asking for iron studies the coverage rule does not test.
+- **B reduces.** With Kanini Context the same agent makes 4 to 5 short calls, reads no document text and can only state what the rules returned, with source, edition and safe-to-act flag. When it sends the record request without a card, the card is written from the rules, so staff always see it before approving.
+- **C eliminates.** Once the rules are read, checked and approved, deciding an order needs no model at all: 30 milliseconds, the same answer every time.
+- **Not counted in any lane:** the one-off model use when the rules were drafted from the documents.
+
+### Earlier baselines
+
+Before lane A was the agent, two plain LLM applications were tested against the same 16-document library (`compare-20261113-0850`). Their full results are in the dashboard's Testing tab and below.
+
+| | **Search (RAG)**: the 16 best-matching passages, one call | **Every document**: the whole library, one call |
+| :-- | :--: | :--: |
+| **Against the answer key** | 11 of 30 match | 18 of 30 match |
+| **Input tokens per order** | 7,605 to 9,343 | 147,525 |
+| **Same answer every run** | changed between runs on 3 of 6 orders | changed on 4 of 6 orders |
+
+Given exactly the pages Kanini Context picked for each order, a single call still matched only 21 of 30 at low reasoning effort and 23 of 30 at medium (`compare-20261112-2210`, `compare-20261112-2238`).
 
 ### Scenario by scenario
 
-| Order | Answer key (rules say) | A, RAG | A', whole library | B | C |
-| :-- | :-- | :--: | :--: | :--: | :--: |
-| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ⚠️ 3/5 | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 used it | key |
-| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ❌ 0/5 | ⚠️ 2/5 | ✅ 5/5 used it | key |
-| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ❌ 1/5 | ⚠️ 3/5 | ✅ 5/5 used it | key |
-| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 0/5 | ❌ 0/5 | ✅ 5/5 used it | key |
-| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ❌ 2/5 | ⚠️ 3/5 | ✅ 5/5 used it | key |
+| Order | Answer key (rules say) | A · no context | B | C | Search (RAG) | Every document |
+| :-- | :-- | :--: | :--: | :--: | :--: | :--: |
+| `maria-tn` · Original Medicare, TN, eGFR 38 | **No PA** | ⚠️ 2/5 | ✅ 5/5 | key | ⚠️ 3/5 | ✅ 5/5 |
+| `maria-tn-egfr52` · same, eGFR 52 | **Other gate** (TN needs eGFR < 45) | ⚠️ 4/5 | ✅ 5/5 | key | ✅ 5/5 | ✅ 5/5 |
+| `maria-oh` · Ohio, eGFR 52 | **No PA** (OH allows < 60) | ❌ 1/5 | ✅ 5/5 | key | ❌ 0/5 | ⚠️ 2/5 |
+| `maria-uhc` · UHC Medicare Advantage, IV iron J1439 | **PA required**, 72 h / 24 h clock | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 1/5 | ⚠️ 3/5 |
+| `maria-uhc-esa` · UHC, anemia drug, no cancer diagnosis | **Not known**, route to staff | ❌ 1/5 | ✅ 5/5 | key | ❌ 0/5 | ❌ 0/5 |
+| `maria-nohgb` · TN, hemoglobin missing | **Not yet known**, get the hemoglobin | ⚠️ 4/5 | ✅ 5/5 | key | ❌ 2/5 | ⚠️ 3/5 |
 
 ### What broke in testing
 
-Order by order, how the two baselines without Kanini Context answered, and what each wrong answer got wrong, set against the approved rules. Generated from the test report by `python -m propel.baseline.failures <report.json>`, the same text the dashboard's Testing tab shows.
+Order by order: how each way without Kanini Context answered, what each wrong answer got wrong against the approved rules, and, for lane A, its own words and the source it cited. Generated from the test reports by `python -m propel.baseline.failures <report.json> [more reports]`; the dashboard's Testing tab shows the same text.
 
-Test run started 13 Nov 2026, 08:42 Central time (`propel/baseline/results/compare-20261113-0850.json`). Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.
+Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. Same agent, no context: test run started 13 Nov 2026, 10:09 Central time (`compare-20261113-1017.json`). Search (RAG): test run started 13 Nov 2026, 08:42 Central time (`compare-20261113-0850.json`). Every document: test run started 13 Nov 2026, 08:42 Central time (`compare-20261113-0850.json`).
 
 **`maria-tn`**: the rules say **No PA**, resting on LCD L39237, page 7.
+- Same agent, no context: right 2 of 5. 3 runs answered Not yet known: every fact the rule tests is on the order.
+  - In its own words (Not yet known, what it asked for): “Obtain and document pre-initiation iron studies (TSAT and ferritin) and ensure the serum creatinine/GFR documentation is included with the claim; once iron stores meet the required thresholds and documentation is assembled, re-evaluate for…” Source it cited: Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237) — Required documentation and CKD (non-dialysis) coverage criteria, pages 9–11; code…
 - Search (RAG): right 3 of 5. 2 runs answered Not yet known: every fact the rule tests is on the order.
   The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
 - Every document: right 5 of 5.
 
 **`maria-tn-egfr52`**: the rules say **Other gate**, resting on LCD L39237, page 7.
+- Same agent, no context: right 4 of 5. 1 run answered No PA: the order does not meet the coverage criteria. 1 of them cited Ohio's policy.
+  - In its own words (No PA): “Claims must report the Hb/Hct and the appropriate non-ESRD ESA modifier (EC for non-chemo/radiation anemia) and medical record documentation must be maintained — these are documentation/claiming requirements, not prior authorization requirements.” Source it cited: LCD L39237 (Erythropoiesis Stimulating Agents) — contractor/jurisdiction and coverage context (pages 1–3; page 6 for required evaluation and exclusions).
 - Search (RAG): right 5 of 5.
 - Every document: right 5 of 5.
 
 **`maria-oh`**: the rules say **No PA**, resting on LCD L34356, page 8.
+- Same agent, no context: right 1 of 5. 4 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60). 4 of them cited Tennessee's policy.
+  - In its own words (Other gate): “The Medicare billing/coding guidance for ESAs (A58982 / L39237) requires documentation of CKD-related anemia (D63.1) AND supports ESA use for CKD-not-on-dialysis patients typically when GFR is below ~45 mL/min/1.73 m2; the patient’s eGFR is 52, which does not…” Source it cited: Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6 and 10 — required ICD D63.1 for CKD not on dialysis, EC modifier requirement, and GFR <45…
 - Search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
   The deciding page was **not** among the 16 passages retrieved; 12 came from Tennessee's policy and 2 from Ohio's.
 - Every document: right 2 of 5. 3 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60).
 
 **`maria-uhc`**: the rules say **PA required**, resting on UHC MA prior authorization requirements, page 17.
+- Same agent, no context: right 4 of 5. 1 run answered Not yet known: the plan's list requires PA for this code whatever the facts.
+  - In its own words (Not yet known, what it asked for): “Obtain documentation whether the member has had (a) trials of at least two preferred IV iron therapies (e.g., ferumoxytol, sodium ferric gluconate, iron sucrose) each for at least 3 weeks with inadequate response, or (b) documented…” Source it cited: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, "Medicare Part B Step Therapy Programs" — Intravenous Iron Replacement Therapy section (page 8) and HCPCS…
 - Search (RAG): right 1 of 5. 4 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
   The deciding page was among the 16 passages retrieved.
 - Every document: right 3 of 5. 2 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
 
 **`maria-uhc-esa`**: the rules say **Not known**: the documents do not settle it, so the order goes to staff.
-- Search (RAG): right 0 of 5. 5 runs answered PA required: the plan's list names this drug only with a cancer diagnosis, so the documents do not settle this order.
-- Every document: right 0 of 5. 4 runs answered PA required: the plan's list names this drug only with a cancer diagnosis, so the documents do not settle this order. 1 run answered No PA: the documents do not settle this order.
+- Same agent, no context: right 1 of 5. 4 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
+  - In its own words (PA required): “UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa) as requiring prior authorization for outpatient administration (UHC MA prior authorization requirements, page 7).” Source it cited: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7.
+- Search (RAG): right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
+- Every document: right 0 of 5. 4 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order. 1 run answered No PA: the documents do not settle this order.
 
 **`maria-nohgb`**: the rules say **Not yet known**, resting on LCD L39237, page 7.
+- Same agent, no context: right 4 of 5. 1 run answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
+  - In its own words (No PA): “Medicare coverage criteria for epoetin alfa (J0885) for CKD not on dialysis are described in the MAC guidance and billing article (requires diagnosis D63.1 plus CKD staging codes, EC modifier and supporting labs) — documentation required but no Medicare-wide…”
 - Search (RAG): right 2 of 5. 3 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
   The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
 - Every document: right 3 of 5. 2 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.

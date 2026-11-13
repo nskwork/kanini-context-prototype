@@ -69,12 +69,31 @@ def why_wrong(rules: str, ai: str, ev: dict) -> str:
         ("other_gate", "no_pa"): "the order does not meet the coverage criteria",
         ("pa_required", "needs_facts"): "the plan's list requires PA for this code whatever the facts",
         ("pa_required", "no_pa"): "the plan's list requires PA for this code",
-        ("unknown", "pa_required"): "the plan's list names this drug only with a cancer diagnosis, so the documents do not settle this order",
+        ("unknown", "pa_required"): "the plan's list names this drug only under cancer supportive care, with PA \"for a cancer diagnosis\" "
+                                    "(page 7), and this patient has none, so the documents do not settle this order",
         ("unknown", "no_pa"): "the documents do not settle this order",
         ("needs_facts", "no_pa"): f"the order lacks {missing or 'a fact the rule requires'}, so it cannot be decided yet",
         ("needs_facts", "other_gate"): f"the order lacks {missing or 'a fact the rule requires'}, so it cannot be decided yet",
     }
     return table.get((rules, ai), f"the rules say {LABEL.get(rules, rules)}")
+
+
+def _quote(run: dict) -> dict:
+    """The first reason the AI gave on its card, and the source line it cited, shortened."""
+    card = run.get("card") or ""
+    why = next((ln.split("Why:", 1)[1].strip(" -") or "" for ln in card.splitlines() if "Why:" in ln), "")
+    if not why:   # "Why:" on its own line, the reasons as a list below it
+        lines = card.splitlines()
+        i = next((k for k, ln in enumerate(lines) if ln.strip().startswith("Why")), None)
+        why = lines[i + 1].strip(" -") if i is not None and i + 1 < len(lines) else ""
+    if run.get("outcome") == "needs_facts":   # what it asked for is what went wrong
+        nxt = next((ln.split("Next step:", 1)[1].strip() for ln in card.splitlines() if "Next step:" in ln), "")
+        why = nxt or why
+    if not why and run.get("reasons"):
+        why = "; ".join(run["reasons"])
+    src = next((ln.split("Source:", 1)[1].strip() for ln in card.splitlines() if "Source:" in ln), "")
+    cut = lambda t, n: t if len(t) <= n else t[:n].rsplit(" ", 1)[0] + "…"   # noqa: E731
+    return {"why": cut(why, 260), "source": cut(src, 170)}
 
 
 def explain(report: dict) -> dict:
@@ -109,6 +128,16 @@ def explain(report: dict) -> dict:
                 for b in item["broke"]:
                     if b["answer"] == "other_gate":
                         b["why"] += "; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60)"
+            runs = e.get(f"{key}_runs") or (e.get("A_runs") if key == "A_agent" else None)
+            if runs:   # the AI's own words for each wrong answer, and how many of those runs cited another region's policy
+                other_docs = {"Ohio": ("L39237", "A58982"), "Tennessee": ("L34356", "A56462")}.get(state) if row["plan"] == "original-medicare" else None
+                for b in item["broke"]:
+                    mine = [r for r in runs if r.get("outcome") == b["answer"] and (r.get("card") or r.get("reasons"))]
+                    if mine:
+                        b["quote"] = _quote(mine[0])
+                    if other_docs:
+                        b["cited_other_region"] = sum(1 for r in mine if any(d in (r.get("card") or "") for d in other_docs))
+                        b["other_region_name"] = "Tennessee" if state == "Ohio" else "Ohio"
             row[name] = item
         out["orders"].append(row)
     return out
@@ -121,9 +150,13 @@ def _when(at: str | None) -> str:
     return t.strftime("%d %b %Y, %H:%M Central time")
 
 
-def to_markdown(x: dict, report_name: str = "") -> str:
-    lines = [f"Test run started {_when(x['at'])}" + (f" (`propel/baseline/results/{report_name}`)" if report_name else "")
-             + ". Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.", ""]
+def to_markdown(x: dict, report_name: str = "", when: dict | None = None) -> str:
+    if when:   # baselines tested in different runs: one line each
+        lines = ["Each order was answered 5 times by each way; GPT-5 mini, reasoning effort low. "
+                 + " ".join(f"{k}: test run started {v}." for k, v in when.items()), ""]
+    else:
+        lines = [f"Test run started {_when(x['at'])}" + (f" (`propel/baseline/results/{report_name}`)" if report_name else "")
+                 + ". Each order was answered 5 times by each baseline; GPT-5 mini, reasoning effort low.", ""]
     for r in x["orders"]:
         dp = r["deciding"]
         lines.append(f"**`{r['order']}`**: the rules say **{LABEL.get(r['rules'], r['rules'])}**"
@@ -138,7 +171,12 @@ def to_markdown(x: dict, report_name: str = "") -> str:
                 lines.append(head + ".")
                 continue
             lines.append(head + ". " + " ".join(f"{b['runs']} run{'s' if b['runs'] > 1 else ''} answered {LABEL.get(b['answer'], b['answer'])}: "
-                                               f"{b['why']}." for b in it["broke"]))
+                                               f"{b['why']}." + (f" {b['cited_other_region']} of them cited {b['other_region_name']}'s policy."
+                                                                if b.get("cited_other_region") else "") for b in it["broke"]))
+            for b in it["broke"]:
+                if b.get("quote") and b["quote"]["why"]:
+                    lines.append(f"  - In its own words ({LABEL.get(b['answer'], b['answer'])}{', what it asked for' if b['answer'] == 'needs_facts' else ''}): “{b['quote']['why']}”"
+                                 + (f" Source it cited: {b['quote']['source']}" if b["quote"]["source"] else ""))
             if key == "search" and dp and "deciding_page_found" in it:
                 note = (f"  The deciding page was {'among' if it['deciding_page_found'] else '**not** among'} the {it['passages']} passages retrieved"
                         + (f"; {it['other_region']} came from {it['other_region_name']}'s policy and {it['own_region']} from {r['state']}'s"
@@ -148,6 +186,28 @@ def to_markdown(x: dict, report_name: str = "") -> str:
     return "\n".join(lines)
 
 
+def merged(paths: list[Path]) -> tuple[dict, dict]:
+    """Several reports as one, each baseline from the newest report holding it, and when each was tested."""
+    reps = sorted((json.loads(p.read_text()) | {"_file": p.name} for p in paths), key=lambda r: r["at"], reverse=True)
+    out, when = {"at": reps[0]["at"], "scenarios": {}}, {}
+    names = {"A_agent": "Same agent, no context", "A_rag": "Search (RAG)", "A_whole": "Every document"}
+    for r in reps:
+        for sc, e in r["scenarios"].items():
+            tgt = out["scenarios"].setdefault(sc, {"patient": e["patient"], "reference_outcome": e["reference_outcome"]})
+            for k in ("A_agent", "A_rag", "A_whole"):
+                if e.get(k) and k not in tgt:
+                    tgt[k] = e[k]
+                    for extra in (f"{k}_runs", f"{k}_sent"):
+                        if extra in e:
+                            tgt[extra] = e[extra]
+                    when.setdefault(names[k], f"{_when(r['at'])} (`{r['_file']}`)")
+    return out, when
+
+
 if __name__ == "__main__":
-    path = Path(sys.argv[1])
-    print(to_markdown(explain(json.loads(path.read_text())), path.name))
+    paths = [Path(p) for p in sys.argv[1:]]
+    if len(paths) == 1:
+        print(to_markdown(explain(json.loads(paths[0].read_text())), paths[0].name))
+    else:
+        rep, when = merged(paths)
+        print(to_markdown(explain(rep), when=when))

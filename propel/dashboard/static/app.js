@@ -859,13 +859,15 @@
     if (!x || !x.orders) return "";
     const part = (it, name, r, key) => {
       if (!it) return "";
-      const broke = it.broke.map((b) => `${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(b.why)}.`).join(" ");
+      const broke = it.broke.map((b) => `${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(b.why)}.`
+        + (b.cited_other_region ? ` ${b.cited_other_region} of them cited ${esc(b.other_region_name)}'s policy.` : "")
+        + (b.quote && b.quote.why ? `<span class="t-q">In its own words: “${esc(b.quote.why)}”${b.quote.source ? ` <i>Source it cited: ${esc(b.quote.source)}</i>` : ""}</span>` : "")).join(" ");
       const ret = key === "search" && "deciding_page_found" in it && r.deciding
         ? ` <span class="t-ret">The deciding page was ${it.deciding_page_found ? "among" : "<b>not</b> among"} the ${it.passages} passages retrieved`
           + ("other_region" in it ? `; ${it.other_region} came from ${esc(it.other_region_name)}'s policy, ${it.own_region} from ${esc(r.state)}'s` : "") + ".</span>" : "";
       return `<div class="t-line"><span class="t-who">${name}</span> right ${it.right} of ${it.runs}.${broke ? " " + broke : ""}${it.broke.length ? ret : ""}</div>`;
     };
-    return `<h4 class="t-h4">What broke, order by order</h4><p class="t-when">Test run started ${esc(x.when || "")}; each order answered 5 times by each way.</p>`
+    return `<h4 class="t-h4">What broke, order by order</h4><p class="t-when">Tests started: ${esc(x.when || "")}. Each order answered 5 times by each way.</p>`
       + x.orders.map((r) => `<div class="t-order"><div class="t-o"><code>${esc(r.order)}</code> the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
         + (r.deciding ? `, resting on ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it, so it goes to staff" : "") + `</div>`
         + part(r.agent, "Same agent, no context", r, "agent") + part(r.search, "Search (RAG)", r, "search") + part(r.whole, "Every document", r, "whole") + `</div>`).join("");
@@ -908,8 +910,9 @@
     const whole = scs.find((e) => e.A_whole_tokens)?.A_whole_tokens;
     box.innerHTML = `<div class="t-head"><h3>Testing: the same orders with and without the context layer</h3>`
       + `<p>Each of the ${scs.length} demo orders answered ${scs[0].C ? scs[0].C.runs : 5} times by each method${when ? ", " + esc(when) : ""}, GPT-5 mini. Without Kanini Context, the AI answers from the same ${whole ? fmt(whole) + "-token" : ""} policy library: as the same agent reading it itself (lane A)${hasA ? "" : ", not yet tested"}, by search (RAG), or given every document. These are repeated runs, not a live demo: one answer can land either way by chance.</p></div>`
-      + `<div class="t-tiles">${tile("A", "A · same agent, no Kanini Context", "finds and reads the documents itself", "a")}${tile("A_rag", "AI searches the documents", "no Kanini Context (RAG)", "a")}${tile("A_whole", "AI reads every document", "no Kanini Context", "a")}`
-      + `${tile("B", "B · AI agent asks Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}</div>`
+      + `<div class="t-tiles">${tile("A", "A · same agent, no Kanini Context", "finds and reads the documents itself", "a")}`
+      + `${tile("B", "B · agent with Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}`
+      + `${tile("A_rag", "Earlier test: search (RAG)", "no Kanini Context, one call", "a old")}${tile("A_whole", "Earlier test: every document", "no Kanini Context, one call", "a old")}</div>`
       + `<table class="t-table"><thead><tr><th>Order</th><th>The rules say</th>${hasA ? "<th>A · same agent, no context</th>" : ""}<th>Search (RAG)</th><th>Read all</th><th>B · agent</th><th>C · no AI</th></tr></thead><tbody>${rows}</tbody></table>`
       + `<ul class="t-find">${find.map((f) => `<li>${f}</li>`).join("")}</ul>`
       + whatBroke(cmp.explain)
