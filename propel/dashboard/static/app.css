@@ -1,20 +1,22 @@
-@font-face{font-family:Outfit;font-weight:600;src:url(vendor/fonts/outfit-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:Outfit;font-weight:700;src:url(vendor/fonts/outfit-latin-700-normal.woff2) format("woff2")}
-@font-face{font-family:Outfit;font-weight:800;src:url(vendor/fonts/outfit-latin-800-normal.woff2) format("woff2")}
-@font-face{font-family:Manrope;font-weight:400;src:url(vendor/fonts/manrope-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:Manrope;font-weight:500;src:url(vendor/fonts/manrope-latin-500-normal.woff2) format("woff2")}
-@font-face{font-family:Manrope;font-weight:600;src:url(vendor/fonts/manrope-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:Manrope;font-weight:700;src:url(vendor/fonts/manrope-latin-700-normal.woff2) format("woff2")}
-@font-face{font-family:"JetBrains Mono";font-weight:400;src:url(vendor/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:"JetBrains Mono";font-weight:600;src:url(vendor/fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Display";font-weight:500;font-display:swap;src:url(vendor/fonts/red-hat-display-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Display";font-weight:600;font-display:swap;src:url(vendor/fonts/red-hat-display-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Display";font-weight:700;font-display:swap;src:url(vendor/fonts/red-hat-display-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Display";font-weight:800;font-display:swap;src:url(vendor/fonts/red-hat-display-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Text";font-weight:400;font-display:swap;src:url(vendor/fonts/red-hat-text-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Text";font-weight:500;font-display:swap;src:url(vendor/fonts/red-hat-text-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Text";font-weight:600;font-display:swap;src:url(vendor/fonts/red-hat-text-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Text";font-weight:700;font-display:swap;src:url(vendor/fonts/red-hat-text-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Mono";font-weight:400;font-display:swap;src:url(vendor/fonts/red-hat-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Mono";font-weight:500;font-display:swap;src:url(vendor/fonts/red-hat-mono-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Red Hat Mono";font-weight:600;font-display:swap;src:url(vendor/fonts/red-hat-mono-latin-600-normal.woff2) format("woff2")}
 
-/* Type system. Three faces, each with one job:
-   display (Outfit)       titles and outcomes
-   text (Manrope)         everything people read, graph labels included
-   code (JetBrains Mono)  identifiers (codes, rule references, tool names, release) and live numbers
+/* Type system. One family, Red Hat, in three cuts, each with one job:
+   display (Red Hat Display)  titles, outcomes and the lane letters
+   text (Red Hat Text)        everything people read, graph labels included
+   code (Red Hat Mono)        identifiers (codes, rule references, tool names, release) and live numbers
    Six sizes, one label style. */
 :root{
-  --display:Outfit,system-ui,sans-serif; --text:Manrope,system-ui,sans-serif; --code:"JetBrains Mono",ui-monospace,monospace;
+  --display:"Red Hat Display",system-ui,sans-serif; --text:"Red Hat Text",system-ui,sans-serif; --code:"Red Hat Mono",ui-monospace,monospace;
   --s-xs:11px; --s-sm:12.5px; --s-md:14px; --s-lg:17px; --s-xl:24px; --s-2xl:30px;
   --bg:#04050c; --ink:#ede9fe; --ink2:#cfc9ef; --mute:#9d97c4; --line:rgba(167,139,250,.18); --panel:rgba(15,10,40,.72);
   --violet:#a78bfa; --violet2:#7c3aed; --lime:#a3e635; --cyan:#22d3ee; --rose:#fb7185; --amber:#fbbf24; --orange:#fb923c;
@@ -371,3 +373,60 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .t-tiles{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
 .t-tile.old{opacity:.82;border-style:dashed}
 .t-hist{margin-top:2px;font-size:var(--s-xs);color:var(--ink2)}
+
+/* ---------------------------------------------------------------- navy theme
+   After Vision UI by Creative Tim and Simmmple (MIT): deep navy with a blue light field, cards in a dark diagonal
+   gradient with a heavy blur, 20px corners, brand blue #0075FF. It overrides the glass theme above rule by rule,
+   so the layout is untouched. Colour keeps its meaning: red is A and anything wrong, blue is B and PA required,
+   green is C and No PA, amber is a gate or a missing fact. */
+:root{
+  --bg:#0F1535;--ink:#FFFFFF;--ink2:#C9D2E3;--mute:#A0AEC0;--line:rgba(226,232,240,.12);
+  --violet:#9F7AEA;--violet2:#0075FF;--lime:#01B574;--cyan:#0075FF;--rose:#E31A1A;--amber:#FFB547;--orange:#F6AD55;
+  --card:linear-gradient(127.09deg,rgba(6,11,40,.94) 19.41%,rgba(10,14,35,.49) 76.65%)}
+html,body{background:#0F1535}
+#sky{background:
+  radial-gradient(60vw 50vh at 30% 45%,rgba(52,70,190,.75),transparent 70%),
+  radial-gradient(55vw 55vh at 70% 80%,rgba(44,38,180,.8),transparent 70%),
+  radial-gradient(40vw 40vh at 90% 95%,rgba(56,90,200,.6),transparent 70%),
+  linear-gradient(159deg,#0F123B 14%,#090D2E 56%,#020515 86%)}
+#sky::before,#sky::after,#sky i{display:none}
+.panel{background:var(--card);-webkit-backdrop-filter:blur(60px);backdrop-filter:blur(60px);border:0;border-radius:20px;
+  box-shadow:0 20px 27px rgba(0,0,0,.05)}
+.panel::before{background:radial-gradient(94.43% 69.43% at 50% 50%,rgba(255,255,255,.5) 0%,rgba(255,255,255,0) 100%);padding:1px}
+.panel::after{display:none}
+.top{background:linear-gradient(123.64deg,rgba(255,255,255,0) -22.38%,rgba(255,255,255,.039) 70.38%);-webkit-backdrop-filter:blur(42px);backdrop-filter:blur(42px);
+  border:0;box-shadow:inset 0 0 1px 1px rgba(255,255,255,.12)}
+.panel-head,.panel-foot{background:transparent;border-color:rgba(226,232,240,.08)}
+h1,h2,h3,h4,.name{font-weight:700;letter-spacing:0}
+.o-label,.card .verdict,.lane .L{font-weight:700;text-shadow:none}
+.label,.eyebrow,.card .k,.nums .h,.detail .kind{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--mute)}
+.eyebrow{color:#fff;font-size:14px;font-weight:700}
+.logo{border-color:#0075FF;box-shadow:none}
+.sub{color:var(--mute);font-weight:500}
+.chip,.status{border-radius:12px;background:rgba(6,11,40,.6);border-color:rgba(226,232,240,.12)}
+.chip[aria-pressed="true"]{background:#0075FF;border-color:#0075FF;box-shadow:none}
+.chip[aria-pressed="true"] span{color:rgba(255,255,255,.85)}
+.btn{border-radius:12px}
+.btn-agent,.btn-race{background:#0075FF;border:0;color:#fff;box-shadow:none}
+.btn-flow{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;box-shadow:none}
+.seg{background:rgba(6,11,40,.6);border-color:rgba(226,232,240,.12);border-radius:12px}
+.seg button{border-radius:10px}
+.seg button[aria-selected="true"]{background:#0075FF;box-shadow:none}
+.zoom button,.detail .close,.lane-run{border-radius:10px;background:rgba(6,11,40,.6);border-color:rgba(226,232,240,.12)}
+.outcome{border:0;border-radius:15px;background:linear-gradient(127deg,color-mix(in srgb,var(--oc) 22%,rgba(6,11,40,.9)),rgba(10,14,35,.6));animation:none;box-shadow:none}
+.card.live{box-shadow:0 20px 27px rgba(0,0,0,.05)}
+.answers{border-radius:15px;background:rgba(6,11,40,.55);border-color:rgba(226,232,240,.08)}
+.lane{border:0;border-radius:15px;background:linear-gradient(127deg,color-mix(in srgb,var(--lc) 16%,rgba(6,11,40,.85)),rgba(10,14,35,.45));box-shadow:none}
+.track{background:rgba(255,255,255,.05);border-radius:10px}
+.nums .n{font-weight:700}
+.trace span{border-radius:10px;background:rgba(0,117,255,.15);border-color:rgba(0,117,255,.4);color:#cfe3ff}
+.trace span.tool{background:rgba(159,122,234,.15);border-color:rgba(159,122,234,.4);color:#e2d6fb}
+.tip{background:rgba(6,11,40,.96);border-radius:12px}
+.edge{stroke:rgba(160,174,192,.16)}.edge.on{stroke:#01B574}
+.node text{stroke:rgba(6,11,40,.9)}
+.quote{border-radius:12px}
+.approve button{border-radius:12px}
+.approve .yes{background:#01B574;color:#fff;box-shadow:none}
+.t-tile{border:0;border-radius:15px;background:linear-gradient(127deg,color-mix(in srgb,var(--tc) 14%,rgba(6,11,40,.9)),rgba(10,14,35,.5))}
+.lane .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane .t{font-size:13.5px}
