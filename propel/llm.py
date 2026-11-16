@@ -15,9 +15,9 @@ AZURE_API_VERSION; this module copies the AZURE_OPENAI_* names onto those, so th
 comparison and the dashboard all call the same deployment. A deployment whose name contains "gpt-5" is treated by
 LiteLLM as a GPT-5 reasoning model: no temperature, and reasoning_effort is passed through.
 
-Document search (propel/baseline/library.py) ranks passages with embeddings when the provider has an embedding
-model (OpenAI's text-embedding-3-small, or AZURE_OPENAI_EMBEDDING_DEPLOYMENT on Azure); without one it uses BM25
-keyword ranking.
+Document search (propel/baseline/library.py) ranks passages with embeddings: an Azure embedding deployment when
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT is set, otherwise OpenAI's text-embedding-3-small when OPENAI_API_KEY is set (with
+Azure for chat too). With neither it uses BM25 keyword ranking.
 """
 from __future__ import annotations
 
@@ -52,9 +52,10 @@ def has_key() -> bool:
 
 def embed_model() -> str | None:
     """The embedding model for document search, or None (search then ranks by BM25 keywords)."""
-    if AZURE:
-        dep = (os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT") or "").strip()
-        return f"azure/{dep}" if dep else None
+    dep = (os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT") or "").strip()
+    if AZURE and dep:
+        return f"azure/{dep}"
+    # OpenAI's embeddings also serve an Azure chat deployment: the same model the recorded test runs used
     return "text-embedding-3-small" if os.environ.get("OPENAI_API_KEY") else None
 
 

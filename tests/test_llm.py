@@ -32,6 +32,11 @@ def test_azure_settings_route_every_call_to_the_deployment():
     assert _probe({**AZ, "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "emb"})["embed"] == "azure/emb"
 
 
+def test_azure_chat_with_openai_embeddings():
+    x = _probe({**AZ, "OPENAI_API_KEY": "sk-test"})
+    assert (x["model"], x["embed"]) == ("azure/gpt-5-mini", "text-embedding-3-small")
+
+
 def test_openai_when_azure_is_not_set():
     x = _probe({"OPENAI_API_KEY": "sk-test"})
     assert (x["model"], x["provider"], x["key"], x["embed"]) == ("openai/gpt-5-mini", "OpenAI", True, "text-embedding-3-small")
