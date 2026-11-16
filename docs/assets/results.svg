@@ -1,45 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="486" viewBox="0 0 1200 486" role="img" aria-label="Results: the same agent with and without Kanini Context">
-<defs><linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140d33"/><stop offset="1" stop-color="#0b0820"/></linearGradient></defs>
-<rect width="1200" height="486" rx="20" fill="url(#bg2)"/><rect x="1" y="1" width="1198" height="484" rx="19" fill="none" stroke="#ffffff" stroke-opacity=".1"/>
-<text x="40" y="48" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#9d97c4" letter-spacing="2.5">SAME SIX ORDERS · FIVE RUNS EACH · GPT-5 MINI</text>
-<rect x="300" y="70" width="268" height="58" rx="12" fill="#fb7185" fill-opacity=".1" stroke="#fb7185" stroke-opacity=".5"/><text x="316" y="106" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#fb7185">A</text><text x="348" y="95" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ede9fe">Agent without Kanini Context</text><text x="348" y="115" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">reads the policy documents itself</text>
-<rect x="590" y="70" width="268" height="58" rx="12" fill="#22d3ee" fill-opacity=".1" stroke="#22d3ee" stroke-opacity=".5"/><text x="606" y="106" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#22d3ee">B</text><text x="638" y="95" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ede9fe">Agent with Kanini Context</text><text x="638" y="115" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">fewer LLM calls, no document text</text>
-<rect x="880" y="70" width="268" height="58" rx="12" fill="#a3e635" fill-opacity=".1" stroke="#a3e635" stroke-opacity=".5"/><text x="896" y="106" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#a3e635">C</text><text x="928" y="95" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ede9fe">Rules only, no AI</text><text x="928" y="115" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">no LLM calls: the answer key</text>
-<line x1="40" y1="150" x2="1160" y2="150" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="192" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">Right against the rules</text>
-<rect x="300" y="168" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="300" y="168" width="161" height="12" rx="6" fill="#fb7185"/>
-<text x="300" y="204" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">18 of 30</text>
-<rect x="590" y="168" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="590" y="168" width="268" height="12" rx="6" fill="#22d3ee"/>
-<text x="590" y="204" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">30 of 30</text>
-<rect x="880" y="168" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="880" y="168" width="268" height="12" rx="6" fill="#a3e635"/>
-<text x="880" y="204" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">the answer key</text>
-<line x1="40" y1="224" x2="1160" y2="224" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="266" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">Input tokens per order</text>
-<rect x="300" y="242" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="300" y="242" width="268" height="12" rx="6" fill="#fb7185"/>
-<text x="300" y="278" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">22,685</text>
-<rect x="590" y="242" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="590" y="242" width="136" height="12" rx="6" fill="#22d3ee"/>
-<text x="590" y="278" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">11,506</text>
-<rect x="880" y="242" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<text x="880" y="278" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">0</text>
-<line x1="40" y1="298" x2="1160" y2="298" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="340" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">LLM calls per order</text>
-<rect x="300" y="316" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="300" y="316" width="268" height="12" rx="6" fill="#fb7185"/>
-<text x="300" y="352" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">5.5</text>
-<rect x="590" y="316" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="590" y="316" width="203" height="12" rx="6" fill="#22d3ee"/>
-<text x="590" y="352" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">4.2</text>
-<rect x="880" y="316" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<text x="880" y="352" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">0.0</text>
-<line x1="40" y1="372" x2="1160" y2="372" stroke="#ffffff" stroke-opacity=".07"/><text x="40" y="414" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#cfc9ef">Answer changed between runs</text>
-<rect x="300" y="390" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<rect x="300" y="390" width="179" height="12" rx="6" fill="#fb7185"/>
-<text x="300" y="426" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#fb7185">on 4 of 6 orders</text>
-<rect x="590" y="390" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<text x="590" y="426" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#22d3ee">never</text>
-<rect x="880" y="390" width="268" height="12" rx="6" fill="#ffffff" fill-opacity=".06"/>
-<text x="880" y="426" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="16" font-weight="700" fill="#a3e635">never</text>
-<text x="40" y="470" font-family="'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="12" fill="#9d97c4">C is the approved rules applied by plain code, with no LLM: the answer key the other lanes are checked against. Bars for tokens and calls are scaled to lane A. Figures from propel/baseline/results/.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="506" viewBox="0 0 1200 506" role="img" aria-label="Results: the same agent with and without Kanini Context">
+<rect x=".5" y=".5" width="1199" height="505" rx="6" fill="#FFFFFF" stroke="#D0D7DE"/>
+<text x="40" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#57606A" >Six orders, five runs each, GPT-5 mini</text>
+<text x="330" y="100" font-family="Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif" font-size="28" font-weight="700" fill="#B5442B" >A</text>
+<text x="360" y="92" font-family="Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif" font-size="16" font-weight="700" fill="#1F2328" >Agent without Kanini Context</text>
+<text x="360" y="114" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#57606A" >reads the policy documents itself</text>
+<text x="620" y="100" font-family="Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif" font-size="28" font-weight="700" fill="#1F5FA8" >B</text>
+<text x="650" y="92" font-family="Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif" font-size="16" font-weight="700" fill="#1F2328" >Agent with Kanini Context</text>
+<text x="650" y="114" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#57606A" >fewer LLM calls, no document text</text>
+<text x="910" y="100" font-family="Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif" font-size="28" font-weight="700" fill="#2E7D4F" >C</text>
+<text x="940" y="92" font-family="Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif" font-size="16" font-weight="700" fill="#1F2328" >Rules only, no AI</text>
+<text x="940" y="114" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#57606A" >no LLM calls; the answer key</text>
+<line x1="40" y1="150" x2="1160" y2="150" stroke="#D0D7DE"/>
+<text x="40" y="194" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="600" fill="#1F2328" >Answers that matched the rules</text>
+<text x="330" y="186" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">18 of 30</text>
+<rect x="330" y="198" width="250" height="6" fill="#F6F8FA"/>
+<rect x="330" y="198" width="150" height="6" fill="#B5442B"/>
+<text x="620" y="186" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">30 of 30</text>
+<rect x="620" y="198" width="250" height="6" fill="#F6F8FA"/>
+<rect x="620" y="198" width="250" height="6" fill="#1F5FA8"/>
+<text x="910" y="186" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">all, by definition</text>
+<rect x="910" y="198" width="250" height="6" fill="#F6F8FA"/>
+<rect x="910" y="198" width="250" height="6" fill="#2E7D4F"/>
+<line x1="40" y1="226" x2="1160" y2="226" stroke="#D0D7DE"/>
+<text x="40" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="600" fill="#1F2328" >Input tokens per order</text>
+<text x="330" y="262" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">22,685</text>
+<rect x="330" y="274" width="250" height="6" fill="#F6F8FA"/>
+<rect x="330" y="274" width="250" height="6" fill="#B5442B"/>
+<text x="620" y="262" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">11,506</text>
+<rect x="620" y="274" width="250" height="6" fill="#F6F8FA"/>
+<rect x="620" y="274" width="127" height="6" fill="#1F5FA8"/>
+<text x="910" y="262" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">0</text>
+<rect x="910" y="274" width="250" height="6" fill="#F6F8FA"/>
+<line x1="40" y1="302" x2="1160" y2="302" stroke="#D0D7DE"/>
+<text x="40" y="346" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="600" fill="#1F2328" >LLM calls per order</text>
+<text x="330" y="338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">5.5</text>
+<rect x="330" y="350" width="250" height="6" fill="#F6F8FA"/>
+<rect x="330" y="350" width="250" height="6" fill="#B5442B"/>
+<text x="620" y="338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">4.2</text>
+<rect x="620" y="350" width="250" height="6" fill="#F6F8FA"/>
+<rect x="620" y="350" width="190" height="6" fill="#1F5FA8"/>
+<text x="910" y="338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">0.0</text>
+<rect x="910" y="350" width="250" height="6" fill="#F6F8FA"/>
+<line x1="40" y1="378" x2="1160" y2="378" stroke="#D0D7DE"/>
+<text x="40" y="422" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="600" fill="#1F2328" >Answer changed between runs</text>
+<text x="330" y="414" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">on 4 of 6 orders</text>
+<rect x="330" y="426" width="250" height="6" fill="#F6F8FA"/>
+<rect x="330" y="426" width="167" height="6" fill="#B5442B"/>
+<text x="620" y="414" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">never</text>
+<rect x="620" y="426" width="250" height="6" fill="#F6F8FA"/>
+<text x="910" y="414" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#1F2328" style="font-variant-numeric: tabular-nums">never</text>
+<rect x="910" y="426" width="250" height="6" fill="#F6F8FA"/>
+<line x1="40" y1="454" x2="1160" y2="454" stroke="#D0D7DE"/>
+<text x="40" y="486" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#57606A" >C applies the approved rules in plain code, so it is the key A and B are checked against. Token and call bars are scaled to A.</text>
 </svg>
