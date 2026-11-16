@@ -54,7 +54,15 @@ def db() -> psycopg.Connection:
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    """The page, with the stylesheet and script stamped by content, so a browser never keeps an old copy after an
+    update."""
+    import hashlib
+    from fastapi.responses import HTMLResponse
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    for name in ("app.css", "app.js"):
+        stamp = hashlib.sha256((STATIC / name).read_bytes()).hexdigest()[:10]
+        html = html.replace(f"/static/{name}\"", f"/static/{name}?v={stamp}\"")
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/api/status")

@@ -183,10 +183,7 @@
     const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
     (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
-  $("zin").onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.4);
-  $("zout").onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1 / 1.4);
-  $("zfit").onclick = () => { if (S.view === "onto") return fitSchema(); const f = nodes.filter((n) => n.on || n.prog || n.unscr || n.cand); fitTo(f.length ? f : nodes); };
-  $("zall").onclick = () => (S.view === "onto" ? fitSchema() : fitTo(nodes));
+  /* zoom with the mouse wheel or a trackpad; the camera still follows each answer on its own */
 
   function bfs(a, b, allowed) {
     if (!a || !b) return null;
@@ -936,7 +933,6 @@
     const testing = v === "test";
     $("testing").classList.toggle("hidden", !testing);
     $("graph").style.visibility = testing ? "hidden" : "";
-    document.querySelector(".graph-panel .zoom").style.visibility = testing ? "hidden" : "";
     $("legend").style.visibility = testing ? "hidden" : "";
     document.querySelector(".graph-panel .eyebrow").textContent = testing ? "Testing" : "Knowledge graph";
     if (testing) { renderTesting(); return; }
