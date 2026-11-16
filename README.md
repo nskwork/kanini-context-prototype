@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/hero-2.svg" alt="Kanini Context: read the rules once, answer every order from them" width="100%">
+<img src="docs/assets/hero-3.svg" alt="Kanini Context: read the rules once, answer every order from them" width="100%">
 
 <br>
 
@@ -23,7 +23,7 @@
 
 ## Results: with and without Kanini Context
 
-<img src="docs/assets/results-2.svg" alt="The same agent without Kanini Context, with it, and Kanini Context with no AI" width="100%">
+<img src="docs/assets/results-3.svg" alt="The same agent without Kanini Context, with it, and Kanini Context with no AI" width="100%">
 
 <sub>Drawn from the reports in <code>propel/baseline/results/</code>: <code>compare-20261113-1056</code> (A; first run <code>compare-20261113-1017</code>), <code>compare-20261112-2256</code> (B and C), <code>compare-20261113-0850</code> and <code>compare-20261113-1031</code> (one-call baselines). Every run, order by order, is under <a href="#all-test-runs">All test runs</a>.</sub>
 
@@ -100,7 +100,7 @@ Neither lane counts the one-off model use when the rules were first drafted from
 
 These are all the comparisons in `propel/baseline/results/`. Each covers the same six orders, with five answers per order per run. Besides A, B and C, three simpler LLM setups were tested. Each answers an order in a single LLM call with no Kanini Context: the call with search (RAG) is sent the 16 passages of the 16-document library that best match the order; the call with every document is sent the whole library; and the call with Kanini Context's pages is sent exactly the pages Kanini Context picked for the order.
 
-<img src="docs/assets/history-2.svg" alt="Every test run, order by order: answers that matched the approved rules out of five" width="100%">
+<img src="docs/assets/history-3.svg" alt="Every test run, order by order: answers that matched the approved rules out of five" width="100%">
 
 | When (Central) | What was tested | What the AI was given | Right | Input tokens per order | Report |
 | :-- | :-- | :-- | :--: | :--: | :-- |
@@ -347,7 +347,7 @@ Every difference is explained in `docs/COVERAGE.md`, section 6.
 
 The database uses the specification's schema. Each release also writes it out as an OWL ontology (`kanini_context/release/kanini-context.ttl`) and an Apache AGE graph, both from the same registry.
 
-<img src="docs/assets/schema-2.svg" alt="The Kanini Context schema: coverage, authorities and rules, provenance, terminology, and the facts a rule needs" width="100%">
+<img src="docs/assets/schema-3.svg" alt="The Kanini Context schema: coverage, authorities and rules, provenance, terminology, and the facts a rule needs" width="100%">
 
 <sub>Drawn from the release's ontology file (<code>kanini-context.ttl</code>). The dashboard's Schema tab has the same model with every field, and you can click through it.</sub>
 
