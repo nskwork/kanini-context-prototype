@@ -1,19 +1,20 @@
-@font-face{font-family:"Source Serif 4";font-weight:600;font-display:swap;src:url(vendor/fonts/source-serif-4-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:"Source Serif 4";font-weight:700;font-display:swap;src:url(vendor/fonts/source-serif-4-latin-700-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:400;font-display:swap;src:url(vendor/fonts/ibm-plex-sans-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:500;font-display:swap;src:url(vendor/fonts/ibm-plex-sans-latin-500-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:600;font-display:swap;src:url(vendor/fonts/ibm-plex-sans-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:700;font-display:swap;src:url(vendor/fonts/ibm-plex-sans-latin-700-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-weight:400;font-display:swap;src:url(vendor/fonts/ibm-plex-mono-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-weight:600;font-display:swap;src:url(vendor/fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:600;src:url(vendor/fonts/outfit-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:700;src:url(vendor/fonts/outfit-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:800;src:url(vendor/fonts/outfit-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:Manrope;font-weight:400;src:url(vendor/fonts/manrope-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:Manrope;font-weight:500;src:url(vendor/fonts/manrope-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:Manrope;font-weight:600;src:url(vendor/fonts/manrope-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Manrope;font-weight:700;src:url(vendor/fonts/manrope-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;src:url(vendor/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:600;src:url(vendor/fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 
 /* Type system. Three faces, each with one job:
-   display (Source Serif 4)  titles and outcomes: the voice of the policy documents the rules come from
-   text (IBM Plex Sans)      everything people read, graph labels included
-   code (IBM Plex Mono)      identifiers (codes, rule references, tool names, release) and live numbers
+   display (Outfit)       titles and outcomes
+   text (Manrope)         everything people read, graph labels included
+   code (JetBrains Mono)  identifiers (codes, rule references, tool names, release) and live numbers
    Six sizes, one label style. */
 :root{
-  --display:"Source Serif 4",Charter,Georgia,serif; --text:"IBM Plex Sans",system-ui,sans-serif; --code:"IBM Plex Mono",ui-monospace,monospace;
+  --display:Outfit,system-ui,sans-serif; --text:Manrope,system-ui,sans-serif; --code:"JetBrains Mono",ui-monospace,monospace;
   --s-xs:11px; --s-sm:12.5px; --s-md:14px; --s-lg:17px; --s-xl:24px; --s-2xl:30px;
   --bg:#04050c; --ink:#ede9fe; --ink2:#cfc9ef; --mute:#9d97c4; --line:rgba(167,139,250,.18); --panel:rgba(15,10,40,.72);
   --violet:#a78bfa; --violet2:#7c3aed; --lime:#a3e635; --cyan:#22d3ee; --rose:#fb7185; --amber:#fbbf24; --orange:#fb923c;
@@ -370,132 +371,3 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .t-tiles{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
 .t-tile.old{opacity:.82;border-style:dashed}
 .t-hist{margin-top:2px;font-size:var(--s-xs);color:var(--ink2)}
-
-/* ---------------------------------------------------------------- paper theme
-   The working theme: white panels on a cool grey desk, ink text, and colour kept for meaning. Brick is the agent
-   reading documents (A) and anything wrong, ink blue is the agent with Kanini Context (B) and PA required, green
-   is the rules (C) and No PA, ochre is a gate or a missing fact, orange is a screened PA program. No glow, no
-   glass: a projector washes both out, and a reviewer reads a plain page faster. It overrides the night theme
-   above rule by rule, so the layout is untouched. */
-:root{
-  --bg:#E9EDF1; --ink:#1B1F24; --ink2:#3F4851; --mute:#66707A; --line:#D3DAE1; --panel:#FFFFFF; --head:#F6F8FA;
-  --violet:#5B4BA8; --violet2:#1F5FA8; --lime:#2E7D4F; --cyan:#1F5FA8; --rose:#B5442B; --amber:#9A6700; --orange:#C4570F;
-  --glass:#FFFFFF; --glass-head:#F6F8FA;
-}
-*{scrollbar-color:#C2CAD2 transparent}
-::-webkit-scrollbar-thumb{background:#C2CAD2;background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:#9AA4AE;background-clip:padding-box}
-html,body{background:var(--bg)}
-#sky,#sky::before,#sky::after{background:var(--bg);animation:none;filter:none}
-#sky::before,#sky::after{display:none}
-#sky i{display:none}
-h1,h2,h3,h4{font-weight:700;letter-spacing:0}
-/* labels: sentence case, never spaced capitals */
-.label,.eyebrow,.card .k,.nums .h,.detail .kind{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mute)}
-.eyebrow{color:var(--ink2)}
-
-/* panels and header: plain white sheets */
-.panel,.top{background:var(--panel);-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid var(--line);
-  box-shadow:0 1px 2px rgba(27,31,36,.06)}
-.panel::before,.panel::after,.top::after{display:none}
-.top{border-width:0 0 1px;box-shadow:none}
-.panel-head,.panel-foot{background:var(--head);border-color:var(--line)}
-.logo{border-color:var(--violet2);background:radial-gradient(circle,var(--lime) 0 3px,transparent 4px);box-shadow:none;border-radius:5px}
-.name{font-weight:700}
-.sub{color:var(--mute);font-weight:500}
-.chip,.status{background:var(--panel);border-color:var(--line)}
-.chip span{color:var(--mute)}
-.chip:hover{border-color:var(--violet2)}
-.chip[aria-pressed="true"]{border-color:var(--violet2);box-shadow:inset 0 -2px 0 var(--violet2);background:#F2F6FB}
-.status .code{color:var(--ink)}
-
-/* question and outcome */
-.question h1 .code{color:var(--violet2)}
-.btn{border-radius:8px;transition:background .15s,border-color .15s}
-.btn:hover{transform:none}
-.btn-agent{border:1px solid var(--cyan);background:var(--cyan);color:#fff;box-shadow:none}
-.btn-agent:hover{background:#184C87}
-.btn-flow{border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:none}
-.btn-flow:hover{border-color:var(--lime);color:var(--lime)}
-.btn-race{border:1px solid var(--violet2);background:var(--violet2);color:#fff;box-shadow:none}
-.btn-race:hover{background:#184C87}
-.outcome{border:1px solid var(--line);border-left:4px solid var(--oc,var(--lime));border-radius:8px;
-  background:color-mix(in srgb,var(--oc,var(--lime)) 6%,#fff);animation:none;box-shadow:none}
-.o-label,.card .verdict,.lane .L{text-shadow:none}
-.o-label{font-weight:700}
-
-/* graph */
-.seg{background:var(--head);border-color:var(--line);border-radius:8px}
-.seg button{color:var(--ink2);border-radius:6px}
-.seg button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(27,31,36,.08)}
-.zoom button,.detail .close{background:var(--panel);border-color:var(--line);color:var(--ink2);border-radius:6px}
-.zoom button:hover,.detail .close:hover{border-color:var(--violet2);color:var(--violet2)}
-.legend{color:var(--ink2)}
-.tip{background:#fff;border-color:var(--line);color:var(--ink2);box-shadow:0 4px 14px rgba(27,31,36,.12)}
-.edge{stroke:#C9D1D9}
-.edge.on{stroke:var(--lime);stroke-width:1.8}
-.edge.cand{stroke:#8C959F}
-.edge.prog{stroke:color-mix(in srgb,var(--orange) 70%,#fff)}
-.edge.unscr{stroke:color-mix(in srgb,var(--rose) 70%,#fff)}
-.node text{fill:var(--mute);stroke:rgba(255,255,255,.92)}
-.node.on text{fill:var(--ink)}
-.node.cand text{fill:var(--ink2)}
-.node.prog text{fill:var(--orange)}
-.node.unscr text{fill:var(--rose)}
-.dim .edge:not(.on):not(.prog):not(.unscr):not(.cand){opacity:.35}
-.dim .node:not(.on):not(.prog):not(.unscr):not(.cand) circle.core{opacity:.3}
-
-/* decision card */
-.card.live{border-color:var(--line);box-shadow:inset 0 3px 0 var(--oc),0 1px 2px rgba(27,31,36,.06)}
-.card .k{border-top-color:var(--line)}
-.answers{background:var(--head);border-color:var(--line)}
-.card .rule{color:var(--violet)}
-.quote{background:#FBFAF7;border:1px solid #E7E2D6;color:#2A2622}
-.quote mark{background:linear-gradient(90deg,rgba(234,179,8,.32),rgba(234,179,8,.32)) no-repeat;background-size:0 100%}
-.approve .yes{background:var(--lime);color:#fff;box-shadow:none;border-radius:8px}
-.approve .no{border-color:color-mix(in srgb,var(--rose) 55%,#fff);color:var(--rose);border-radius:8px}
-.agent-text{border-top-color:var(--line)}
-.detail h4{font-family:var(--display)}
-
-/* the race */
-.trace span{border-color:color-mix(in srgb,var(--cyan) 40%,#fff);color:var(--cyan);background:#F2F6FB}
-.trace span.tool{border-color:color-mix(in srgb,var(--violet) 35%,#fff);color:var(--violet);background:#F5F3FA}
-.lane{border:1px solid var(--line);border-left:4px solid var(--lc);border-radius:8px;background:var(--panel);box-shadow:none}
-.lane .L{font-weight:700}
-.lane-run{background:var(--panel);border-color:var(--line);color:var(--ink2);border-radius:6px}
-.lane-run:hover{border-color:var(--lc);color:var(--lc)}
-.track{background:var(--head);border-radius:6px}
-.key{border-color:color-mix(in srgb,var(--lime) 50%,#fff);text-transform:none;letter-spacing:0;font-family:var(--text)}
-.ans-note{border-top-color:var(--line)}
-.nums .n .overall{color:var(--mute)}
-
-/* schema tab */
-.sc-box .body{fill:#fff;stroke:#C9D1D9}
-.sc-box .band{fill:color-mix(in srgb,var(--c) 12%,#fff)}
-.sc-box .name{font-weight:700}
-.sc-box .more{fill:var(--mute)}
-.sc-box .sep{stroke:var(--line)}
-.sc-box .kinds-h{letter-spacing:0;fill:var(--mute)}
-.sc-box .kinds{fill:color-mix(in srgb,var(--c) 80%,#000)}
-.sc-box.on .body{stroke:var(--lime);filter:none}
-.sc-box.sel .body{stroke:var(--c);filter:none}
-.sc-frame rect{fill:#F6F8FA;stroke:var(--line);stroke-dasharray:none}
-.sc-frame.on rect{stroke:color-mix(in srgb,var(--lime) 55%,#fff)}
-.sc-col{letter-spacing:0;text-transform:none;font-family:var(--display);font-size:14px;fill:var(--ink2)}
-.sc-rel path{stroke:#8C959F;opacity:1}
-.sc-rel text{fill:var(--ink2);stroke:#fff;font-family:var(--text);font-style:italic}
-.sc-rel.sel path{stroke:var(--ink)}
-.sc-box .self{fill:var(--violet)}
-
-/* testing tab */
-.t-tile{border:1px solid var(--line);border-top:3px solid var(--tc);border-radius:8px;background:var(--panel)}
-.t-tile.old{border-style:solid;border-top-style:dashed;opacity:1}
-.t-big{font-weight:700}
-.t-table th{letter-spacing:0;text-transform:none;font-size:12px;border-bottom-color:var(--line)}
-.t-table td{border-bottom-color:#EAEEF2}
-.t-c.good{background:color-mix(in srgb,var(--lime) 10%,#fff)} .t-c.mid{background:color-mix(in srgb,var(--amber) 10%,#fff)} .t-c.bad{background:color-mix(in srgb,var(--rose) 10%,#fff)}
-.t-order{border-top-color:var(--line)}
-.t-o code{color:var(--violet2)}
-.t-q{border-left-color:color-mix(in srgb,var(--rose) 55%,#fff);background:#FBF4F2}
-.t-big{font-size:16px;line-height:1.2}
-.t-tile.old{border-top:3px dashed color-mix(in srgb,var(--tc) 55%,#fff)}

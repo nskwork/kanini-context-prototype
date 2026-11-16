@@ -7,16 +7,15 @@
   const fmt = (n) => (n == null ? "–" : Math.round(n).toLocaleString());
   const bare = (ref) => String(ref || "").split("@")[0];
 
-  /* colours for a white page: mid-tone inks that hold on a projector */
-  const KIND_COLOR = { Payer: "#B83280", Plan: "#1F5FA8", Program: "#1F5FA8", Jurisdiction: "#9A6700", Concept: "#2E7D4F", Code: "#6E7781",
-    ValueSet: "#6E7781", Rule: "#5B4BA8", Authority: "#8250DF", Source: "#8A6A2F", Snapshot: "#A08445", DataElement: "#0E7C86", Endpoint: "#B83280" };
+  const KIND_COLOR = { Payer: "#f472b6", Plan: "#60a5fa", Program: "#60a5fa", Jurisdiction: "#fbbf24", Concept: "#34d399", Code: "#94a3b8",
+    ValueSet: "#94a3b8", Rule: "#a78bfa", Authority: "#c084fc", Source: "#fde68a", Snapshot: "#e7d8a0", DataElement: "#2dd4bf", Endpoint: "#f472b6" };
   const SHELL = { Concept: 0, Code: 70, Rule: 120, DataElement: 165, Authority: 200, Plan: 250, Program: 250, Payer: 250,
     Source: 285, Snapshot: 320, ValueSet: 320, Endpoint: 320, Jurisdiction: 390 };
-  const ROOT_COLOR = { CoverageItem: "#1F5FA8", Authority: "#8250DF", Rule: "#5B4BA8", TerminologyItem: "#2E7D4F", Endpoint: "#B83280",
-    KnowledgeArtifact: "#0E7C86", Source: "#8A6A2F", Snapshot: "#A08445", DataElement: "#0E7C86", Thing: "#6E7781" };
+  const ROOT_COLOR = { CoverageItem: "#fbbf24", Authority: "#c084fc", Rule: "#a78bfa", TerminologyItem: "#34d399", Endpoint: "#f472b6",
+    KnowledgeArtifact: "#2dd4bf", Source: "#fde68a", Snapshot: "#e7d8a0", DataElement: "#2dd4bf", Thing: "#94a3b8" };
   const OUTCOME = {
-    no_pa: ["No PA", "#2E7D4F"], exempt: ["Exempt", "#2E7D4F"], pa_required: ["PA required", "#1F5FA8"],
-    other_gate: ["Other gate", "#9A6700"], needs_facts: ["Not yet known", "#9A6700"], unknown: ["Not known", "#B5442B"]
+    no_pa: ["No PA", "#a3e635"], exempt: ["Exempt", "#a3e635"], pa_required: ["PA required", "#22d3ee"],
+    other_gate: ["Other gate", "#fbbf24"], needs_facts: ["Not yet known", "#fbbf24"], unknown: ["Not known", "#fb7185"]
   };
 
   const words = (s) => String(s || "").replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
@@ -122,10 +121,10 @@
   }
 
   function nodeColor(n) {
-    if (S.view === "onto") return ROOT_COLOR[n.root] || "#5B4BA8";
-    if (n.unscr) return "#B5442B";
-    if (n.prog) return "#C4570F";
-    return KIND_COLOR[n.kind] || "#6E7781";
+    if (S.view === "onto") return ROOT_COLOR[n.root] || "#a78bfa";
+    if (n.unscr) return "#fb7185";
+    if (n.prog) return "#fb923c";
+    return KIND_COLOR[n.kind] || "#94a3b8";
   }
   function nodeLabel(n) {
     if (S.view === "onto") return words(n.id);
@@ -146,7 +145,7 @@
     gNodes.selectAll("g").attr("class", (n) => "node" + (n.on ? " on" : "") + (n.prog ? " prog" : "") + (n.unscr ? " unscr" : "") + (n.cand ? " cand" : ""));
     gNodes.selectAll("text").text((n) => nodeLabel(n));
     gNodes.selectAll("circle.core").attr("r", (n) => (n.on ? 7 : n.prog || n.cand || n.unscr ? 5.5 : S.view === "onto" ? 5 : 3.6))
-      .attr("fill", nodeColor).attr("stroke", "#fff").attr("stroke-width", (n) => (n.on ? 2 : 1)).style("filter", null);
+      .attr("fill", nodeColor).style("filter", (n) => `drop-shadow(0 0 ${n.on ? 8 : n.prog || n.unscr ? 6 : 3}px ${nodeColor(n)})`);
     gNodes.selectAll("circle.halo").attr("r", (n) => (n.on && n.primary ? 16 : 0)).attr("stroke", nodeColor);
     gEdges.selectAll("line").attr("class", (l) => "edge" + (l.source.on && l.target.on ? " on" : "")
       + ((l.source.prog || l.target.prog) && (l.source.prog || l.source.on) && (l.target.prog || l.target.on) ? " prog" : "")
@@ -165,7 +164,7 @@
     nodes.forEach((n) => { const k = mode === "onto" ? n.root : n.kind; counts[k] = (counts[k] || 0) + 1; });
     const pal = mode === "onto" ? ROOT_COLOR : KIND_COLOR;
     $("legend").innerHTML = (mode === "onto" ? "<span>classes by root ·</span>" : `<span>${nodes.length} nodes · ${links.length} edges ·</span>`) +
-      Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span><i style="background:${pal[k] || "#6E7781"}"></i>${esc(cap(words(k)))} ${n}</span>`).join("");
+      Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span><i style="background:${pal[k] || "#94a3b8"}"></i>${esc(cap(words(k)))} ${n}</span>`).join("");
   }
   function tip(e, n) {
     const t = $("tip"), r = svg.node().getBoundingClientRect();
@@ -217,7 +216,7 @@
       dots.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, color: c.color });
     });
     gFx.selectAll("circle").data(dots).join("circle").attr("r", 3.4).attr("cx", (d) => d.x).attr("cy", (d) => d.y)
-      .attr("fill", (d) => d.color).attr("stroke", "#fff").attr("stroke-width", 1.5).style("filter", null);
+      .attr("fill", "#f5f3ff").style("filter", (d) => `drop-shadow(0 0 6px ${d.color}) drop-shadow(0 0 2px #fff)`);
     lanesTick(dt);
     requestAnimationFrame(fxLoop);
   }
@@ -287,12 +286,12 @@
     const allowed = new Set([...set, ...prog]);
     const primAuth = prim ? inn(prim, "STATES")[0] : null;
     const src = prim ? out(prim, "SOURCED_FROM")[0] : null;
-    addComets(bfs(node("Plan", cov.plan), prim, allowed)?.concat(src ? [src] : []), "#2E7D4F", 4);
-    addComets(bfs(code, prim, allowed), "#1F5FA8", 3);
-    addComets(bfs(st, primAuth, allowed), "#2E7D4F", 3);
+    addComets(bfs(node("Plan", cov.plan), prim, allowed)?.concat(src ? [src] : []), "#a3e635", 4);
+    addComets(bfs(code, prim, allowed), "#22d3ee", 3);
+    addComets(bfs(st, primAuth, allowed), "#a3e635", 3);
     [...prog, ...unscr].filter((n) => n.kind === "Authority").forEach((a) => {
       const via = (adj.get(a) || []).map(([m]) => m).find((m) => m === st || (m.kind === "Jurisdiction" && m.id === "US"));
-      if (via) addComets([via, a], a.unscr ? "#B5442B" : "#C4570F", 1);
+      if (via) addComets([via, a], a.unscr ? "#fb7185" : "#fb923c", 1);
     });
     focus();
   }
@@ -337,7 +336,7 @@
       c.innerHTML = '<div class="panel-head"><span class="eyebrow">Decision card</span></div><div class="panel-body card-empty">The decision card appears here when the agent or the workflow answers.</div>';
       return;
     }
-    const [label, color] = OUTCOME[p.outcome] || ["Not known", "#B5442B"];
+    const [label, color] = OUTCOME[p.outcome] || ["Not known", "#fb7185"];
     c.className = "panel card live"; c.style.setProperty("--oc", color);
     const prim = p.primary_rule || {};
     const src = (p.sources || []).find((s) => s.citation === prim.citation) || (p.sources || [])[0];
@@ -378,9 +377,9 @@
   // A is the same agent without the context layer: it finds and reads the policy documents for every order. B is
   // the agent with Kanini Context (reduce: short calls, no document text); C is Kanini Context with no AI (eliminate).
   // Earlier baselines (an LLM application with search, or given every document) are in the Testing tab.
-  const LANES = { A: ["nocontext", "No context: the same agent reads the documents", "#B5442B", "Matches the rules"],
-    B: ["agent", "Reduce: the AI agent asks Kanini Context", "#1F5FA8", "From the rules"],
-    C: ["workflow", "Eliminate: Kanini Context answers, no AI", "#2E7D4F", "From the rules"] };
+  const LANES = { A: ["nocontext", "No context: the same agent reads the documents", "#fb7185", "Matches the rules"],
+    B: ["agent", "Reduce: the AI agent asks Kanini Context", "#22d3ee", "From the rules"],
+    C: ["workflow", "Eliminate: Kanini Context answers, no AI", "#a3e635", "From the rules"] };
   const MODE_LANE = { nocontext: "A", agent: "B", workflow: "C" };
   const A_STEP = { journey_get: "patient record", list_documents: "lists the documents", search_documents: "searches the documents",
     read_pages: "reads pages" };
@@ -472,12 +471,12 @@
       ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.clearRect(0, 0, w, h);
       while (ln.parts.length < Math.min(60, Math.round(ln.target))) ln.parts.push({ x: -Math.random() * w, y: 5 + Math.random() * (h - 10), l: 5 + Math.random() * 9 });
       if (ln.parts.length > Math.round(ln.target)) ln.parts.length = Math.round(ln.target);
-      ctx.shadowBlur = 0; ctx.fillStyle = ln.color;
+      ctx.shadowColor = ln.color; ctx.shadowBlur = 8; ctx.fillStyle = ln.color;
       ln.parts.forEach((p) => { p.x += dt * w / 2.8; if (p.x > w) p.x -= w + 20; ctx.fillRect(p.x, p.y, p.l, 3); });
       if (ln.flash > 0) {
         ln.flash -= dt;
         const f = Math.max(0, ln.flash), grow = Math.min(1, (1.6 - f) * 6);
-        ctx.globalAlpha = Math.min(1, f * 2); ctx.fillRect(0, h / 2 - 2, w * grow, 4); ctx.globalAlpha = 1;
+        ctx.globalAlpha = Math.min(1, f * 2); ctx.shadowBlur = 24; ctx.fillRect(0, h / 2 - 2, w * grow, 4); ctx.globalAlpha = 1;
       }
     });
     if (Object.values(lanes).some((l) => l.st.active)) laneNumbers();
@@ -641,9 +640,9 @@
     { title: "Terminology", frame: "TerminologyItem", items: ["Concept", "Code", "ValueSet"] }
   ];
   const SCHEMA_BOTTOM = { title: "Coverage", frame: "CoverageItem", items: ["Payer", "Plan", "Program", "Jurisdiction"], before: ["Endpoint"] };
-  const SCHEMA_COLOR = { Source: "#8A6A2F", Snapshot: "#A08445", Authority: "#8250DF", Rule: "#5B4BA8", DataElement: "#0E7C86",
-    KnowledgeArtifact: "#0E7C86", Concept: "#2E7D4F", Code: "#6E7781", ValueSet: "#6E7781", Payer: "#B83280", Plan: "#1F5FA8",
-    Program: "#1F5FA8", Jurisdiction: "#9A6700", Endpoint: "#B83280", TerminologyItem: "#2E7D4F", CoverageItem: "#1F5FA8" };
+  const SCHEMA_COLOR = { Source: "#fde68a", Snapshot: "#e7d8a0", Authority: "#c084fc", Rule: "#a78bfa", DataElement: "#2dd4bf",
+    KnowledgeArtifact: "#2dd4bf", Concept: "#34d399", Code: "#94a3b8", ValueSet: "#94a3b8", Payer: "#f472b6", Plan: "#60a5fa",
+    Program: "#60a5fa", Jurisdiction: "#fbbf24", Endpoint: "#f472b6", TerminologyItem: "#34d399", CoverageItem: "#fbbf24" };
   const BOX_W = 224, COL_GAP = 120, ROW_GAP = 40, FIELD_H = 15, MAX_FIELDS = 9, BAND_GAP = 120;
   let schemaBox = null;
 
@@ -714,7 +713,7 @@
     let defs = svg.select("defs.schema");
     if (defs.empty()) {
       defs = svg.insert("defs", ":first-child").attr("class", "schema");
-      [["arrow", "#8C959F"], ["arrow-on", "#2E7D4F"]].forEach(([id, c]) => defs.append("marker").attr("id", id).attr("viewBox", "0 0 10 10")
+      [["arrow", "#8b85b8"], ["arrow-on", "#a3e635"]].forEach(([id, c]) => defs.append("marker").attr("id", id).attr("viewBox", "0 0 10 10")
         .attr("refX", 9).attr("refY", 5).attr("markerWidth", 7).attr("markerHeight", 7).attr("orient", "auto-start-reverse")
         .append("path").attr("d", "M0,0 L10,5 L0,10 z").attr("fill", c));
     }
@@ -777,7 +776,7 @@
       .attr("transform", (r) => (r.rot ? `rotate(-90 ${r.lx} ${r.ly})` : null)).text((r) => r.label);
 
     box.forEach((b, name) => {
-      const e = b.e, c = SCHEMA_COLOR[name] || "#5B4BA8";
+      const e = b.e, c = SCHEMA_COLOR[name] || "#a78bfa";
       const g = gNodes.append("g").attr("class", "sc-box" + (lit.has(name) ? " on" : "")).attr("data-cls", name)
         .attr("transform", `translate(${b.x},${b.y})`).style("--c", c);
       g.append("rect").attr("class", "body").attr("width", b.w).attr("height", b.h).attr("rx", 10);
