@@ -1,0 +1,3182 @@
+{
+  "at": "2026-11-17T21:20:55+00:00",
+  "model": "azure/gpt-5-mini",
+  "embeddings": "text-embedding-3-small",
+  "runs": 5,
+  "budget_tokens": 9500,
+  "reference": {
+    "maria-tn": "no_pa",
+    "maria-tn-egfr52": "other_gate",
+    "maria-oh": "no_pa",
+    "maria-uhc": "pa_required",
+    "maria-uhc-esa": "unknown",
+    "maria-nohgb": "needs_facts"
+  },
+  "strategies": {
+    "current": {
+      "maria-tn": {
+        "runs": 5,
+        "right": 4,
+        "outcomes": {
+          "no_pa": 4,
+          "needs_facts": 1
+        },
+        "changed_between_runs": true,
+        "tokens_in": 9714,
+        "seconds": 4.556372320000082,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 1
+      },
+      "maria-tn-egfr52": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9685,
+        "seconds": 10.497193660004996,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-oh": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9685,
+        "seconds": 10.077696299995296,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 5
+      },
+      "maria-uhc": {
+        "runs": 5,
+        "right": 4,
+        "outcomes": {
+          "pa_required": 4,
+          "needs_facts": 1
+        },
+        "changed_between_runs": true,
+        "tokens_in": 9644,
+        "seconds": 5.319546239997726,
+        "deciding_found": 5,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-uhc-esa": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9688,
+        "seconds": 9.616227839991916,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-nohgb": {
+        "runs": 5,
+        "right": 1,
+        "outcomes": {
+          "no_pa": 3,
+          "other_gate": 1,
+          "needs_facts": 1
+        },
+        "changed_between_runs": true,
+        "tokens_in": 9687,
+        "seconds": 10.034846880007535,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 0
+      }
+    },
+    "paragraph": {
+      "maria-tn": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9732,
+        "seconds": 5.552956579986494,
+        "deciding_found": 0,
+        "invented": 5,
+        "misapplied": 0
+      },
+      "maria-tn-egfr52": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9732,
+        "seconds": 10.050861439993605,
+        "deciding_found": 0,
+        "invented": 2,
+        "misapplied": 0
+      },
+      "maria-oh": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9720,
+        "seconds": 9.46862445998704,
+        "deciding_found": 0,
+        "invented": 4,
+        "misapplied": 5
+      },
+      "maria-uhc": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9731,
+        "seconds": 8.6791872800095,
+        "deciding_found": 5,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-uhc-esa": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9742,
+        "seconds": 6.850336259999312,
+        "deciding_found": 0,
+        "invented": 5,
+        "misapplied": 0
+      },
+      "maria-nohgb": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9721,
+        "seconds": 9.979055139992852,
+        "deciding_found": 0,
+        "invented": 4,
+        "misapplied": 0
+      }
+    },
+    "semantic": {
+      "maria-tn": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9725,
+        "seconds": 5.863067060010508,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-tn-egfr52": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9725,
+        "seconds": 9.856404979992657,
+        "deciding_found": 0,
+        "invented": 1,
+        "misapplied": 0
+      },
+      "maria-oh": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9706,
+        "seconds": 9.119741239992436,
+        "deciding_found": 0,
+        "invented": 2,
+        "misapplied": 5
+      },
+      "maria-uhc": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9728,
+        "seconds": 6.3519371399772355,
+        "deciding_found": 0,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-uhc-esa": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9699,
+        "seconds": 9.702073939982801,
+        "deciding_found": 0,
+        "invented": 1,
+        "misapplied": 0
+      },
+      "maria-nohgb": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9714,
+        "seconds": 9.478172940004152,
+        "deciding_found": 0,
+        "invented": 1,
+        "misapplied": 1
+      }
+    },
+    "hybrid": {
+      "maria-tn": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9725,
+        "seconds": 5.94847777999239,
+        "deciding_found": 5,
+        "invented": 1,
+        "misapplied": 0
+      },
+      "maria-tn-egfr52": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9725,
+        "seconds": 9.863037199992686,
+        "deciding_found": 5,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-oh": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9717,
+        "seconds": 9.732246579986532,
+        "deciding_found": 5,
+        "invented": 1,
+        "misapplied": 5
+      },
+      "maria-uhc": {
+        "runs": 5,
+        "right": 4,
+        "outcomes": {
+          "pa_required": 4,
+          "needs_facts": 1
+        },
+        "changed_between_runs": true,
+        "tokens_in": 9732,
+        "seconds": 9.357810020016041,
+        "deciding_found": 5,
+        "invented": 5,
+        "misapplied": 0
+      },
+      "maria-uhc-esa": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9713,
+        "seconds": 5.9523983599967325,
+        "deciding_found": 5,
+        "invented": 2,
+        "misapplied": 0
+      },
+      "maria-nohgb": {
+        "runs": 5,
+        "right": 2,
+        "outcomes": {
+          "needs_facts": 2,
+          "no_pa": 3
+        },
+        "changed_between_runs": true,
+        "tokens_in": 9702,
+        "seconds": 9.532819500006735,
+        "deciding_found": 5,
+        "invented": 2,
+        "misapplied": 1
+      }
+    },
+    "hybrid_state": {
+      "maria-tn": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9736,
+        "seconds": 9.992421280010603,
+        "deciding_found": 5,
+        "invented": 2,
+        "misapplied": 0
+      },
+      "maria-tn-egfr52": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9732,
+        "seconds": 5.77906498000957,
+        "deciding_found": 5,
+        "invented": 1,
+        "misapplied": 0
+      },
+      "maria-oh": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9726,
+        "seconds": 9.560651799989865,
+        "deciding_found": 5,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-uhc": {
+        "runs": 5,
+        "right": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9747,
+        "seconds": 10.015859080012888,
+        "deciding_found": 5,
+        "invented": 4,
+        "misapplied": 0
+      },
+      "maria-uhc-esa": {
+        "runs": 5,
+        "right": 0,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "changed_between_runs": false,
+        "tokens_in": 9739,
+        "seconds": 9.197359339997638,
+        "deciding_found": 5,
+        "invented": 0,
+        "misapplied": 0
+      },
+      "maria-nohgb": {
+        "runs": 5,
+        "right": 1,
+        "outcomes": {
+          "no_pa": 4,
+          "needs_facts": 1
+        },
+        "changed_between_runs": true,
+        "tokens_in": 9705,
+        "seconds": 6.293609059986193,
+        "deciding_found": 5,
+        "invented": 0,
+        "misapplied": 0
+      }
+    }
+  },
+  "detail": {
+    "current": {
+      "maria-tn": [
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization for ESA when coverage criteria met",
+            "Patient has required diagnoses D63.1 and N18.32 for CKD not on dialysis",
+            "Pre-treatment hemoglobin 9.4 g/dL is below 10 g/dL and eGFR 38 mL/min/1.73m2 (<45), meeting CKD non-dialysis criteria for ESA use",
+            "Patient is not on dialysis and J0885 is the correct non-ESRD HCPCS code"
+          ],
+          "citation": "Billing and Coding Article A58982 (pages 10,17,21) and LCD L34356 (ESA coverage criteria)",
+          "tokens_in": 9714,
+          "tokens_out": 415,
+          "ms": 4407.935199968051,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage documented for epoetin alfa (J0885) for CKD not on dialysis when D63.1 plus a CKD stage code are present (Group 2 codes).",
+            "Claim includes D63.1 and N18.32 (CKD stage 3b) which matches LCD required dual diagnoses for non\u2011dialysis CKD.",
+            "Pre\u2011treatment hemoglobin 9.4 g/dL is below the <10 g/dL threshold required to initiate ESA therapy for CKD not on dialysis.",
+            "eGFR 38 mL/min/1.73m2 (GFR <45) meets the LCD guidance supporting ESA use in CKD not on dialysis.",
+            "Patient is not on dialysis (dialysis_status: none), so the non\u2011ESRD J0885 code is appropriate."
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (sections on patients with CKD not on dialysis, diagnosis and hemoglobin requirements) and Billing and Coding Article A58982 (Group 2/Group 2 Paragraph and required documentation elements)",
+          "tokens_in": 9714,
+          "tokens_out": 508,
+          "ms": 4662.780900020152,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "needs_facts",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is a non-ESRD ESA used for anemia of CKD and is covered when documentation shows D63.1 plus an appropriate CKD stage (N18.32 is acceptable) and symptomatic/low Hb with GFR threshold met.",
+            "Patient meets diagnosis (D63.1, N18.32), Hb 9.4 g/dL (<10) and eGFR 38 (<45), which support medical necessity for ESA in CKD not on dialysis.",
+            "Policy requires evaluation of iron stores (TSAT \u226520% and ferritin \u2265100 ng/mL) prior to initiation and prior to dose increases \u2014 these iron indices are not provided in the facts.",
+            "The CMS billing/coding guidance requires specific claim modifiers and documentation but does not state a Medicare Part B prior authorization requirement in the cited policy documents; determination of coverage hinges on clinical labs/iron studies being documented."
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6, 10; LCD L34356 Erythropoiesis Stimulating Agents (ESA)",
+          "tokens_in": 9714,
+          "tokens_out": 575,
+          "ms": 5431.503800034989,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Ohio's policy"
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Patient is not on dialysis (CKD not on dialysis)",
+            "Claim includes D63.1 (anemia in CKD) and N18.32 (CKD stage 3b) which are listed as acceptable diagnosis pairings for non-dialysis ESA use",
+            "Hemoglobin 9.4 g/dL is <10 g/dL, meeting the pre-initiation Hb requirement for ESA in CKD non-dialysis",
+            "eGFR 38 mL/min/1.73m2 (GFR <45) supports ESA use in CKD not on dialysis per policy"
+          ],
+          "citation": "LCD L34356 (Erythropoiesis Stimulating Agents) and Billing and Coding Article A58982 (ESA requirements for CKD not on dialysis)",
+          "tokens_in": 9714,
+          "tokens_out": 439,
+          "ms": 4081.819600018207,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is the non-ESRD ESA code and patient is not on dialysis (dialysis_status: none).",
+            "Required dual diagnosis for CKD non-dialysis (D63.1 and a CKD stage code such as N18.32) are present.",
+            "eGFR 38 mL/min/1.73m2 is below the cited GFR threshold (<45) supporting ESA use in CKD not on dialysis.",
+            "Hemoglobin 9.4 g/dL is below the 10 g/dL threshold referenced for initiating ESA therapy."
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (Required Documentation Elements for CKD not on dialysis) and Billing and Coding Article A58982 (Non-ESRD ESA criteria and required diagnoses/modifiers)",
+          "tokens_in": 9714,
+          "tokens_out": 450,
+          "ms": 4197.822099959012,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-tn-egfr52": [
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient does not meet CKD non-dialysis coverage criteria: eGFR 52 mL/min/1.73m2 exceeds the <45 mL/min/1.73m2 threshold referenced for CKD patients not on dialysis",
+            "Required CKD staging diagnosis for non-dialysis coverage listed in the policy does not include N18.31 (document lists N18.32, N18.4, N18.5, or specified hypertensive heart/renal codes)",
+            "Although hemoglobin (9.4 g/dL) and diagnosis D63.1 support anemia in CKD, the GFR/stage and coding requirements are not met so coverage would be precluded"
+          ],
+          "citation": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237), pages 9-11 and 21",
+          "tokens_in": 9685,
+          "tokens_out": 586,
+          "ms": 5411.971599969547,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is a non-ESRD ESA that requires coverage criteria be met for CKD patients not on dialysis",
+            "Policy requires dual diagnosis: D63.1 plus a listed CKD stage code (e.g., N18.32, N18.4, N18.5) \u2014 N18.31 is not an accepted CKD code for coverage",
+            "Policy notes GFR <45 mL/min/1.73m^2 is a reasonable threshold to support ESA use in CKD not on dialysis; patient eGFR 52 (>45)",
+            "Although Hb 9.4 g/dL is below 10, the required CKD stage/egfr criteria for non-dialysis CKD coverage are not met"
+          ],
+          "citation": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237), pages 10 and 21",
+          "tokens_in": 9685,
+          "tokens_out": 595,
+          "ms": 5364.275500003714,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage requires specific CKD stage codes for non-dialysis CKD (e.g., N18.32, N18.4, N18.5) in addition to D63.1; claim lists N18.31 which is not in the listed covered CKD stages",
+            "Policy indicates a GFR <45 mL/min/1.73m2 is a reasonable threshold to support ESA use in CKD not on dialysis; patient eGFR is 52 (>45)",
+            "Required pretherapy evaluation elements (eg, iron stores/transferrin saturation/ferritin and documentation of evaluation of other reversible causes) are not documented in the provided facts",
+            "Although Hb is <10 g/dL (9.4), other coverage criteria for CKD non-dialysis ESA use are not met/documented, so coverage would be precluded under the LCD/article"
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 9-10,17,21",
+          "tokens_in": 9685,
+          "tokens_out": 616,
+          "ms": 31761.324600025546,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD ESA and requires EC modifier and dual diagnoses for CKD not on dialysis (D63.1 plus a listed CKD stage code)",
+            "Patient has D63.1 but CKD code is N18.31 (CKD stage 3a), which is not among the specific stage codes listed (e.g., N18.32, N18.4, N18.5) required for coverage",
+            "Policy notes GFR <45 mL/min/1.73m2 is a reasonable threshold to support ESA in CKD not on dialysis; patient eGFR=52 (>45) so does not meet that threshold despite Hb 9.4 g/dL"
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10 and 21",
+          "tokens_in": 9685,
+          "tokens_out": 511,
+          "ms": 4714.2224999843165,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is a non-ESRD (CKD non-dialysis) code that requires dual diagnoses: D63.1 (anemia in CKD) AND a listed CKD stage code (e.g. N18.32, N18.4, N18.5) per the LCD/article",
+            "The patient has D63.1 and N18.31, but N18.31 is not among the specific CKD stage codes listed as supporting medical necessity for CKD non-dialysis ESA claims in the billing article",
+            "Although hemoglobin 9.4 g/dL supports low Hb, the coverage rules require the specific stage coding (and other documentation like creatinine/GFR and iron studies) which are not aligned with the required ICD-10 pair on the claim"
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 10 and 21",
+          "tokens_in": 9685,
+          "tokens_out": 659,
+          "ms": 5234.174100041855,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-oh": [
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient is non-ESRD (not on dialysis) so J0885 is non-ESRD ESA",
+            "Policy for CKD non-dialysis requires D63.1 plus specific CKD stage codes (eg N18.32, N18.4, N18.5) or GFR <45 mL/min/1.73m2 to support ESA use",
+            "Patient has N18.31 (CKD stage 3a) and eGFR 52, which does not meet the LCD\u2019s CKD stage/GFR coverage criteria despite Hgb <10 g/dL"
+          ],
+          "citation": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237), pages 9-11,17,21",
+          "tokens_in": 9685,
+          "tokens_out": 759,
+          "ms": 6281.8666999810375,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD use but coverage for CKD (non-dialysis) requires D63.1 plus an allowed CKD stage code (e.g., N18.32, N18.4, N18.5) which are not present",
+            "Pre-initiation Hb 9.4 g/dL meets threshold (<10 g/dL) for ESA initiation, but the patient\u2019s CKD code is N18.31 (CKD 3a) and eGFR 52 mL/min/1.73m2 >45, and the policy references GFR <45 or specified stage codes to support ESA use",
+            "Billing rules also require EC modifier and specific diagnosis coding for coverage; current claim lacks the required CKD stage code to satisfy the LCD criteria"
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 9-11, 17, 21",
+          "tokens_in": 9685,
+          "tokens_out": 537,
+          "ms": 5401.462299982086,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 (anemia of CKD) but the CKD stage billed is N18.31 which is not one of the CKD stage diagnosis codes listed in the non-dialysis coverage criteria (required: I12.0, I13.11, I13.2, N18.32, N18.4, or N18.5).",
+            "Policy indicates for CKD non-dialysis ESA use a GFR <45 mL/min/1.73m2 is a reasonable threshold to support ESA; patient eGFR 52 mL/min is above that threshold.",
+            "Although hemoglobin (9.4 g/dL) meets the Hb <10 g/dL requirement, the required CKD staging documentation and GFR threshold for coverage are not met per the LCD/Billing & Coding article."
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 9-11,17,21",
+          "tokens_in": 9685,
+          "tokens_out": 734,
+          "ms": 6925.912000006065,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 but CKD stage code N18.31 (CKD stage 1) is not among the required CKD stage codes for non-dialysis ESA coverage (policy lists N18.32, N18.4, N18.5, etc.)",
+            "Policy specifies a GFR threshold (supports ESA if GFR <45 mL/min/1.73m2); patient eGFR is 52 (>45)",
+            "Although Hgb <10 g/dL (9.4) meets the pre-initiation hemoglobin criterion, other coverage requirements (appropriate CKD stage/GFR and documented evaluation of other causes/iron stores) are not satisfied by the provided data"
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6, 9-10, 21",
+          "tokens_in": 9685,
+          "tokens_out": 651,
+          "ms": 5299.04000001261,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 but CKD stage coded N18.31 (CKD 3a) which is not among required stage codes for CKD non-dialysis coverage (N18.32, N18.4, N18.5, etc).",
+            "Guidance cites GFR <45 mL/min/1.73m2 as a reasonable threshold to support ESA use in CKD not on dialysis; patient eGFR 52 (above threshold).",
+            "Hemoglobin (9.4 g/dL) meets low-Hb requirement, but other required diagnostic/staging criteria for CKD non-dialysis are not met, so coverage criteria are not satisfied."
+          ],
+          "citation": "Billing and Coding Article A58982, sections 'For patients with CKD NOT on Dialysis with Modifier EC' and 'Required Documentation Elements' (pages 9-11)",
+          "tokens_in": 9685,
+          "tokens_out": 588,
+          "ms": 26480.20049999468,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        }
+      ],
+      "maria-uhc": [
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed as an injectable medication that requires prior authorization under UnitedHealthcare Medicare Advantage (provider guide list).",
+            "UnitedHealthcare Medicare Part B Step Therapy policy lists Injectafer (J1439) as a non-preferred intravenous iron formulation and requires step therapy criteria (trial of at least two preferred IV iron therapies for \u22653 weeks each or documented contraindication/intolerance to at least two preferred agents).",
+            "Current chart does not document trials of preferred IV iron agents or documented contraindications/intolerances to two preferred therapies needed to meet step therapy criteria."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements (provider guide) page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Intravenous Iron Replacement Therapy (pages 8, 17-18)",
+          "tokens_in": 9644,
+          "tokens_out": 466,
+          "ms": 5336.394399986602,
+          "passages": 17,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "needs_facts",
+          "right": false,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed as an injectable medication requiring prior authorization on the UnitedHealthcare MA prior authorization list.",
+            "UnitedHealthcare Part B step therapy policy lists Injectafer as a non-preferred IV iron and requires trial of at least two preferred IV iron therapies (or intolerance/contraindication to at least two) before covering Injectafer.",
+            "Member has iron-deficiency/CKD-associated anemia (D50.9, D63.1, N18.32) with Hgb 9.4 and eGFR 38 (non-dialysis), which is a clinical scenario addressed by the IV iron policy, but the record does not document prior trials or documented contraindications/intolerances to preferred IV iron products.",
+            "Additional clinical/fill-history facts are needed (documentation of trials of preferred IV iron agents or contraindications/intolerance, or prior use of Injectafer within 365 days) to determine authorization eligibility."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Intravenous Iron Replacement Therapy (page 8); UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, Injectable medications \u2014 Intravenous Iron Replacement Therapy (page 17)",
+          "tokens_in": 9644,
+          "tokens_out": 530,
+          "ms": 5236.647000012454,
+          "passages": 17,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed on the UnitedHealthcare prior authorization required injectable medications list.",
+            "Injectafer is a non-preferred intravenous iron per the UnitedHealthcare Medicare Part B Step Therapy policy and requires meeting step-therapy criteria for coverage.",
+            "No documentation provided of trials of at least two preferred IV iron therapies (or documented contraindications/intolerances to them) or prior Injectafer use within past 365 days, which are required by the step therapy criteria."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, Intravenous Iron Replacement Therapy (page 8 and page 17-18)",
+          "tokens_in": 9644,
+          "tokens_out": 499,
+          "ms": 4657.750400016084,
+          "passages": 17,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed under Injectable medications requiring prior authorization for UnitedHealthcare Medicare Advantage (Injectable Iron Replacement).",
+            "UnitedHealthcare Medicare Part B Step Therapy policy lists Injectafer as a non-preferred intravenous iron product and requires meeting step-therapy criteria (trial of preferred IV irons or documented contraindication/intolerance) for coverage.",
+            "Member has CKD (N18.32) and anemia (Hgb 9.4) which are indications that may be approvable, but prior authorization is still required and documentation of step-therapy or contraindications must be submitted."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (pages 15, 17) and UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs (Intravenous Iron Replacement Therapy section, pages 8 and 17)",
+          "tokens_in": 9644,
+          "tokens_out": 591,
+          "ms": 6346.755999955349,
+          "passages": 17,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed on UnitedHealthcare prior authorization requirements for injectable medications (intravenous iron replacement).",
+            "UnitedHealthcare Medicare Part B step therapy policy lists Injectafer as a non-preferred IV iron and requires meeting step therapy criteria (trial of \u22653 weeks of at least two preferred IV irons, or contraindication/intolerance to \u22652 preferred IV irons, or continuation of prior therapy within past 365 days).",
+            "Patient has CKD (stage 3b) and iron-deficiency anemia, but documentation of required trials/contraindications or prior use of Injectafer in past 365 days is not provided."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements (Injectable medications, Intravenous Iron Replacement listing) page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (Intravenous Iron Replacement Therapy; Injectafer non-preferred and step therapy criteria) pages 8 and 17-18",
+          "tokens_in": 9644,
+          "tokens_out": 563,
+          "ms": 5020.183400018141,
+          "passages": 17,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-uhc-esa": [
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for erythropoiesis stimulating agents including J0885.",
+            "Patient meets Medicare coverage criteria for non-dialysis CKD ESA use: diagnosis D63.1 and N18.32 present, not on dialysis, hemoglobin 9.4 (<10 g/dL) and eGFR 38 (<45 mL/min/1.73m2)."
+          ],
+          "citation": "UnitedHealthcare prior authorization requirements (Injectable medications / Erythropoiesis Stimulating Agents J0885) and Palmetto GBA Billing and Coding Article A58982 (CKD not on dialysis criteria: D63.1 + N18.32, Hb <10, GFR <45)",
+          "tokens_in": 9688,
+          "tokens_out": 367,
+          "ms": 5553.818800020963,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare lists J0885 as requiring prior authorization for Medicare Advantage members",
+            "Member meets clinical coverage criteria for non-dialysis CKD ESA use (D63.1 with CKD stage code N18.32, eGFR 38, Hgb 9.4 <10 g/dL) \u2014 so therapy is clinically appropriate but still requires prior authorization under plan rules"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; Billing and Coding Article A58982 (ESA for CKD not on dialysis), pages 10 and 17",
+          "tokens_in": 9688,
+          "tokens_out": 460,
+          "ms": 27333.190399978776,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare MA list explicitly requires prior authorization for Erythropoiesis Stimulating Agents (J0885).",
+            "Patient diagnosis codes (D63.1 and N18.32), hemoglobin 9.4 g/dL, and eGFR 38 mL/min/1.73m2 are consistent with CKD non-dialysis ESA indication per CMS guidance, but PA is still required by the plan."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; Billing and Coding Article A58982 (L39237), pages 10 and 21",
+          "tokens_in": 9688,
+          "tokens_out": 339,
+          "ms": 6034.3861999572255,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for HCPCS J0885 (Epoetin alfa) (Prior authorization list, page 7).",
+            "Medical coverage criteria for non-dialysis CKD ESA use are met: claim includes D63.1 (anemia of CKD) plus N18.32 (CKD stage code) and patient is not on dialysis (Billing and Coding A58982, page 10).",
+            "Lab values support initiation: Hgb 9.4 g/dL (<10 g/dL) and eGFR 38 mL/min/1.73m2 (<45 threshold referenced) consistent with ESA coverage for CKD not on dialysis (Billing and Coding A58982, page 10)."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, page 10",
+          "tokens_in": 9688,
+          "tokens_out": 474,
+          "ms": 4756.638000020757,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage prior authorization list includes J0885 (ESA)",
+            "CMS/Palmetto criteria for CKD non-dialysis: diagnosis D63.1 plus CKD stage code (N18.32) required and present",
+            "Hemoglobin 9.4 g/dL is below the <10 g/dL threshold supporting ESA initiation",
+            "eGFR 38 mL/min/1.73m2 is below the <45 threshold cited to support ESA use in CKD not on dialysis"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements (Erythropoiesis Stimulating Agents J0885); Billing and Coding Article A58982 (LCD L39237) \u2013 CKD non-dialysis coverage criteria and required documentation",
+          "tokens_in": 9688,
+          "tokens_out": 371,
+          "ms": 4403.105799981859,
+          "passages": 20,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-nohgb": [
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B coverage is determined by LCD/Article, not insurer prior authorization",
+            "Patient is non-dialysis CKD with diagnoses D63.1 and N18.32 which are listed as supporting medical necessity for non-ESRD ESA (J0885)",
+            "eGFR 38 mL/min/1.73m2 is below the stated reasonable threshold (<45) supporting ESA use and serum creatinine/GFR documented (creatinine date 2026-11-02)"
+          ],
+          "citation": "Billing and Coding Article A58982 (Palmetto GBA), \"For CKD NOT on Dialysis with Modifier EC ESA Claims\" and Required Documentation Elements (pages 9-11,21)",
+          "tokens_in": 9687,
+          "tokens_out": 428,
+          "ms": 7459.180400008336,
+          "passages": 19,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Original Medicare LCD/Article do not specify a prior authorization requirement for J0885 (non\u2011ESRD epoetin alfa); coverage is determined by meeting medical necessity criteria rather than a PA program",
+            "Patient has the required diagnosis codes for CKD not on dialysis (D63.1 and N18.32) and eGFR 38 mL/min/1.73m2 meets the guideline\u2019s GFR threshold (<45) for consideration",
+            "Coverage requires additional documentation (e.g., evidence of symptomatic anemia/Hb level and iron studies/transferrin saturation/ferritin) prior to initiation \u2014 those data are not provided, so the treatment would not meet coverage criteria as documented"
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), sections: \"For CKD NOT on Dialysis with Modifier EC ESA Claims\", \"Required Documentation Elements\"",
+          "tokens_in": 9687,
+          "tokens_out": 783,
+          "ms": 6973.57730002841,
+          "passages": 19,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "needs_facts",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is a non-ESRD ESA and D63.1 + N18.32 are acceptable diagnosis codes for CKD not on dialysis per the contractor guidance",
+            "eGFR 38 mL/min/1.73m2 meets the <45 mL/min/1.73m2 threshold referenced to support ESA use in CKD not on dialysis",
+            "Documentation required prior to coverage includes hemoglobin/hematocrit values showing sufficiently low and symptomatic anemia and evaluation of iron stores (TSAT/ferritin) which are not provided",
+            "Also required are appropriate modifiers (EC, JA/JB) and evidence that other causes of anemia were evaluated/treated"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 6,9-10",
+          "tokens_in": 9687,
+          "tokens_out": 442,
+          "ms": 4003.167199960444,
+          "passages": 19,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 and N18.32 which are the required dual diagnoses for CKD not on dialysis coverage for J0885",
+            "eGFR 38 mL/min/1.73m2 (<45) meets the LCD threshold supporting ESA use in CKD not on dialysis",
+            "Serum creatinine/GFR available (date 2026-11-02) as required by documentation elements"
+          ],
+          "citation": "Billing and Coding Article A58982 (Palmetto GBA), \"Required Documentation Elements\" and \"PATIENTS WITH CKD NOT ON DIALYSIS\" (pages 10, 21)",
+          "tokens_in": 9687,
+          "tokens_out": 665,
+          "ms": 27575.67300001392,
+          "passages": 19,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B coverage criteria met for non-dialysis CKD: diagnosis D63.1 and CKD stage code N18.32 present",
+            "eGFR 38 mL/min/1.73m2 meets guidance that GFR <45 supports ESA use in CKD not on dialysis",
+            "required documentation elements (serum creatinine/GFR and diagnoses) are available in the record"
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 10 and 21",
+          "tokens_in": 9687,
+          "tokens_out": 519,
+          "ms": 4162.636500026565,
+          "passages": 19,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ]
+    },
+    "paragraph": {
+      "maria-tn": [
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B LCDs/Billing Articles for ESAs do not indicate a Medicare prior authorization requirement for J0885.",
+            "Patient meets coverage criteria for non-dialysis CKD: diagnosis D63.1 (anemia in CKD) with N18.32 (CKD stage 3b), and hemoglobin 9.4 g/dL (<10 g/dL), with eGFR 38 mL/min/1.73m2 (stage 3b) \u2014 patients with stage IIIb meet GFR requirements (only stages I/II/IIIa are excluded).",
+            "HCPCS J0885 is the correct non-ESRD code and documentation/modifier requirements apply (EC and route modifiers), but those are billing requirements, not a Medicare prior authorization requirement. Note: a UnitedHealthcare Medicare Advantage policy in the documents does list J0885 as prior authorization required for that MA plan, but that is a Medicare Advantage plan, not Original Medicare Part B (member is Original Medicare)."
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 6,10,21; LCD L34356 / Billing and Coding Article A56462 pages 3-5,6",
+          "tokens_in": 9732,
+          "tokens_out": 721,
+          "ms": 6278.602099977434,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD use and patient is non-dialysis (dialysis_status: none)",
+            "Required dual diagnosis for CKD non-dialysis coverage includes D63.1 and a CKD stage code; claim includes D63.1 and N18.32 (CKD stage 3b)",
+            "GFR 38 ml/min (creatinine date 2026-11-02) corresponds to CKD stage 3b (meets GFR requirement; note only stages I, II, IIIa fail GFR requirement)",
+            "Hemoglobin 9.4 g/dL supports symptomatic anemia and is consistent with ESA use for CKD-related anemia",
+            "Required labs (serum creatinine/GFR) are present; ensure EC and JA/JB modifiers and appropriate route modifier are appended on claim per policy"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 10 and 21",
+          "tokens_in": 9732,
+          "tokens_out": 669,
+          "ms": 6394.860400003381,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage allows J0885 for CKD patients not on dialysis when dual diagnoses include D63.1 and an appropriate CKD stage (e.g., N18.32)",
+            "Required documentation elements present: D63.1 and N18.32 billed together, Hgb 9.4 g/dL (anemic), eGFR 38 (consistent with CKD stage 3b) and serum creatinine date provided",
+            "Patient is not on dialysis (ESRD/dialysis rules for different HCPCS codes do not apply)"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 10, 21; Coding information pages 16-19",
+          "tokens_in": 9732,
+          "tokens_out": 617,
+          "ms": 5544.2159999511205,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "16",
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) coverage for J0885 is governed by the LCD/Billing & Coding article; no prior authorization program for this Part B ESA is cited in the supplied documents",
+            "Patient has the required dual ICD-10 codes for CKD (D63.1 and N18.32) for non-dialysis CKD ESA coverage",
+            "Required renal function data present (eGFR 38, creatinine dated 2026-11-02) and hemoglobin is 9.4 g/dL consistent with treatment of symptomatic anemia in CKD",
+            "When billed, claim must include appropriate ESA non-ESRD modifier (EC) and required route modifier (JA or JB) per billing guidance"
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10, 21; LCD L39237 (ESA) pages 3-4",
+          "tokens_in": 9732,
+          "tokens_out": 541,
+          "ms": 4820.152800006326,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) has no prior authorization requirement for ESA J0885 in the provided Medicare LCD/BC documents",
+            "Patient has supporting diagnoses D63.1 (anemia in CKD) and N18.32 (CKD stage 3b) which are listed as acceptable for non-dialysis CKD ESA coverage",
+            "Hemoglobin 9.4 g/dL is below the 10.0 g/dL threshold cited for chemotherapy-induced ESA restriction and is consistent with anemia treatment criteria; eGFR 38 mL/min corresponds to CKD stage 3b (acceptable for non-dialysis coverage)",
+            "Claims must include required EC modifier and appropriate route modifier and documentation (serum creatinine/GFR, diagnoses) per the LCD/BC article"
+          ],
+          "citation": "LCD L39237 and Billing and Coding Article A58982 (Required Documentation Elements for CKD non-dialysis, HCPCS J0885; modifiers EC/JA/JB), pages 10 and 21",
+          "tokens_in": 9732,
+          "tokens_out": 485,
+          "ms": 4726.951599994209,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        }
+      ],
+      "maria-tn-egfr52": [
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD (CKD non-dialysis) use and requires dual diagnosis of D63.1 plus an appropriate CKD stage code",
+            "Patient has N18.31 (CKD stage 3a) and eGFR 52 mL/min/1.73m2 which corresponds to CKD stage 3a",
+            "Policy explicitly states patients with stage I, II and IIIa CKD do not meet the GFR requirements for coverage"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237), Required Documentation Elements for CKD not on dialysis (pages 10-11) and note that patients with stage I, II and IIIa CKD do not meet GFR requirements (page 11)",
+          "tokens_in": 9732,
+          "tokens_out": 566,
+          "ms": 20557.905699999537,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient has D63.1 and N18.31 (CKD stage 3a); policy requires D63.1 plus one of I12.0, I13.11, I13.2, N18.32, N18.4, or N18.5 for non-dialysis CKD coverage of J0885",
+            "Policy explicitly states patients with CKD stage I, II, and IIIa do not meet the GFR requirements for coverage",
+            "Although Hgb 9.4 g/dL meets anemia severity, the required CKD stage/diagnosis coding for coverage is not present"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237), pages 10-11 and 21",
+          "tokens_in": 9732,
+          "tokens_out": 622,
+          "ms": 5370.694999990519,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) coverage rules apply \u2014 LCD requires CKD stage and dual diagnosis for non\u2011dialysis ESA use.",
+            "Claim lists D63.1 and N18.31 (CKD stage 3a). Policy explicitly states patients with stage I, II and IIIa CKD do not meet the GFR requirements for coverage.",
+            "eGFR 52 mL/min/1.73m2 corresponds to stage 3a CKD and thus does not satisfy the LCD coverage criteria for ESA in non\u2011dialysis CKD."
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10-11 (Required Documentation Elements; note: 'Patients with stage I and II and IIIa CKD do not meet the GFR requirements in coverage')",
+          "tokens_in": 9732,
+          "tokens_out": 520,
+          "ms": 11373.879899969324,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B does not require a separate payer prior authorization for J0885 in the LCD, but coverage is limited by medical necessity criteria.",
+            "Patient has D63.1 (anemia in CKD) but CKD diagnosis billed is N18.31 (CKD stage 3a) with eGFR 52, and LCD requires CKD stage codes corresponding to more advanced CKD (eg N18.32, N18.4, N18.5) for non-dialysis coverage.",
+            "Policy explicitly states patients with stage I, II, and IIIa CKD do not meet GFR requirements for ESA coverage."
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 10-11, 16",
+          "tokens_in": 9732,
+          "tokens_out": 505,
+          "ms": 5836.787200008985,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient has D63.1 and N18.31 (CKD stage 3a) which is listed as stage I/II/IIIa and does not meet the GFR requirements for non-dialysis CKD ESA coverage.",
+            "eGFR 52 mL/min/1.73m2 (~CKD 3a) falls within CKD stage IIIa, explicitly noted as not meeting coverage GFR requirements in the policy.",
+            "Although Hb is 9.4 g/dL (anemia), the LCD requires higher stage CKD (specific stage codes/GFR) for ESA coverage in non-dialysis CKD patients, so coverage criteria are not met."
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10-11",
+          "tokens_in": 9732,
+          "tokens_out": 627,
+          "ms": 7115.0393999996595,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-oh": [
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD CKD indications but policy requires D63.1 plus a qualifying CKD stage code (e.g., N18.32, N18.4, N18.5) for CKD patients not on dialysis",
+            "Patient has N18.31 (CKD stage 3a) and eGFR 52, and policy states patients with stage I, II and IIIa do not meet GFR requirements for coverage",
+            "Although Hgb 9.4 is below 10 g/dL, the ICD-10 pairing requirement and CKD stage criteria are not met so coverage would be precluded"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 10-11 and 21; LCD L39237 / Billing and Coding Article A58982 sections on non-ESRD CKD documentation requirements",
+          "tokens_in": 9720,
+          "tokens_out": 653,
+          "ms": 5214.83630000148,
+          "passages": 32,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization per the provided LCDs/BC articles, but coverage criteria are not met",
+            "Claim is non-ESRD J0885 (non-dialysis) requiring D63.1 plus an eligible CKD stage (per policy)",
+            "Patient has N18.31 (CKD stage 3a) and eGFR 52 mL/min \u2014 policy states patients with stage I, II, and IIIa do not meet GFR requirements for coverage"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 10-11 and 21",
+          "tokens_in": 9720,
+          "tokens_out": 534,
+          "ms": 4710.555699944962,
+          "passages": 32,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient has CKD stage 3a (N18.31) which is explicitly excluded from non-ESRD ESA coverage (patients with stage I, II, and IIIa do not meet GFR requirements)",
+            "Coverage for non-dialysis CKD requires dual diagnoses: D63.1 plus an eligible CKD stage code (e.g., N18.32, N18.4, N18.5) which are not present",
+            "Hemoglobin of 9.4 g/dL meets Hb threshold, but lack of required CKD stage prevents coverage"
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237) pages 10-11 and 21; LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA) page 4",
+          "tokens_in": 9720,
+          "tokens_out": 574,
+          "ms": 20252.140500000678,
+          "passages": 32,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD CKD-related anemia and requires dual coding of D63.1 plus an appropriate CKD stage code that meets coverage GFR/stage requirements",
+            "Patient has N18.31 (CKD stage 3a) and eGFR 52 mL/min/1.73m2; policy explicitly states patients with stage I, II and IIIa CKD do not meet the GFR requirements for coverage",
+            "Therefore coverage criteria are not met and the claim would be precluded from payment (approval would not be granted)"
+          ],
+          "citation": "Billing and Coding Article A58982 L39237, pages 10-11 (Required Documentation Elements; note: Patients with stage I and II and IIIa CKD do not meet the GFR requirements in coverage)",
+          "tokens_in": 9720,
+          "tokens_out": 446,
+          "ms": 4001.136699982453,
+          "passages": 32,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Diagnosis includes D63.1 (anemia of CKD) but CKD stage code is N18.31 (CKD stage 3a).",
+            "LCDs state patients with CKD stage I, II, and IIIa do not meet GFR requirements for non\u2011ESRD ESA coverage.",
+            "Required dual diagnoses for non\u2011dialysis CKD coverage must include D63.1 plus a qualifying CKD stage (e.g., N18.32, N18.4, N18.5); N18.31 is explicitly not sufficient."
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) page 10 and page 11 (Note: Patients with stage I and II and IIIa CKD do not meet the GFR requirements in coverage); Billing and Coding Article A58982 (L39237) page 21 (required dual diagnoses for CKD not on dialysis)",
+          "tokens_in": 9720,
+          "tokens_out": 466,
+          "ms": 13164.45310000563,
+          "passages": 32,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        }
+      ],
+      "maria-uhc": [
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed as requiring prior authorization in the UnitedHealthcare Medicare Advantage prior authorization requirements (Intravenous Iron Replacement).",
+            "UnitedHealthcare Medicare Part B step therapy policy lists Injectafer/Monoferric as non-preferred and requires prior authorization with documentation of step therapy criteria.",
+            "Step therapy criteria require trial of at least two preferred IV iron therapies (each \u22653 weeks) or documented contraindication/intolerance to two preferred IV iron therapies, or continuation of prior therapy; no trials or contraindications documented for this patient.",
+            "Patient has CKD stage 3b (eGFR 38) and anemia (Hgb 9.4) which may meet clinical indication, but required step therapy documentation is missing."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (page 17) and UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs (pages 8 and 17)",
+          "tokens_in": 9731,
+          "tokens_out": 564,
+          "ms": 6391.383800015319,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "Injectafer (J1439) is listed on the UnitedHealthcare Medicare Advantage prior authorization requirements (Intravenous Iron Replacement) \u2014 prior authorization is required.",
+            "UnitedHealthcare Medicare Part B step therapy policy lists Injectafer as a non-preferred IV iron and requires trial of at least two preferred IV iron therapies (or intolerance/contraindication) or other step criteria for coverage.",
+            "Patient has CKD (not on dialysis) and anemia (D63.1) \u2014 coverage may be allowed but documentation of prior trials or intolerance to preferred IV irons is required and is not provided."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (page 17) and UnitedHealthcare Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs (pages 8 and 17)",
+          "tokens_in": 9731,
+          "tokens_out": 463,
+          "ms": 5694.3897000164725,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed in UnitedHealthcare Medicare Advantage prior authorization requirements for intravenous iron replacement",
+            "UnitedHealthcare Medicare Part B Step Therapy requires trials of preferred IV iron therapies (or documentation of contraindication/intolerance or continuation within 365 days) before coverage of Injectafer",
+            "Required documentation of trials/contraindications or recent prior Injectafer therapy not provided for this request (hgb and CKD stage present but do not substitute for step therapy evidence)"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (page 17); UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs (pages 8 and 17)",
+          "tokens_in": 9731,
+          "tokens_out": 620,
+          "ms": 6536.679400014691,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed on UnitedHealthcare Medicare Advantage prior authorization requirements (intravenous iron replacement)",
+            "UnitedHealthcare Medicare Advantage step therapy policy lists Injectafer and requires meeting step-therapy criteria or exceptions (preferred agent trial or contraindication)",
+            "Patient has CKD (N18.32) and non-dialysis status; clinical information supports anemia (Hgb 9.4) but PA is still required prior to administration"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Drug Policy IAP.001.30 Medicare Part B Step Therapy Programs, pages 8 and 17",
+          "tokens_in": 9731,
+          "tokens_out": 420,
+          "ms": 4345.778100017924,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "Injectafer (J1439) is listed as requiring prior authorization on the UnitedHealthcare Medicare Advantage prior authorization requirements list",
+            "UnitedHealthcare Medicare Part B step therapy policy specifies Injectafer/Monoferric are non-preferred IV iron products and require meeting step therapy criteria (trials of preferred IV irons or documented intolerance/contraindication) for coverage in iron deficiency anemia with or without CKD",
+            "Patient has CKD not on dialysis (N18.32) with anemia (D63.1) and Hgb 9.4 g/dL \u2014 prior authorization is still required and documentation of step therapy criteria or contraindications is not provided"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, pages 8 and 17",
+          "tokens_in": 9731,
+          "tokens_out": 607,
+          "ms": 20427.705399983097,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-uhc-esa": [
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage prior authorization list includes J0885 (Epoetin alfa) \u2014 prior authorization required for this HCPCS code.",
+            "Patient has D63.1 (anemia in CKD) and N18.32 (CKD stage 3b), matching non-dialysis CKD diagnosis pairing expected for non-ESRD ESA use.",
+            "Clinical data support likely medical necessity for non-ESRD ESA: hemoglobin 9.4 g/dL (below typical 10 g/dL threshold) and eGFR 38 mL/min (CKD non-dialysis). Prior authorization must be obtained before elective administration."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, pages 10 and 21",
+          "tokens_in": 9742,
+          "tokens_out": 456,
+          "ms": 4290.501500014216,
+          "passages": 35,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage prior authorization list explicitly names J0885 as requiring prior authorization",
+            "Member is Medicare Advantage in Tennessee (plan covered by the document) and the request is elective/standard",
+            "Coding/clinical documentation supports non-dialysis CKD use: diagnosis D63.1 plus N18.32 (CKD stage 3b) are listed as the required dual diagnoses for non-dialysis CKD ESA coverage",
+            "Available labs support anemia and CKD staging (Hgb 9.4 g/dL and eGFR 38 mL/min consistent with CKD stage 3b), which align with coverage documentation for non-ESRD ESA use"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, pages 10 and 21",
+          "tokens_in": 9742,
+          "tokens_out": 483,
+          "ms": 11904.366999980994,
+          "passages": 35,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare prior authorization list explicitly includes J0885 (Epoetin alfa)",
+            "Member has CKD not on dialysis with ICD-10 D63.1 and N18.32 which match non-dialysis CKD coverage diagnosis pairing",
+            "Hemoglobin 9.4 g/dL is below typical coverage threshold (\u226410 g/dL) for ESA use in CKD anemia",
+            "eGFR 38 mL/min/1.73m2 (CKD stage 3b) and recent creatinine reported, satisfying serum renal function documentation requirement"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, pages 10 and 21",
+          "tokens_in": 9742,
+          "tokens_out": 440,
+          "ms": 5501.980600005481,
+          "passages": 35,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage prior authorization list specifically requires prior authorization for HCPCS J0885 (page 7).",
+            "Member has diagnosis D63.1 (anemia of chronic kidney disease) plus N18.32 (CKD stage 3b) which are listed as appropriate diagnosis pairings for non-dialysis ESA use.",
+            "Hemoglobin 9.4 g/dL and eGFR 38 mL/min are consistent with symptomatic anemia in CKD (stage 3b) and meet clinical criteria for consideration of ESA therapy in non-dialysis CKD per the policy documentation.",
+            "Member is not on dialysis; J0885 is the non-ESRD (non-dialysis) code indicated for this scenario and requires the EC and route modifiers on claims per the billing guidance."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, pages 10 and 21",
+          "tokens_in": 9742,
+          "tokens_out": 636,
+          "ms": 8019.390899979044,
+          "passages": 35,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UHC Medicare Advantage prior authorization list explicitly requires prior authorization for HCPCS J0885",
+            "Patient has CKD not on dialysis with D63.1 and N18.32 which are listed supporting diagnoses for non-ESRD ESA use",
+            "Hemoglobin 9.4 g/dL is consistent with anemia indication for ESA therapy (supports medical necessity)"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, pages 10 and 21",
+          "tokens_in": 9742,
+          "tokens_out": 387,
+          "ms": 4535.441300016828,
+          "passages": 35,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        }
+      ],
+      "maria-nohgb": [
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B LCD/Affiliated billing articles do not specify a prior authorization requirement for J0885",
+            "Patient has required diagnosis codes for CKD not on dialysis (D63.1 and N18.32) and provided eGFR (38) consistent with CKD non-dialysis staging",
+            "Dose (J0885 = 1000 units) matches a covered non-ESRD code; required documentation elements (serum creatinine/eGFR and diagnoses) are present"
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents) pages 10-11 and page 6",
+          "tokens_in": 9721,
+          "tokens_out": 540,
+          "ms": 5486.421099980362,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B LCD/Billing guidance does not list a prior authorization requirement for J0885 (epoetin alfa)",
+            "Diagnosis codes include D63.1 and N18.32 which are listed as supported for non-dialysis CKD ESA coverage",
+            "eGFR 38 (CKD stage 3b) meets the GFR/stage requirement (patients with stage I, II, and IIIa do not meet GFR requirements)"
+          ],
+          "citation": "Billing and Coding Article A58982 (pages 10, 21) and LCD L39237 (page 3)",
+          "tokens_in": 9721,
+          "tokens_out": 593,
+          "ms": 20126.25349999871,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Patient is non-ESRD with diagnoses D63.1 and N18.32 (CKD stage 3b) which are listed as supporting medical necessity for J0885",
+            "eGFR 38 (with recent creatinine) is consistent with CKD stage 3b and meets requirements (patients with stage I, II and IIIa do not meet GFR requirements)",
+            "Required documentation elements (serum creatinine/GFR and appropriate ICD-10 pair D63.1 + CKD stage) are present per policy"
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10-11 and 16",
+          "tokens_in": 9721,
+          "tokens_out": 601,
+          "ms": 4902.216399961617,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 and N18.32 which are the required dual diagnoses for non-dialysis CKD use of J0885",
+            "eGFR 38 mL/min/1.73m2 corresponds to CKD stage 3b (N18.32), meeting the CKD stage requirement",
+            "Documentation requirements (serum creatinine/GFR, appropriate modifiers EC and JA/JB, route/dose) should be met at billing but LCDs do not impose an Original Medicare prior authorization for J0885"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 10-11, page 6, page 21",
+          "tokens_in": 9721,
+          "tokens_out": 610,
+          "ms": 12329.539600003045,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is a non-ESRD ESA and covered for CKD patients not on dialysis when billed with D63.1 and an appropriate CKD stage code (e.g. N18.32).",
+            "Patient has diagnosis D63.1 and N18.32 (CKD stage 3b) which is an accepted dual-diagnosis pair for non-dialysis CKD coverage.",
+            "eGFR 38 mL/min corresponds to CKD stage 3b (meets GFR requirement; note that stages I, II, and IIIa do not meet coverage, but IIIb does).",
+            "Required labs (serum creatinine/GFR) are present with date 2026-11-02 per policy documentation"
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 10, 21; LCD L39237 Erythropoiesis Stimulating Agents, pages 3-4",
+          "tokens_in": 9721,
+          "tokens_out": 675,
+          "ms": 7050.845100020524,
+          "passages": 33,
+          "deciding_found": false,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        }
+      ]
+    },
+    "semantic": {
+      "maria-tn": [
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage allowed for non-ESRD use of J0885 when billed with D63.1 and CKD diagnosis (N18.32) and required labs",
+            "Patient has required diagnosis codes (D63.1 and N18.32) and supporting labs (Hgb 9.4, eGFR 38) consistent with coverage documentation",
+            "HCPCS J0885 is a non-ESRD code appropriate for CKD non-dialysis use per the policy"
+          ],
+          "citation": "Billing and Coding Article A58982, Required Documentation Elements (page 10); HCPCS grouping J0885 listed as non-ESRD use (page 6)",
+          "tokens_in": 9725,
+          "tokens_out": 547,
+          "ms": 6322.8569000493735,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage guidance provided (LCD/Billing articles) shows J0885 is for non-ESRD CKD use and specifies required diagnosis and lab documentation rather than a prior authorization requirement.",
+            "Patient has required anemia diagnosis D63.1 plus a listed CKD diagnosis N18.32 (non-dialysis CKD), which the policy lists as supporting medical necessity for J0885.",
+            "Required labs are present: hemoglobin 9.4 g/dL (below typical initiation threshold) and reported eGFR 38 with creatinine dated 2026-11-02, satisfying the serum creatinine/GFR documentation requirement."
+          ],
+          "citation": "Billing and Coding Article A58982 pages 10-11, 6 (HCPCS grouping)",
+          "tokens_in": 9725,
+          "tokens_out": 626,
+          "ms": 6730.570000014268,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage governed by the ESA LCD; for CKD non-dialysis epoetin alfa (J0885) is a covered indication when billed with D63.1 plus a CKD diagnosis such as N18.32.",
+            "Patient has D63.1 and N18.32, is not on dialysis, and has supporting labs (Hgb 9.4 g/dL, eGFR 38) and recent creatinine date \u2014 matches required documentation elements for non-dialysis CKD use.",
+            "The provided payer prior authorization lists apply to Medicare Advantage plans (UnitedHealthcare) not Original Medicare; the LCD/ billing article does not impose a Medicare Part B prior authorization for this code in Tennessee."
+          ],
+          "citation": "Billing and Coding Article A58982 page 10; Billing and Coding Article A58982 page 6; LCD L34356 page 4",
+          "tokens_in": 9725,
+          "tokens_out": 587,
+          "ms": 5064.755300001707,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage for non-ESRD ESA (J0885) requires ICD-10 D63.1 plus an appropriate CKD code such as N18.32 \u2014 both are present.",
+            "Required objective renal function documentation (serum creatinine and/or GFR) is provided (eGFR 38, creatinine date 2026-11-02).",
+            "Hemoglobin is 9.4 g/dL, consistent with anemia for which an ESA may be indicated per coverage framework."
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 6 and 10",
+          "tokens_in": 9725,
+          "tokens_out": 604,
+          "ms": 5384.206400020048,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage governed by LCDs; no prior authorization program specified in provided documents",
+            "HCPCS J0885 is the non-ESRD epoetin alfa code and patient is non-dialysis (dialysis_status: none)",
+            "Required diagnosis combination for CKD non-dialysis (D63.1 and N18.32) is present on the order",
+            "Required lab data present: Hgb 9.4 g/dL and recent eGFR/creatinine (egfr 38, creatinine date 2026-11-02) supporting CKD-related symptomatic anemia"
+          ],
+          "citation": "LCD L39237 page 3; Billing and Coding Article A58982 pages 6 and 10",
+          "tokens_in": 9725,
+          "tokens_out": 621,
+          "ms": 5812.946699967142,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-tn-egfr52": [
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B does not require a separate prior authorization for J0885 per LCD/Billing guidance, but coverage criteria must be met.",
+            "J0885 is for non\u2011ESRD (CKD non\u2011dialysis) use and requires D63.1 plus one of the specified CKD diagnosis codes (e.g., N18.32, N18.4, N18.5) for coverage.",
+            "Patient has D63.1 and N18.31 (CKD stage 3a) with eGFR 52; policy states patients with stage I, II, and IIIa (N18.31) do not meet GFR/coverage requirements for non\u2011dialysis CKD ESA coverage, so the claim would not meet coverage criteria."
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 6 and 10 (Required Documentation Elements; Note re: patients with stage I/II/IIIa CKD)",
+          "tokens_in": 9725,
+          "tokens_out": 606,
+          "ms": 5149.894299975131,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD (CKD non-dialysis) use but coverage for CKD non-dialysis requires D63.1 plus a qualifying CKD stage code (e.g., N18.32, N18.4, N18.5) \u2014 patient has N18.31 (CKD stage 3a), which does not meet GFR/stage requirement",
+            "Policy explicitly states patients with stage I, II, and IIIa CKD do not meet GFR requirements for coverage",
+            "Hemoglobin 9.4 g/dL meets anemia severity but does not overcome the requirement for a qualifying CKD stage/diagnosis for coverage"
+          ],
+          "citation": "Billing and Coding Article A58982, Required Documentation Elements (pages 10-11)",
+          "tokens_in": 9725,
+          "tokens_out": 570,
+          "ms": 4531.946800008882,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "J0885 is a non-ESRD (non-dialysis) ESA and requires specific ICD-10 pairing for CKD non-dialysis coverage (D63.1 plus one of I12.0, I13.11, I13.2, N18.32, N18.4, or N18.5).",
+            "Patient has D63.1 and N18.31 (CKD stage 3a). LCD/article states patients with stage I, II and IIIa CKD do not meet GFR requirements for coverage.",
+            "eGFR 52 mL/min/1.73m2 corresponds to stage 3a, so the claim would not meet the coverage criteria despite Hgb 9.4 g/dL."
+          ],
+          "citation": "Billing and Coding Article A58982 (Erythropoiesis Stimulating Agents), pages 10 and 8 (Required Documentation Elements; note on stage I/II/IIIa not meeting GFR requirements).",
+          "tokens_in": 9725,
+          "tokens_out": 676,
+          "ms": 26266.390800010413,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is the non-ESRD (CKD/non-dialysis) ESA code and coverage for CKD non-dialysis requires specific CKD diagnosis codes (eg, N18.32, N18.4, N18.5) in addition to D63.1",
+            "Patient has N18.31 (CKD stage 3a); policy states patients with stage I, II, and IIIa do not meet the GFR/coverage requirements for non-dialysis CKD ESA coverage",
+            "Although Hgb 9.4 g/dL meets anemia threshold, the CKD stage (3a) and GFR (eGFR 52) do not satisfy the LCD coverage criteria for J0885"
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10 and 16",
+          "tokens_in": 9725,
+          "tokens_out": 597,
+          "ms": 6084.980399988126,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare does not require prior authorization for J0885, but coverage criteria for non-dialysis CKD use are not met",
+            "Policy requires D63.1 plus one of I12.0, I13.11, I13.2, N18.32, N18.4, or N18.5 for CKD non-dialysis coverage \u2014 patient has N18.31 (CKD stage 3a), which is specifically noted as not meeting GFR requirements",
+            "eGFR 52 mL/min/1.73m2 corresponds to CKD stage 3a, confirming the diagnosis does not meet required stage despite Hgb 9.4 g/dL"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237), pages 10-11 (Required Documentation Elements; note that patients with stage I, II and IIIa CKD do not meet GFR requirements)",
+          "tokens_in": 9725,
+          "tokens_out": 725,
+          "ms": 7248.812599980738,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-oh": [
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD (CKD non-dialysis) use but coverage requires specific CKD stages (e.g., N18.32, N18.4, N18.5) in addition to D63.1.",
+            "Patient has D63.1 and N18.31 (CKD stage 3a) with eGFR 52, and the policy explicitly states patients with stage I, II, and IIIa (N18.31) do not meet GFR/coverage requirements.",
+            "No document provided requires prior authorization for Original Medicare Part B for this service; instead coverage criteria are not met, so approval would not be granted under the LCD."
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 10 and 6",
+          "tokens_in": 9706,
+          "tokens_out": 510,
+          "ms": 4978.398699953686,
+          "passages": 25,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD (non-dialysis) use but coverage for CKD non-dialysis requires specific CKD diagnosis codes (eg N18.32, N18.4, N18.5) which indicate more advanced CKD than N18.31",
+            "Policy explicitly states patients with stage I, II and IIIa (N18.31) CKD do NOT meet the GFR/coverage requirements for non-dialysis ESA use",
+            "Although hemoglobin 9.4 g/dL is below 10 g/dL, the required supporting CKD stage diagnosis is missing so coverage criteria are not met"
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 10-11 and 16 (ICD-10/Coverage requirements; note that stage I/II/IIIa do not meet GFR requirements); Billing and Coding Article A58982, page 6 and 16 (J0885 is non-ESRD code)",
+          "tokens_in": 9706,
+          "tokens_out": 682,
+          "ms": 5170.110700011719,
+          "passages": 25,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "This is Original Medicare (Part B) \u2014 not an MA prior authorization program; Medicare does not require a separate PA for J0885 but coverage criteria must be met and claims can be denied if not.",
+            "LCD/ Billing guidance for non-dialysis CKD use requires D63.1 plus specific CKD diagnosis codes (examples: N18.32, N18.4, N18.5); N18.31 (CKD stage 3a) does NOT meet the GFR/stage requirements.",
+            "Patient eGFR 52 (CKD stage 3a) \u2014 the policy explicitly notes stages I, II, and IIIa do not meet GFR requirements for coverage, so coverage criteria are not met despite Hgb 9.4."
+          ],
+          "citation": "Billing and Coding Article A58982, pages 10 and 11 (Required Documentation Elements; Note re: stages I, II and IIIa CKD) and page 6 (non-ESRD HCPCS codes/ modifiers guidance)",
+          "tokens_in": 9706,
+          "tokens_out": 697,
+          "ms": 6879.1360000032,
+          "passages": 25,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is a non-ESRD (non-dialysis) ESA and requires specific ICD-10 pairing for CKD not on dialysis (D63.1 plus one of I12.0, I13.11, I13.2, N18.32, N18.4, or N18.5)",
+            "Patient has D63.1 and N18.31 (CKD stage 3a) with eGFR 52, and billing guidance explicitly states stage I, II, and IIIa do not meet GFR requirements for CKD coverage\u2014thus the submitted diagnosis combination does not meet coverage criteria",
+            "Because the coverage criteria are not met the service is not approvable under the LCD billing guidance (claim would be precluded/denied)"
+          ],
+          "citation": "Billing and Coding Article A58982 (for L39237), pages 10 and 11; Billing and Coding Article A58982, page 16",
+          "tokens_in": 9706,
+          "tokens_out": 606,
+          "ms": 5516.515899973456,
+          "passages": 25,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD (non-dialysis) ESA use but coverage for CKD non-dialysis requires D63.1 plus specific CKD diagnosis codes (eg N18.32, N18.4, N18.5)",
+            "Patient has N18.31 (CKD stage 3a) and eGFR 52, and policy states patients with CKD stage I, II, and IIIa do not meet GFR requirements for coverage",
+            "Therefore claim would not meet the LCD coverage criteria for ESA in non-dialysis CKD"
+          ],
+          "citation": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237), pages 10-11",
+          "tokens_in": 9706,
+          "tokens_out": 435,
+          "ms": 23054.54490002012,
+          "passages": 25,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        }
+      ],
+      "maria-uhc": [
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) listed as non-preferred under Intravenous Iron Replacement Therapy",
+            "UnitedHealthcare Medicare Advantage Step Therapy policy requires prior authorization for non-preferred Part B injectables",
+            "Member is in Tennessee and the step therapy program applies to Tennessee plans"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, page 17 (and page 1 coverage rationale)",
+          "tokens_in": 9728,
+          "tokens_out": 434,
+          "ms": 7416.280600009486,
+          "passages": 22,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed as Non-Preferred under Intravenous Iron Replacement Therapy in the UnitedHealthcare Medicare Advantage Step Therapy policy",
+            "The plan\u2019s Prior Authorization requirements list injectable medications for anemia as requiring prior authorization",
+            "Step therapy policy states non-preferred injectable drugs may be denied if administered without prior authorization"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, page 17; UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 14",
+          "tokens_in": 9728,
+          "tokens_out": 456,
+          "ms": 6444.040699978359,
+          "passages": 22,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed as a non-preferred intravenous iron product in the UnitedHealthcare Medicare Advantage Step Therapy policy",
+            "The Step Therapy policy requires that non-preferred drugs satisfy step therapy criteria and that prior authorization be obtained (claims for non-preferred products administered without prior authorization may be denied)",
+            "Member is in a UnitedHealthcare Medicare Advantage plan (Tennessee) so the plan policy applies"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, page 17",
+          "tokens_in": 9728,
+          "tokens_out": 519,
+          "ms": 6108.667599968612,
+          "passages": 22,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed as a non-preferred intravenous iron product in the UnitedHealthcare Medicare Advantage Step Therapy policy",
+            "UnitedHealthcare Medicare Advantage prior authorization requirements indicate injectable anemia medications require prior authorization",
+            "Member is in Tennessee and the Step Therapy policy lists Tennessee among applicable jurisdictions"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, page 17; UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, pages 11 and 14",
+          "tokens_in": 9728,
+          "tokens_out": 469,
+          "ms": 5119.218799984083,
+          "passages": 22,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed as a non-preferred intravenous iron product in the UnitedHealthcare Medicare Part B step therapy policy",
+            "UnitedHealthcare prior authorization rules list injectable anemia medications as requiring prior authorization for Medicare Advantage members"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, page 17; UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 14",
+          "tokens_in": 9728,
+          "tokens_out": 581,
+          "ms": 6671.477999945637,
+          "passages": 22,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-uhc-esa": [
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare lists J0885 as requiring prior authorization for injectable anemia therapies.",
+            "Claim supports non-ESRD CKD use: diagnoses include D63.1 (anemia) and N18.32 (CKD stage 3b), matching non-dialysis CKD coverage criteria.",
+            "Laboratory criteria met: hemoglobin 9.4 g/dL and eGFR 38 mL/min (CKD non-dialysis) satisfy required documentation for ESA use."
+          ],
+          "citation": "UnitedHealthcare prior authorization requirements, page 7; Billing and Coding Article A58982 (L39237), Required Documentation Elements, page 10",
+          "tokens_in": 9699,
+          "tokens_out": 474,
+          "ms": 5865.720500005409,
+          "passages": 24,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare prior authorization list includes HCPCS J0885 (epoetin alfa)",
+            "Member has diagnoses D63.1 and N18.32 which meet non-dialysis CKD indication for ESA, supporting medical necessity but prior authorization is still required",
+            "Hemoglobin 9.4 g/dL meets typical anemia threshold for ESA therapy (below 10 g/dL)"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; Billing and Coding Article A58982, page 10 (required diagnosis codes for CKD non-dialysis); Billing and Coding Article A58982, page 6/16 (J0885 is non-ESRD use)",
+          "tokens_in": 9699,
+          "tokens_out": 484,
+          "ms": 23623.356199997943,
+          "passages": 24,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for J0885 (see plan PA list).",
+            "Coverage criteria for non-dialysis CKD ESA use are met: diagnosis D63.1 and N18.32 billed for CKD non-dialysis, Hgb 9.4 (below typical 10 g/dL threshold).",
+            "Patient is not on dialysis (non-ESRD use appropriate for J0885)."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982 (L39237) Coverage Indications/Required Documentation, page 10",
+          "tokens_in": 9699,
+          "tokens_out": 410,
+          "ms": 5836.688899958972,
+          "passages": 24,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for J0885 (documented on prior authorization requirements, page 7).",
+            "Order has appropriate CKD non-dialysis diagnoses (D63.1 and N18.32) which align with coverage documentation requirements for non-ESRD ESA use (Billing and Coding A58982, page 10).",
+            "Patient labs (Hgb 9.4 g/dL and eGFR 38) are consistent with anemia of CKD and supportive of ESA therapy per required documentation elements (Billing and Coding A58982, pages 10 and 6)."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, pages 10 and 6",
+          "tokens_in": 9699,
+          "tokens_out": 513,
+          "ms": 8100.757199979853,
+          "passages": 24,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for HCPCS J0885 (per UHC prior authorization list).",
+            "Coverage criteria for non-dialysis CKD ESA use are met: diagnosis D63.1 (anemia) billed with N18.32 (CKD stage 3b) is an accepted pairing for J0885.",
+            "Required labs documented: hemoglobin 9.4 g/dL (below typical ESA threshold ~10 g/dL) and recent eGFR 38 and serum creatinine date provided, supporting CKD non-dialysis indication."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements (page 7); Billing and Coding Article A58982 (required documentation and diagnoses for non-dialysis CKD use, page 10)",
+          "tokens_in": 9699,
+          "tokens_out": 501,
+          "ms": 5083.846899971832,
+          "passages": 24,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-nohgb": [
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization for ESAs in these LCDs",
+            "HCPCS J0885 is a non-ESRD (CKD non-dialysis) code",
+            "Required diagnosis codes for CKD non-dialysis coverage present (D63.1 and N18.32)",
+            "Pre-treatment renal function provided (eGFR 38) meets non-dialysis CKD context; serum creatinine/GFR documented",
+            "Ensure required ESA modifiers (EC and route JA or JB) are reported on claim"
+          ],
+          "citation": "Billing and Coding Article A58982 (pages 6,10) and LCD L39237 coverage guidance (pages 3,10)",
+          "tokens_in": 9714,
+          "tokens_out": 676,
+          "ms": 5343.349100032356,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is the non\u2011ESRD (CKD non\u2011dialysis) epoetin alfa code",
+            "Claim includes D63.1 and N18.32 which are the required diagnosis pair for CKD non\u2011dialysis per the LCD",
+            "eGFR 38 (CKD stage 3b) is consistent with N18.32 and supports non\u2011dialysis CKD indication",
+            "Documentation/billing must include EC modifier and JA or JB route modifier, but the LCD does not impose a Medicare Part B prior authorization requirement"
+          ],
+          "citation": "Billing and Coding Article A58982 (L39237) pages 10-11, 16; LCD L34356 Coverage Criteria (CGS) pages 4-5",
+          "tokens_in": 9714,
+          "tokens_out": 495,
+          "ms": 5150.956099969335,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [
+            "16"
+          ],
+          "misapplied": "cites Ohio's policy"
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Patient is non-dialysis CKD (egfr 38, N18.32) with anemia code D63.1 which matches CKD non-dialysis coverage criteria for J0885",
+            "Required renal function documentation (egfr/creatinine dated 2026-11-02) is available prior to date of service 2026-11-15",
+            "J0885 is the HCPCS code for epoetin alfa non-ESRD use and the claim should include EC modifier and appropriate route modifier (JA or JB) per policy"
+          ],
+          "citation": "Billing and Coding Article A58982, pages 6 and 10",
+          "tokens_in": 9714,
+          "tokens_out": 603,
+          "ms": 6848.344900005031,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 and N18.32 which are the ICD-10 pair required for non-dialysis CKD ESA use with J0885",
+            "eGFR 38 (CKD stage 3b) and recent creatinine (2026-11-02) satisfy serum creatinine/GFR documentation requirement",
+            "J0885 is the HCPCS code for epoetin alfa for non-ESRD use and patient is not on dialysis"
+          ],
+          "citation": "Billing and Coding Article A58982, page 10-11; page 6",
+          "tokens_in": 9714,
+          "tokens_out": 650,
+          "ms": 24886.944000027142,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is the code for epoetin alfa for non-ESRD (CKD non-dialysis) use",
+            "Claim requires diagnosis D63.1 plus a CKD code such as N18.32 for CKD not on dialysis \u2014 both D63.1 and N18.32 are present",
+            "Required renal function documented: eGFR 38 mL/min/1.73m2 (11/02/2026) consistent with CKD stage 3b and meets GFR documentation requirement"
+          ],
+          "citation": "Billing and Coding Article A58982 (pages 6, 10-11)",
+          "tokens_in": 9714,
+          "tokens_out": 601,
+          "ms": 5161.270599986892,
+          "passages": 23,
+          "deciding_found": false,
+          "invented": [],
+          "misapplied": null
+        }
+      ]
+    },
+    "hybrid": {
+      "maria-tn": [
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) coverage is governed by LCD/LCA criteria, not the UHC MA prior authorization policy (MA plans may require PA but not Original Medicare)",
+            "Patient has D63.1 (anemia in CKD) and N18.32 (CKD stage 3) which aligns with non-dialysis CKD indication",
+            "Hemoglobin 9.4 g/dL is below the <10 g/dL threshold required to initiate ESA therapy",
+            "eGFR 38 mL/min/1.73m2 (<45) and recent creatinine (11/02/2026) meet the renal function/timeliness requirements for non-dialysis CKD ESA coverage",
+            "Ensure proper HCPCS code modifier (EC) and required JA/JB modifiers per billing guidance, but these are coding requirements not prior authorization"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9725,
+          "tokens_out": 539,
+          "ms": 7404.422699997667,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Patient meets CKD (non-dialysis) coverage criteria: Hgb 9.4 < 10 g/dL",
+            "eGFR 38 mL/min/1.73m2 (<45) meets GFR requirement for non-dialysis CKD",
+            "Diagnosis codes include D63.1 and N18.32 which are listed for non-dialysis CKD use of J0885",
+            "Most recent creatinine (11/02/2026) is within one month of DOS (11/15/2026)",
+            "No documentation of dialysis/ESRD (patient is non-dialysis), so J0885 (non-ESRD code) is appropriate"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents, Coverage Criteria B (CKD non-dialysis) and Billing & Coding Article A58982 pages 10-11",
+          "tokens_in": 9725,
+          "tokens_out": 741,
+          "ms": 6960.311700007878,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD (CKD) use and patient has D63.1 and N18.32",
+            "Hemoglobin 9.4 g/dL is <10 g/dL (meets anemia threshold for initiation)",
+            "eGFR 38 mL/min/1.73m2 is below the <45 mL/min/1.73m2 requirement for CKD non-dialysis coverage",
+            "Most recent creatinine date 2026-11-02 is within one month of DOS 2026-11-15 (meets timing requirement)",
+            "Order aligns with LCD/Billing & Coding coverage criteria for CKD patients not on dialysis"
+          ],
+          "citation": "LCD L39237 page 7; Billing & Coding Article A58982 pages 10-11,16",
+          "tokens_in": 9725,
+          "tokens_out": 576,
+          "ms": 5007.925099984277,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [
+            "16"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage is governed by LCD criteria, not a prior authorization in the provided documents.",
+            "Patient is CKD not on dialysis (dialysis_status: none) with D63.1 and N18.32 billed, meeting diagnosis pairing required for non-dialysis CKD use.",
+            "Hemoglobin 9.4 g/dL is <10 g/dL (meets initiation threshold).",
+            "eGFR 38 mL/min/1.73m2 meets the GFR requirement (<45 mL/min/1.73m2 per Palmetto LCD) and the most recent creatinine (11/02/2026) is within one month of DOS (11/15/2026).",
+            "HCPCS J0885 is the non-ESRD code appropriate for CKD not on dialysis; required claim modifiers/documentation are billing requirements but do not create a separate prior authorization in these LCDs."
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents, Coverage Criteria (page 7) and Billing and Coding Article A58982, Required Documentation and CKD non-dialysis criteria (pages 10-11)",
+          "tokens_in": 9725,
+          "tokens_out": 584,
+          "ms": 5372.056299995165,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage criteria for non-dialysis CKD ESA therapy are met: Hgb <10 g/dL (9.4 g/dL) and eGFR <45 mL/min/1.73 m2 (38).",
+            "Required recent renal lab (creatinine within past month) is present (creatinine 2026-11-02).",
+            "The provided documentation indicates a non-ESRD use (J0885) for CKD; the LCD/Billing article does not impose a Medicare prior authorization requirement for this situation."
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9725,
+          "tokens_out": 631,
+          "ms": 4997.673099976964,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-tn-egfr52": [
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient has CKD not on dialysis with Hgb 9.4 (meets Hb <10) but eGFR 52 mL/min/1.73m2 which is above required <45 threshold for non-dialysis CKD coverage",
+            "ICD N18.31 = CKD stage 3a; policy notes patients with stage I/II and IIIa do not meet GFR requirements for coverage"
+          ],
+          "citation": "LCD L39237 Coverage Criteria B (CKD not on dialysis); Billing and Coding Article A58982 pages 10-11 (patients with stage I/II and IIIa do not meet GFR requirements)",
+          "tokens_in": 9725,
+          "tokens_out": 350,
+          "ms": 22410.66559997853,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare LCDs do not require prior authorization for ESAs, but they require coverage criteria to be met",
+            "Patient has D63.1 (anemia of CKD) but CKD stage code N18.31 (stage 3a) and eGFR 52 mL/min/1.73m2, which does NOT meet the LCD GFR requirement (<45 mL/min/1.73m2) for non-dialysis CKD coverage for J0885",
+            "Hemoglobin (9.4 g/dL) meets the Hb <10 threshold, but GFR/stage requirements are unmet; policy notes patients with stage I, II and IIIa CKD do not meet GFR requirements"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA), Coverage Criteria B (page 7) and Billing and Coding Article A58982 (pages 10-11)",
+          "tokens_in": 9725,
+          "tokens_out": 539,
+          "ms": 6808.424399991054,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B coverage of J0885 is governed by local LCD coverage criteria, not by a separate carrier prior-authorization program in the provided documents",
+            "For CKD patients not on dialysis the LCD/Billing Article requires GFR <45 mL/min/1.73 m2 (patients with stage I, II, and IIIa do not meet GFR requirements) whereas this patient has eGFR 52 mL/min/1.73 m2 (CKD stage 3a)",
+            "Therefore the service does not meet Medicare coverage criteria (non-covered) even though no prior authorization process is specified in the Medicare LCD/billing documents provided"
+          ],
+          "citation": "LCD L39237 and Billing and Coding Article A58982 (Coverage Criteria for CKD not on dialysis: GFR <45 mL/min/1.73 m2; patients with stage I, II, and IIIa do not meet GFR requirements)",
+          "tokens_in": 9725,
+          "tokens_out": 534,
+          "ms": 6777.149100031238,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Hemoglobin 9.4 g/dL meets anemia threshold (<10) for ESA use",
+            "Estimated GFR 52 mL/min/1.73m2 corresponds to CKD stage 3a which does NOT meet the GFR requirement for CKD non-dialysis ESA coverage",
+            "Diagnosis codes include D63.1 and N18.31 (CKD stage 3a); policy requires higher CKD stage/GFR (stage IIIa excluded) or GFR <45 for Palmetto LCD",
+            "HCPCS J0885 is a non-ESRD ESA and requires accompanying CKD staging codes that meet coverage criteria (e.g., N18.32, N18.4, N18.5) which are not present"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA), Coverage Criteria (page 7) and Billing & Coding Article A58982, Required Documentation and note that patients with stage I, II and IIIa CKD do not meet GFR requirements (page 10-11)",
+          "tokens_in": 9725,
+          "tokens_out": 822,
+          "ms": 6958.659299998544,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient is non-dialysis CKD with D63.1 but CKD stage is 3a (N18.31) and eGFR 52 mL/min/1.73m2 which does not meet the CKD non-dialysis GFR requirement (<45 mL/min/1.73m2) for ESA coverage.",
+            "Hemoglobin (9.4 g/dL) meets the Hb <10 g/dL requirement, but GFR/stage requirement is not met so coverage criteria are not satisfied.",
+            "Documents require specific dual diagnosis coding and GFR thresholds; absence of qualifying CKD stage/GFR precludes payment even though no MAC prior-authorization process is specified in these LCDs. (This is a coverage denial issue, not a PA approval.)"
+          ],
+          "citation": "LCD L39237, Coverage Criteria B (CKD patients NOT on dialysis) and Billing & Coding Article A58982 (Required Documentation Elements for CKD not on dialysis, page 10; note re: stage I/II/IIIa do not meet GFR requirements)",
+          "tokens_in": 9725,
+          "tokens_out": 692,
+          "ms": 6360.287599964067,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-oh": [
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "No evidence in the provided Original Medicare (Part B) LCD/ billing articles that J0885 requires prior authorization for Part B \u2014 PA requirement not specified",
+            "Coverage criteria for non-dialysis CKD require GFR <45 mL/min/1.73m2 (or specific higher creatinine thresholds); patient eGFR 52 is above the coverage threshold",
+            "Diagnosis includes D63.1 (anemia of CKD) which is relevant and Hgb 9.4 meets the Hb <10 requirement, but CKD stage (N18.31 / GFR 52, stage 3a) does not meet the GFR/stage requirement \u2014 therefore not meeting coverage criteria"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9717,
+          "tokens_out": 528,
+          "ms": 4448.973999998998,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient has D63.1 (anemia of CKD) and Hgb 9.4 g/dL which meets the hemoglobin criterion (<10 g/dL)",
+            "Coverage for non-dialysis CKD per LCD L39237 requires GFR <45 mL/min/1.73m2 (patient's eGFR 52) \u2014 GFR criterion not met",
+            "Billing guidance (A58982) and LCDs state patients with CKD stage IIIa (GFR 45\u201359) do not meet GFR requirements for non-dialysis ESA coverage"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents, page 7; Billing and Coding Article A58982, Erythropoiesis Stimulating Agents, page 10",
+          "tokens_in": 9717,
+          "tokens_out": 573,
+          "ms": 5828.350499970838,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [
+            "59"
+          ],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Original Medicare (Part B) does not require a payer-specific prior authorization for J0885 in the provided documents; however, coverage criteria must be met",
+            "Patient has D63.1 (anemia of CKD) and Hb 9.4 g/dL (meets Hb <10 requirement) but eGFR 52 mL/min/1.73m2 corresponds to CKD stage 3a and does NOT meet the GFR requirement for non-dialysis CKD coverage",
+            "MAC policy states patients with stage I, II, and IIIa CKD do not meet GFR requirements and non-dialysis CKD coverage requires lower GFR (eg, <45 mL/min/1.73m2 per Palmetto billing guidance)"
+          ],
+          "citation": "LCD L39237 (Coverage Criteria B for CKD not on dialysis) and Billing and Coding Article A58982 (patients with stage I/II/IIIa do not meet GFR requirements; required documentation for CKD not on dialysis)",
+          "tokens_in": 9717,
+          "tokens_out": 618,
+          "ms": 27495.878299989272,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "No Medicare Part B prior authorization program for J0885 is specified in the provided documents",
+            "Coverage for non-ESRD (CKD non-dialysis) ESAs requires both D63.1 and meeting the CKD severity/GFR threshold; patient has D63.1 but GFR 52 mL/min/1.73m2 (CKD stage 3a) which does not meet the <45 mL/min/1.73m2 requirement in the LCD",
+            "Billing guidance also notes patients with stage I, II, and IIIa CKD do not meet GFR requirements for coverage"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9717,
+          "tokens_out": 557,
+          "ms": 5335.300599981565,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        },
+        {
+          "outcome": "other_gate",
+          "right": false,
+          "reasons": [
+            "Patient is non-dialysis CKD (no dialysis) and has Hgb 9.4 g/dL which meets the Hb criterion (<10 g/dL)",
+            "Coverage for non-dialysis CKD per the LCD requires GFR <45 mL/min/1.73m2 (or listed CKD stage codes); patient eGFR is 52, which does not meet the GFR requirement",
+            "Diagnosis codes include N18.31 (CKD stage 3a) \u2014 policy notes patients with stage I, II, and IIIa do not meet GFR/coverage requirements for non-dialysis ESA use"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA), page 7; Billing and Coding Article A58982, pages 10-11",
+          "tokens_in": 9717,
+          "tokens_out": 452,
+          "ms": 5552.729499991983,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": "cites Tennessee's policy"
+        }
+      ],
+      "maria-uhc": [
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed under Intravenous Iron Replacement requiring prior authorization for UnitedHealthcare Medicare Advantage",
+            "Drug policy lists Injectafer as non-preferred and requires meeting step therapy criteria (trial/failure of preferred IV iron agents, contraindication/intolerance to them, or continuation of prior therapy within past 365 days)",
+            "Member has CKD not on dialysis (D63.1 and N18.32) which is an indication for IV iron, but documentation of trials or prior use of preferred IV iron products is not provided"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (page 17); UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (Intravenous Iron Replacement, pages 8 and 17-18)",
+          "tokens_in": 9732,
+          "tokens_out": 506,
+          "ms": 5024.739700020291,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed under Intravenous Iron Replacement as requiring prior authorization for UnitedHealthcare Medicare Advantage (Prior Authorization Requirements, Injectable medications section).",
+            "The Medicare Part B Step Therapy policy lists J1439 as a non-preferred intravenous iron and specifies step therapy criteria (trial of preferred IV irons or documented contraindication or recent continuation of prior therapy) that must be satisfied for coverage."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (Medicare Part B Step Therapy Programs), pages 8 and 18",
+          "tokens_in": 9732,
+          "tokens_out": 475,
+          "ms": 5664.399500004947,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "Injectafer (J1439) is listed on UnitedHealthcare Medicare Advantage prior authorization requirements for Intravenous Iron Replacement",
+            "UHC Medicare Part B Step Therapy policy lists J1439 as a non-preferred intravenous iron and requires trial of preferred IV irons (or documented contraindication/intolerance to them) or other criteria before coverage",
+            "Member data do not document prior trials of preferred IV iron agents or documented contraindications/intolerances needed to meet step therapy criteria"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, pages 8 and 17-18",
+          "tokens_in": 9732,
+          "tokens_out": 442,
+          "ms": 5331.2604000093415,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed on UnitedHealthcare Medicare Advantage prior authorization requirements for intravenous iron replacement",
+            "UHC Medicare Part B Step Therapy policy classifies J1439 as non-preferred and requires prior authorization and step-therapy criteria (trial of preferred IV irons or documented contraindication/intolerance)"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Intravenous Iron Replacement Therapy, pages 17-18",
+          "tokens_in": 9732,
+          "tokens_out": 328,
+          "ms": 4909.68000004068,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "needs_facts",
+          "right": false,
+          "reasons": [
+            "J1439 (Injectafer) is listed as an injectable iron replacement that requires prior authorization for UnitedHealthcare Medicare Advantage",
+            "Injectafer (J1439) is a non-preferred intravenous iron per the Medicare Part B Step Therapy policy and coverage requires meeting step-therapy criteria (trials of preferred IV irons, documented contraindication/intolerance to at least two preferred agents, or continuation of prior therapy)",
+            "Patient has CKD (N18.32), anemia in CKD (D63.1), Hgb 9.4 and eGFR 38 which supports non-ESRD CKD anemia, but documentation of prior trials or contraindications to preferred IV irons or evidence of prior Injectafer use within 365 days is not provided"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, pages 8 and 17-18",
+          "tokens_in": 9732,
+          "tokens_out": 548,
+          "ms": 25858.970500004943,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        }
+      ],
+      "maria-uhc-esa": [
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for HCPCS J0885 (per provider PA list)",
+            "Member meets medical coverage criteria for ESA in CKD non-dialysis: D63.1 with Hb <10 g/dL and eGFR/GFR <45 mL/min/1.73m2 (Hgb 9.4, eGFR 38) and creatinine within past month",
+            "CMS/LCD coverage supports medical necessity but PA must be obtained per plan before service"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; LCD L39237 Erythropoiesis Stimulating Agents, Coverage Criteria B (page 7) and Billing and Coding Article A58982 required documentation for CKD non-dialysis (pages 10 and 21)",
+          "tokens_in": 9713,
+          "tokens_out": 446,
+          "ms": 6543.366500001866,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for J0885 (Epoetin alfa)",
+            "Member meets LCD coverage criteria for CKD non-dialysis: D63.1 and N18.32 billed, Hgb 9.4 (<10 g/dL), eGFR 38 (<45 mL/min/1.73m2), recent creatinine 2026-11-02 within one month of DOS"
+          ],
+          "citation": "UnitedHealthcare prior authorization requirements, page 7; LCD L39237 Erythropoiesis Stimulating Agents, Coverage Criteria (CKD not on dialysis), page 7 and Billing and Coding Article A58982, Required Documentation Elements, page 10",
+          "tokens_in": 9713,
+          "tokens_out": 425,
+          "ms": 4704.710000019986,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare MA prior authorization list includes HCPCS J0885 (Epoetin alfa) requiring prior authorization",
+            "Patient meets Medicare LCD coverage criteria for CKD not on dialysis: D63.1 and N18.32 billed, Hgb 9.4 g/dL (<10), eGFR 38 mL/min/1.73m2 (<45)",
+            "Most recent creatinine/GFR dated 2026-11-02 is within one month of DOS 2026-11-15, meeting required timing for initiation/next dosing"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements (page 7) and LCD L39237 / Billing and Coding Article A58982 Coverage Criteria for CKD not on dialysis (pages 7,10-11)",
+          "tokens_in": 9713,
+          "tokens_out": 376,
+          "ms": 5966.656799952034,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for HCPCS J0885.",
+            "Coverage criteria for CKD non-dialysis ESA use are met: Hgb 9.4 (<10 g/dL) and GFR 38 (<45 mL/min/1.73 m2).",
+            "Required diagnoses for non-dialysis CKD ESA coverage present: D63.1 (anemia of CKD) and N18.32 (CKD stage 3b).",
+            "Most recent creatinine/GFR obtained within one month of service (creatinine dated 2026-11-02; DOS 2026-11-15)."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements (2026), page 7; LCD L39237 Erythropoiesis Stimulating Agents, page 7; Billing and Coding Article A58982, pages 10 and 21",
+          "tokens_in": 9713,
+          "tokens_out": 464,
+          "ms": 7001.047600002494,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage prior authorization list includes HCPCS J0885 (see UHC prior authorization requirements, page 7).",
+            "Clinical coverage criteria for non-dialysis CKD ESA use are met: anemia of CKD (D63.1) with Hgb 9.4 g/dL (<10), GFR 38 mL/min/1.73 m2 (<45), and recent creatinine within one month (creatinine 2026-11-02) supporting CKD non-dialysis indication.",
+            "Diagnosis code N18.32 (CKD stage 3b) is an accepted CKD stage for non-dialysis coverage per the ESA policy/billing guidance."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; LCD L39237 Erythropoiesis Stimulating Agents, page 7; Billing and Coding Article A58982, pages 10-11",
+          "tokens_in": 9713,
+          "tokens_out": 495,
+          "ms": 5546.210900007281,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-nohgb": [
+        {
+          "outcome": "needs_facts",
+          "right": true,
+          "reasons": [
+            "Patient is non-dialysis CKD with ICD-10 codes D63.1 and N18.32 which are listed as permitted for J0885",
+            "GFR 38 mL/min/1.73m2 meets the LCD requirement of GFR <45 for CKD non-dialysis",
+            "Most recent creatinine (2026-11-02) is within one month of DOS (2026-11-15) as required",
+            "Coverage criteria require hemoglobin (<10 g/dL) or hematocrit (<30%) at initiation \u2014 lab value not provided",
+            "Claims must include correct modifier (EC for non-cancer CKD indication) and route modifier (JA or JB) \u2014 not provided",
+            "Dosing and weight-based initial dose guidance exist and weight is not provided to confirm dose appropriateness"
+          ],
+          "citation": "Billing and Coding Article A58982 (pages 10-11, 16) and LCD L39237 (page 7)",
+          "tokens_in": 9702,
+          "tokens_out": 541,
+          "ms": 5360.623500018846,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "needs_facts",
+          "right": true,
+          "reasons": [
+            "Patient has D63.1 and N18.32 and eGFR 38 which meets CKD (non-dialysis) GFR <45 requirement for non-ESRD ESA coverage, but hemoglobin (or hematocrit) value is not provided \u2014 coverage requires Hb < 10 g/dL or Hct < 30% at initiation",
+            "Documentation must include most recent creatinine/GFR within past month (provided) and dual diagnosis coding (D63.1 + N18.32) \u2014 but claim also must include appropriate EC modifier and route modifier (JA or JB) and dosing consistent with policy",
+            "Dose/weight and route/frequency not provided to confirm dosing is within allowable initial dosing/maintenance ranges per LCD/Billing guidance"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9702,
+          "tokens_out": 541,
+          "ms": 24062.942399992608,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization for J0885 in Tennessee per LCDs",
+            "Patient has D63.1 and N18.32 (CKD stage 3b) which with eGFR 38 (<45) meets CKD non-dialysis coverage criteria",
+            "Most recent creatinine 2026-11-02 is within one month of DOS 2026-11-15 as required",
+            "J0885 is the non-ESRD HCPCS for epoetin alfa and EC modifier (non-cancer) plus route modifier required on claim"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11, 21-22",
+          "tokens_in": 9702,
+          "tokens_out": 361,
+          "ms": 7326.159999996889,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [
+            "21",
+            "22"
+          ],
+          "misapplied": "applies a cancer-only listing to a patient with no cancer diagnosis"
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Service is for Original Medicare Part B which uses LCD/L39237 and billing article A58982 to determine coverage, not a payer-specific prior authorization program.",
+            "LCD and Billing & Coding Article define documentation and modifier requirements for J0885 but do not establish a Medicare prior authorization requirement for this HCPCS code.",
+            "The UnitedHealthcare prior authorization rules cited apply to a Medicare Advantage plan, not Original Medicare; CMS demonstration references unrelated ASC codes."
+          ],
+          "citation": "LCD L39237 (Erythropoiesis Stimulating Agents) pages 3,7 and Billing & Coding Article A58982 (Erythropoiesis Stimulating Agents) pages 6,10,11",
+          "tokens_in": 9702,
+          "tokens_out": 355,
+          "ms": 4390.122500015423,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is for non-ESRD CKD anemia and requires D63.1 plus a CKD stage code (e.g., N18.32)",
+            "Patient has D63.1 and N18.32 on the record",
+            "Documented eGFR 38 mL/min/1.73m2 (<45) meets CKD non-dialysis GFR requirement",
+            "Most recent creatinine/GFR is within one month of service (creatinine date 2026-11-02; DOS 2026-11-15)",
+            "No evidence in the Original Medicare LCD/Billing articles that prior authorization is required for Part B J0885 (commercial MA plan PA rules do not apply to Original Medicare)"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11 and 21-22",
+          "tokens_in": 9702,
+          "tokens_out": 461,
+          "ms": 6524.249100009911,
+          "passages": 32,
+          "deciding_found": true,
+          "invented": [
+            "21",
+            "22"
+          ],
+          "misapplied": null
+        }
+      ]
+    },
+    "hybrid_state": {
+      "maria-tn": [
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B (Palmetto LCD L39237) does not list J0885 as requiring prior authorization",
+            "Patient meets CKD non-dialysis coverage criteria: diagnosis D63.1 plus N18.32 (CKD stage 3b)",
+            "Hemoglobin 9.4 g/dL is <10 g/dL (pre-initiation threshold)",
+            "eGFR 38 mL/min/1.73m2 is <45 mL/min/1.73m2 as required for non-dialysis CKD coverage",
+            "Required recent renal lab (creatinine 2026-11-02) is within one month of DOS 2026-11-15",
+            "Ensure correct claim modifiers (EC for non-cancer use and JA/JB for route) are reported per billing article"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (pages 7, 20) and Billing and Coding Article A58982 (pages 9-11, 21)",
+          "tokens_in": 9736,
+          "tokens_out": 428,
+          "ms": 6651.2593000079505,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Patient has non-dialysis CKD diagnosis codes required for non-ESRD ESA use (D63.1 and N18.32)",
+            "Pre-initiation hemoglobin 9.4 g/dL is <10 g/dL as required for CKD non-dialysis indication",
+            "eGFR 38 mL/min/1.73 m2 (<45) meets GFR requirement for CKD non-dialysis coverage",
+            "Most recent kidney test (creatinine dated 2026-11-02) is within one month of DOS 2026-11-15",
+            "No evidence in the Medicare LCD/Billing & Coding articles that J0885 for Part B in Original Medicare in Tennessee requires pre-authorization"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Coverage Criteria pages 7, 20) and Billing and Coding Article A58982 (Required Documentation Elements and HCPCS coding pages 10-11, 16)",
+          "tokens_in": 9736,
+          "tokens_out": 482,
+          "ms": 6120.989700022619,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Patient is non-dialysis CKD with D63.1 and N18.32 and Hb 9.4 g/dL (<10) meeting LCD coverage criteria for CKD not on dialysis",
+            "eGFR 38 mL/min/1.73m2 (<45) meets GFR requirement for non-dialysis CKD coverage",
+            "HCPCS J0885 is the correct non-ESRD code and documentation elements present (diagnoses, labs within required timeframe)"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11, 21-22",
+          "tokens_in": 9736,
+          "tokens_out": 408,
+          "ms": 3742.409200000111,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "21",
+            "22"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) coverage for non-dialysis CKD ESA is governed by LCD L39237 and the related billing article; the submitted facts meet LCD coverage criteria (CKD not on dialysis, Hb <10 g/dL, eGFR <45).",
+            "Patient is not on dialysis (dialysis_status: none) and has diagnoses D63.1 and N18.32 (CKD stage 3b) with recent creatinine/egfr (egfr 38) within required timeframe.",
+            "Hemoglobin 9.4 g/dL is below the <10 g/dL threshold required to initiate ESA therapy per the LCD/billing article."
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Coverage Criteria B for CKD not on dialysis, pages 7 and 20) and Billing and Coding Article A58982 (Required Documentation Elements, dosing and code guidance, pages 10-11)",
+          "tokens_in": 9736,
+          "tokens_out": 412,
+          "ms": 24369.452800019644,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Patient is non-dialysis CKD with D63.1 and N18.32 (CKD stage 3b) which is an allowed diagnosis pairing for non-dialysis ESA use",
+            "Pre-initiation hemoglobin 9.4 g/dL is <10 g/dL meeting the Hb threshold for CKD non-dialysis ESA coverage",
+            "eGFR 38 mL/min/1.73m2 (<45) meets the GFR requirement for CKD non-dialysis coverage",
+            "Most recent renal lab (creatinine date 2026-11-02) is within one month of DOS 2026-11-15",
+            "HCPCS J0885 is the correct non-ESRD code for epoetin alfa and documentation/billing modifiers (EC and route) are required but do not indicate a prior authorization requirement in the provided LCD/Billing & Coding guidance"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents pages 7 and 20; Billing and Coding Article A58982 pages 6, 10-11",
+          "tokens_in": 9736,
+          "tokens_out": 566,
+          "ms": 9077.995400002692,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-tn-egfr52": [
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) coverage for non-dialysis ESA (J0885) requires CKD with GFR <45 mL/min/1.73 m2 or specified CKD stage codes; patient has eGFR 52 (CKD stage 3a) which does not meet the GFR requirement",
+            "Billing/coding guidance requires specific dual diagnoses for non-dialysis CKD (D63.1 plus one of the listed stage codes such as N18.32, N18.4, N18.5, I12.0, I13.11, I13.2); the claim lists D63.1 and N18.31 which is not an accepted stage for coverage",
+            "Hemoglobin <10 g/dL (9.4) meets the Hb criterion, but GFR/stage and required diagnosis coding are not met, so service would not meet Medicare LCD medical necessity for coverage"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Palmetto GBA) pages 7 and 20; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9732,
+          "tokens_out": 577,
+          "ms": 4819.414100027643,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization for J0885 per provided CMS documents (no PA program applies to this HCPCS)",
+            "Coverage criteria for non-dialysis CKD require GFR <45 mL/min/1.73 m2 (or specific ICD-10 stage codes indicating stage >=3b/4/5); patient eGFR 52 mL/min/1.73 m2 (stage 3a) does not meet the GFR requirement",
+            "Hemoglobin (9.4 g/dL) meets Hb <10 threshold, but dual requirements (appropriate CKD stage/GFR and diagnosis coding) are not satisfied"
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9732,
+          "tokens_out": 437,
+          "ms": 4938.156699994579,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "This is an Original Medicare (Part B) claim \u2014 the LCD/A58982 does not impose a Medicare prior authorization requirement for J0885.",
+            "Coverage criteria for non-dialysis CKD require GFR <45 mL/min/1.73 m2 (or CKD stage >=3b) and specific ICD-10 stage codes; patient has eGFR 52 (stage 3a).",
+            "Patient has D63.1 and N18.31 (CKD stage 3a) which the policy explicitly states does NOT meet GFR requirements for coverage of ESA in CKD not on dialysis."
+          ],
+          "citation": "LCD L39237 Coverage Criteria B and Billing and Coding Article A58982 pages 7, 10-11, 21",
+          "tokens_in": 9732,
+          "tokens_out": 454,
+          "ms": 6700.7238999940455,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [
+            "21"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient has D63.1 (anemia of CKD) and Hb 9.4 g/dL which meets Hb criterion, but eGFR 52 mL/min/1.73 m2 (CKD stage 3a) does not meet the LCD/Billing article requirement of GFR <45 for non-dialysis CKD coverage.",
+            "Billing and Coding article explicitly states patients with stage I, II and IIIa CKD do not meet GFR requirements and lists required CKD stage codes (e.g., N18.32, N18.4, N18.5) for coverage with J0885.",
+            "Therefore coverage criteria are not met; this is a coverage denial issue rather than missing pre-authorization data."
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Coverage Criteria B for CKD non-dialysis) and Billing and Coding Article A58982 (Required Documentation Elements for CKD not on dialysis; GFR requirements / excluded CKD stages).",
+          "tokens_in": 9732,
+          "tokens_out": 681,
+          "ms": 6986.99480004143,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "other_gate",
+          "right": true,
+          "reasons": [
+            "Patient meets hemoglobin (<10 g/dL) and recent creatinine requirements, but eGFR is 52 mL/min/1.73m2 which exceeds the <45 mL/min/1.73m2 requirement for CKD non-dialysis coverage",
+            "Diagnosis includes N18.31 (CKD stage 3a); policy states patients with stage I, II, and IIIa do not meet GFR/coverage criteria for non-dialysis CKD",
+            "Required ICD-10 pairing for non-dialysis CKD coverage (D63.1 plus qualifying CKD stage codes such as N18.32, N18.4, N18.5, or specified hypertension-CKD codes) is not met",
+            "Creatinine date is within required timeframe (supports that element), but GFR/stage criteria are dispositive for coverage denial"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Coverage Criteria B for CKD patients NOT on dialysis) and Billing and Coding Article A58982 (Required Documentation Elements and CKD non-dialysis ICD-10/GFR criteria)",
+          "tokens_in": 9732,
+          "tokens_out": 577,
+          "ms": 5450.035399990156,
+          "passages": 34,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-oh": [
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Meets LCD L34356 criteria for CKD patients not on dialysis: Hgb <10 g/dL (9.4) and GFR <60 mL/min/1.73 m2 (eGFR 52).",
+            "Diagnosis D63.1 (anemia in CKD) with CKD code N18.31 supports the indicated non-ESRD use of J0885.",
+            "Original Medicare Part B coverage determination (LCD L34356) applies; no prior authorization requirement is specified in the provided Medicare/CGS documents for this service."
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA), Coverage Criteria (pages 8-9) and Billing/Coding Article A56462",
+          "tokens_in": 9726,
+          "tokens_out": 369,
+          "ms": 21584.35499999905,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Patient has D63.1 (anemia of CKD) and is not on dialysis",
+            "Hemoglobin 9.4 g/dL (<10 g/dL) meets initiation threshold",
+            "eGFR 52 mL/min/1.73m2 (<60) meets CKD GFR criterion",
+            "Documentation requirements (Hgb and renal function) are present in record"
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) Coverage Criteria (pages 8-9); Billing and Coding Article A56462 (documentation requirements, pages 6-8)",
+          "tokens_in": 9726,
+          "tokens_out": 468,
+          "ms": 10938.3154999814,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization for J0885 in the provided CMS/LCD documents; coverage is determined by meeting the LCD medical necessity criteria.",
+            "Patient meets LCD L34356 criteria for non-dialysis CKD: hemoglobin 9.4 g/dL (<10 g/dL) and GFR 52 mL/min/1.73m2 (<60).",
+            "Documentation requirements (Hgb, GFR/creatinine, diagnosis D63.1) are present in the record per billing guidance."
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) (Coverage Criteria B) and Billing and Coding Article A56462 (Non-dialysis CKD documentation requirements)",
+          "tokens_in": 9726,
+          "tokens_out": 625,
+          "ms": 6718.2763000018895,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare Part B does not require prior authorization for ESA (J0885) per the LCD/billing guidance; documentation required but not a PA",
+            "Coverage criteria for non-dialysis CKD patients met: Hgb 9.4 g/dL (<10 g/dL) and GFR 52 mL/min/1.73m2 (<60)",
+            "Diagnosis code D63.1 (anemia in chronic kidney disease) is present and patient is not on dialysis, matching the LCD non-ESRD indication"
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA) Coverage Criteria (pages 8-9) and Billing and Coding Article A56462 (documentation and coding guidance)",
+          "tokens_in": 9726,
+          "tokens_out": 304,
+          "ms": 3179.4938999810256,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": true,
+          "reasons": [
+            "Original Medicare (Part B) does not require prior authorization for J0885 under the cited LCD; CMS Ohio prior-authorization demos do not apply to ESAs",
+            "Coverage criteria for non-dialysis CKD patients (LCD L34356, section B) require Hgb <10 g/dL and GFR <60 mL/min/1.73 m2 \u2014 patient has Hgb 9.4 g/dL and eGFR 52",
+            "Diagnosis D63.1 (anemia in CKD) and N18.31 (CKD stage 3a) are appropriate codes for non-dialysis CKD ESA use"
+          ],
+          "citation": "LCD L34356 Erythropoiesis Stimulating Agents (ESA), Coverage Criteria section B; Billing and Coding Article A56462 (codes/group 1)",
+          "tokens_in": 9726,
+          "tokens_out": 387,
+          "ms": 5382.818299985956,
+          "passages": 33,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-uhc": [
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed as an Intravenous Iron Replacement requiring prior authorization in the UnitedHealthcare Medicare Advantage prior auth requirements",
+            "Injectafer is a non-preferred IV iron in the Medicare Part B Step Therapy policy which requires trials of preferred IV iron therapies (or documented contraindications) unless continuation of prior therapy within 365 days",
+            "Member has CKD not on dialysis (N18.32) and anemia (D63.1) which is an indication covered by the step therapy policy, but documentation of prior trials or contraindications is missing"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (Medicare Part B Step Therapy Programs), page 8 and page 18",
+          "tokens_in": 9747,
+          "tokens_out": 447,
+          "ms": 7345.51700000884,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) listed under Intravenous Iron Replacement requiring prior authorization",
+            "Injectafer is a non-preferred agent subject to Medicare Part B step therapy: requires trial of \u22652 preferred IV iron therapies or documented intolerance/contraindication or recent continuation of therapy",
+            "Member has CKD not on dialysis (D63.1 and N18.32) and Hgb 9.4 which supports anemia treatment, but documentation of required step-therapy trials or contraindications is not provided"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (page 17); UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (pages 8 and 18)",
+          "tokens_in": 9747,
+          "tokens_out": 619,
+          "ms": 5618.335000006482,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed under Intravenous Iron Replacement and requires prior authorization per UnitedHealthcare Medicare Advantage policies.",
+            "Injectafer is a non-preferred IV iron and is subject to the Medicare Part B Step Therapy criteria (trial of preferred IV irons or documentation of contraindication/intolerance or continuation of prior therapy).",
+            "Member has CKD (N18.32) with anemia (D63.1) and Hgb 9.4, which may meet clinical indication for IV iron, but prior authorization is still required before administration."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 (Medicare Part B Step Therapy Programs), pages 8 and 17; UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17",
+          "tokens_in": 9747,
+          "tokens_out": 441,
+          "ms": 21890.126600046642,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "HCPCS J1439 (Injectafer) is listed on the UnitedHealthcare Medicare Advantage prior authorization requirements (Injectable medications / Intravenous Iron Replacement).",
+            "UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30 lists J1439 as a non-preferred intravenous iron and requires step-therapy criteria (trial of preferred IV irons or documented contraindication/intolerance or continuation of prior therapy) for coverage.",
+            "Member has CKD not on dialysis and anemia (D63.1, N18.32, Hgb 9.4) which is an indication for IV iron, but the policy requires prior authorization for the non-preferred product before administration."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, pages 8 and 17-18",
+          "tokens_in": 9747,
+          "tokens_out": 610,
+          "ms": 9425.04070000723,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": true,
+          "reasons": [
+            "J1439 (Injectafer) is listed as an intravenous iron replacement that requires prior authorization for UnitedHealthcare Medicare Advantage (Injectable medications list).",
+            "Injectafer is a non-preferred IV iron per the Medicare Part B Step Therapy policy and coverage requires meeting step-therapy criteria (trials of preferred IV irons or documented contraindication/intolerance or continuation of prior therapy).",
+            "Member has CKD (N18.32) and anemia (D63.1) so clinical indication may be appropriate for IV iron, but documentation of required step-therapy trials or contraindications is not provided (needed to approve)."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 17; UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, Medicare Part B Step Therapy Programs, pages 8 and 18",
+          "tokens_in": 9747,
+          "tokens_out": 453,
+          "ms": 5800.276099995244,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [
+            "18"
+          ],
+          "misapplied": null
+        }
+      ],
+      "maria-uhc-esa": [
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for HCPCS J0885 (see prior auth list).",
+            "Patient has CKD not on dialysis (ICD N18.32) with anemia of CKD (D63.1) which are listed as covered diagnosis pairing for non-dialysis ESA use.",
+            "Hemoglobin 9.4 g/dL is below the <10 g/dL threshold required for initiation/coverage in CKD non-dialysis patients.",
+            "eGFR 38 mL/min/1.73m2 is below the <45 mL/min/1.73m2 GFR criterion for CKD non-dialysis coverage.",
+            "Most recent creatinine (11/02/2026) is within one month of the 11/15/2026 date of service as required by the coverage policy."
+          ],
+          "citation": "UnitedHealthcare prior authorization requirements, page 7; LCD L39237 Erythropoiesis Stimulating Agents, Coverage Criteria B (page 7) and Billing and Coding Article A58982, Required Documentation Elements for CKD not on dialysis (pages 10-11,21).",
+          "tokens_in": 9739,
+          "tokens_out": 449,
+          "ms": 5953.752000001259,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage requires prior authorization for HCPCS J0885 (page 7 of the plan PA list).",
+            "Clinical coverage criteria for non-dialysis CKD ESA use are met: D63.1 and N18.32 billed together (CKD not on dialysis) as required.",
+            "Hemoglobin 9.4 g/dL is below the <10 g/dL threshold for initiation.",
+            "eGFR 38 mL/min/1.73m2 (GFR <45) meets the CKD non-dialysis GFR requirement.",
+            "Most recent renal lab (creatinine) dated 2026-11-02 is within one month of the 2026-11-15 service date."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; LCD L39237 (Palmetto GBA) page 7 and Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9739,
+          "tokens_out": 429,
+          "ms": 4755.600999982562,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is listed on UnitedHealthcare Medicare Advantage prior authorization requirements (PA required).",
+            "Patient meets LCD/Billing criteria for non-dialysis CKD ESA use: D63.1 plus N18.32 (CKD stage 3b), Hgb 9.4 g/dL (<10 g/dL), eGFR 38 (<45 mL/min/1.73m2), and recent creatinine within one month of service.",
+            "Request is elective, standard \u2014 submit prior authorization through UnitedHealthcare portal or phone per payer guidance."
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, page 7; LCD L39237 Erythropoiesis Stimulating Agents, Coverage Criteria (CKD not on dialysis) page 7 and Billing and Coding Article A58982 (Required Documentation elements and dosing) pages 10-11",
+          "tokens_in": 9739,
+          "tokens_out": 399,
+          "ms": 4441.91029999638,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "HCPCS J0885 is listed as requiring prior authorization in UnitedHealthcare Medicare Advantage prior authorization requirements (Erythropoiesis Stimulating Agents)",
+            "Patient meets coverage criteria for non-dialysis CKD ESA: D63.1 and N18.32 present, Hgb 9.4 (<10 g/dL), eGFR 38 (<45 mL/min/1.73m2), and recent creatinine within past month"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; Palmetto LCD L39237 / Billing & Coding Article A58982 (coverage criteria for CKD non-dialysis), pages 10 and 21",
+          "tokens_in": 9739,
+          "tokens_out": 358,
+          "ms": 5960.56109998608,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "pa_required",
+          "right": false,
+          "reasons": [
+            "UnitedHealthcare Medicare Advantage prior authorization list explicitly requires prior authorization for J0885 (epoetin alfa)",
+            "Member meets Medicare LCD coverage criteria for CKD not on dialysis: D63.1 diagnosis, CKD stage N18.32, Hb 9.4 (<10 g/dL), eGFR 38 (<45 mL/min/1.73 m2), and recent creatinine within one month of service",
+            "Dialysis status is none (non-ESRD), so J0885 is the appropriate non-ESRD code but still requires prior authorization per plan"
+          ],
+          "citation": "UnitedHealthcare Medicare Advantage prior authorization requirements, page 7; LCD L39237 Erythropoiesis Stimulating Agents, page 7 (and Billing and Coding Article A58982, pages 10 and 21)",
+          "tokens_in": 9739,
+          "tokens_out": 402,
+          "ms": 24874.97230002191,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ],
+      "maria-nohgb": [
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B (MAC LCD L39237/A58982) does not require a prior authorization for non\u2011ESRD ESA J0885",
+            "Patient has CKD not on dialysis (N18.32) and D63.1 which align with non\u2011dialysis CKD ESA indication and eGFR 38 (<45 mL/min/1.73m2) meets GFR requirement",
+            "Medical necessity still requires documentation of hemoglobin/Hct (Hb <10 g/dL or Hct <30%) and recent creatinine/GFR; these are required for coverage but are billing/coverage elements, not prior authorization per the LCD/article"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Coverage Criteria A/B) and Billing and Coding Article A58982 (Required Documentation/HCPCS J0885 guidance)",
+          "tokens_in": 9705,
+          "tokens_out": 648,
+          "ms": 8538.715299975593,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare Part B (LCD L39237 / A58982) does not list J0885 as requiring prior authorization",
+            "J0885 is a non-ESRD CKD ESA code covered under LCD when criteria met; coverage determination and documentation requirements are separate from a prior authorization program",
+            "Patient has D63.1 and N18.32 and eGFR 38 (<45) and recent creatinine within one month, aligning with CKD non-dialysis coverage documentation (though Hb value not provided)"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents; Billing and Coding Article A58982 (Coverage Criteria for CKD non-dialysis)",
+          "tokens_in": 9705,
+          "tokens_out": 486,
+          "ms": 5519.6842000004835,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "needs_facts",
+          "right": true,
+          "reasons": [
+            "Patient has D63.1 (anemia of CKD) and N18.32 (CKD stage 3b) and eGFR 38 mL/min/1.73m2 which meets GFR <45 requirement for non-dialysis CKD coverage",
+            "Most recent creatinine (2026-11-02) is within one month of date of service (2026-11-15) as required",
+            "Missing key clinical data required to determine coverage: current hemoglobin or hematocrit to confirm Hb <10 g/dL or HCT <30% at initiation of therapy",
+            "Also billing requires appropriate ESA and route modifiers (EC and JA/JB) and documentation of dose/route; route modifier not provided"
+          ],
+          "citation": "LCD L39237 Coverage Criteria B (CKD non-dialysis) and Billing and Coding Article A58982 Required Documentation Elements (pages 7,10-11)",
+          "tokens_in": 9705,
+          "tokens_out": 471,
+          "ms": 5958.598600002006,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Original Medicare (Part B) policies and the Palmetto LCD/Billing & Coding article do not impose a prior authorization requirement for ESAs (no MAC-level PA identified in provided documents)",
+            "Patient has diagnoses D63.1 and N18.32 and eGFR 38 mL/min/1.73m2 which meet CKD non-dialysis GFR/stage requirements in the LCD",
+            "Coverage for ESA initiation in non-dialysis CKD requires hemoglobin <10 g/dL (documentation of Hb/Hct at initiation) which is not provided for this request",
+            "Because required clinical documentation (Hb level) is missing, it is not safe to act on coverage\u2014claim could be non-covered even though no PA is required"
+          ],
+          "citation": "LCD L39237 Erythropoiesis Stimulating Agents (Coverage Criteria B and Required Documentation) and Billing & Coding Article A58982 (Non-dialysis CKD criteria, required Hb/Hct documentation)",
+          "tokens_in": 9705,
+          "tokens_out": 756,
+          "ms": 6101.011599996127,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        },
+        {
+          "outcome": "no_pa",
+          "right": false,
+          "reasons": [
+            "Order is for Medicare Part B (Original Medicare); the provided MAC LCD/Billing & Coding articles do not impose a prior authorization requirement for J0885 under Original Medicare.",
+            "Coverage criteria in the LCD/Billing & Coding article must still be met at claim submission (e.g. appropriate ICD-10 pairing D63.1 + CKD stage code, eGFR <45 mL/min/1.73m2, Hb <10 g/dL at initiation, required modifiers and documentation).",
+            "Failure to meet coverage/documentation requirements may preclude payment, but that is a coverage/medical necessity issue, not a prior authorization requirement per the supplied documents."
+          ],
+          "citation": "LCD L39237 page 7; Billing and Coding Article A58982 pages 10-11",
+          "tokens_in": 9705,
+          "tokens_out": 629,
+          "ms": 5350.035599956755,
+          "passages": 35,
+          "deciding_found": true,
+          "invented": [],
+          "misapplied": null
+        }
+      ]
+    }
+  }
+}

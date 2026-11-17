@@ -1,0 +1,864 @@
+{
+  "at": "2026-11-17T20:41:40+00:00",
+  "model": "azure/gpt-5-mini",
+  "reasoning_effort": "low",
+  "a_reasoning_effort": "low",
+  "a_docs": [
+    "agent"
+  ],
+  "b_mode": "raw",
+  "scenarios": {
+    "1": {
+      "patient": "maria-tn",
+      "reference_outcome": "no_pa",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.027733159996569157
+      },
+      "B_raw": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4.6,
+        "tokens_in": 15070.8,
+        "tokens_out": 814.4,
+        "seconds": 12.126779299986083,
+        "setup_seconds": 3.0079727399977854,
+        "card_written": 0,
+        "card_right_by_model": 0,
+        "facts_right": 5
+      },
+      "B_raw_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "B_raw_passed": [
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "creatinine_date": "2026-11-02",
+            "serum_creatinine_mg_dl": 1.42,
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "request_type": "initial",
+            "hgb_g_dl": 9.4,
+            "urgency": "standard"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "creatinine_date": "2026-11-02",
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "egfr": 38,
+            "encounter_type": "elective",
+            "hgb_g_dl": 9.4,
+            "request_type": "initial",
+            "serum_creatinine_mg_dl": 1.42,
+            "urgency": "standard"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial",
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ]
+          }
+        }
+      ]
+    },
+    "2": {
+      "patient": "maria-tn-egfr52",
+      "reference_outcome": "other_gate",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.031189020012971014
+      },
+      "B_raw": {
+        "runs": 5,
+        "outcomes": {
+          "other_gate": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4.4,
+        "tokens_in": 14172.6,
+        "tokens_out": 837.4,
+        "seconds": 11.653631940006743,
+        "setup_seconds": 2.79897604000289,
+        "card_written": 0,
+        "card_right_by_model": 0,
+        "facts_right": 5
+      },
+      "B_raw_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "B_raw_passed": [
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "request_type": "initial",
+            "urgency": "standard"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        }
+      ]
+    },
+    "3": {
+      "patient": "maria-oh",
+      "reference_outcome": "no_pa",
+      "rule": "kc:rule/esa-ckd-nd/L34356@2026-10-04",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.03166616001399234
+      },
+      "B_raw": {
+        "runs": 5,
+        "outcomes": {
+          "no_pa": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4.6,
+        "tokens_in": 15232.6,
+        "tokens_out": 716.2,
+        "seconds": 10.529027220013086,
+        "setup_seconds": 2.8672586200060324,
+        "card_written": 0,
+        "card_right_by_model": 0,
+        "facts_right": 5
+      },
+      "B_raw_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "B_raw_passed": [
+        {
+          "plan": "original-medicare",
+          "state": "OH",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "OH",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "OH",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "OH",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "OH",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.11,
+            "creatinine_date": "2026-11-02",
+            "egfr": 52,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.31"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        }
+      ]
+    },
+    "4": {
+      "patient": "maria-uhc",
+      "reference_outcome": "pa_required",
+      "rule": "kc:rule/J1439/uhc-ma-pa@2026-10-01",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.028511679999064655
+      },
+      "B_raw": {
+        "runs": 5,
+        "outcomes": {
+          "pa_required": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4.2,
+        "tokens_in": 13376.8,
+        "tokens_out": 594.8,
+        "seconds": 9.003864139993675,
+        "setup_seconds": 2.9792744400096125,
+        "card_written": 0,
+        "card_right_by_model": 0,
+        "facts_right": 5
+      },
+      "B_raw_card_lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "B_raw_passed": [
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J1439",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "creatinine_date": "2026-11-02",
+            "serum_creatinine_mg_dl": 1.42,
+            "egfr": 38,
+            "hgb_g_dl": 9.4,
+            "diagnosis_codes": [
+              "D50.9",
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J1439",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D50.9",
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J1439",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D50.9",
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J1439",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "dialysis_status": "none",
+            "diagnosis_codes": [
+              "D50.9",
+              "D63.1",
+              "N18.32"
+            ],
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J1439",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D50.9",
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "request_type": "initial",
+            "urgency": "standard"
+          }
+        }
+      ]
+    },
+    "5": {
+      "patient": "maria-uhc-esa",
+      "reference_outcome": "unknown",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "unknown": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.029881100018974392
+      },
+      "B_raw": {
+        "runs": 5,
+        "outcomes": {
+          "unknown": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4,
+        "tokens_in": 12977,
+        "tokens_out": 1575.8,
+        "seconds": 15.25665497999871,
+        "setup_seconds": 2.9005972400074826,
+        "card_written": 5,
+        "card_right_by_model": 5,
+        "facts_right": 5
+      },
+      "B_raw_card_lines": [
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ],
+        [
+          "Outcome: Not known (route to staff) \u00b7 not safe to act"
+        ]
+      ],
+      "B_raw_passed": [
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "request_type": "initial",
+            "urgency": "standard"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "creatinine_date": "2026-11-02",
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "egfr": 38,
+            "encounter_type": "elective",
+            "hgb_g_dl": 9.4,
+            "request_type": "initial",
+            "serum_creatinine_mg_dl": 1.42,
+            "urgency": "standard"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "creatinine_date": "2026-11-02",
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "egfr": 38,
+            "encounter_type": "elective",
+            "hgb_g_dl": 9.4,
+            "request_type": "initial",
+            "serum_creatinine_mg_dl": 1.42,
+            "urgency": "standard"
+          }
+        },
+        {
+          "plan": "uhc-ma",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "hgb_g_dl": 9.4,
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        }
+      ]
+    },
+    "6": {
+      "patient": "maria-nohgb",
+      "reference_outcome": "needs_facts",
+      "rule": "kc:rule/esa-ckd-nd/L39237@2026-09-17",
+      "C": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "seconds": 0.027932079997844993
+      },
+      "B_raw": {
+        "runs": 5,
+        "outcomes": {
+          "needs_facts": 5
+        },
+        "matches_rules": 5,
+        "llm_calls": 4,
+        "tokens_in": 12897,
+        "tokens_out": 858.2,
+        "seconds": 11.300641460006592,
+        "setup_seconds": 2.791180500003975,
+        "card_written": 1,
+        "card_right_by_model": 1,
+        "facts_right": 5
+      },
+      "B_raw_card_lines": [
+        [],
+        [],
+        [],
+        [
+          "Outcome: Not yet known (facts needed) \u00b7 not safe to act"
+        ],
+        []
+      ],
+      "B_raw_passed": [
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "dialysis_status": "none",
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "dialysis_status": "none",
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        },
+        {
+          "plan": "original-medicare",
+          "state": "TN",
+          "code": "J0885",
+          "date_of_service": "2026-11-15",
+          "facts": {
+            "serum_creatinine_mg_dl": 1.42,
+            "creatinine_date": "2026-11-02",
+            "egfr": 38,
+            "diagnosis_codes": [
+              "D63.1",
+              "N18.32"
+            ],
+            "dialysis_status": "none",
+            "encounter_type": "elective",
+            "urgency": "standard",
+            "request_type": "initial"
+          }
+        }
+      ]
+    }
+  }
+}

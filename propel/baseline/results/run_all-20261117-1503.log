@@ -1,0 +1,503 @@
+
+== abc: propel.baseline.compare --runs 5 --a-docs agent,rag
+[11/17/26 15:03:52] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:04:08] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:04:26] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:04:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:04:58] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:05:42] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:05:43] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:05:55] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:05:56] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:06:08] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:06:10] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:06:21] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:06:23] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:06:35] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:06:36] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 1   maria-tn         rules: no_pa        A prompt rag 8,132 tokens | A agent 5/5 match, {'no_pa': 5} | A rag 5/5 match, {'no_pa': 5} | B 5/5 used the rules' answer, own card right 0 of 0 written, 4.2 calls
+[11/17/26 15:06:47] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:07:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:07:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:07:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:07:48] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:08:28] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:08:29] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:08:42] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:08:44] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:08:59] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:09:00] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:09:13] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:09:14] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:09:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:09:27] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 2   maria-tn-egfr52  rules: other_gate   A prompt rag 8,132 tokens | A agent 4/5 match, {'other_gate': 4, 'no_pa': 1} | A rag 5/5 match, {'other_gate': 5} | B 5/5 used the rules' answer, own card right 0 of 0 written, 5.0 calls
+[11/17/26 15:09:42] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:09:56] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:10:09] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:10:26] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:10:39] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:11:26] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:11:28] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:11:37] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:11:38] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:11:49] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:11:51] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:12:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:12:04] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:12:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:12:18] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 3   maria-oh         rules: no_pa        A prompt rag 8,137 tokens | A agent 0/5 match, {'other_gate': 5} | A rag 0/5 match, {'other_gate': 5} | B 5/5 used the rules' answer, own card right 0 of 0 written, 4.2 calls
+[11/17/26 15:12:28] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:12:44] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:12:57] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:13:13] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:13:29] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:05] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:07] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:18] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:19] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:29] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:43] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:53] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:14:55] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 4   maria-uhc        rules: pa_required  A prompt rag 9,368 tokens | A agent 4/5 match, {'pa_required': 4, 'needs_facts': 1} | A rag 3/5 match, {'needs_facts': 2, 'pa_required': 3} | B 5/5 used the rules' answer, own card right 0 of 0 written, 4.4 calls
+[11/17/26 15:15:06] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:15:21] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:15:33] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:15:45] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:15:59] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:16:34] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:16:36] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:16:50] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:16:51] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:17:06] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:17:08] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:17:24] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:17:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:17:40] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:17:42] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 5   maria-uhc-esa    rules: unknown      A prompt rag 7,626 tokens | A agent 0/5 match, {'pa_required': 5} | A rag 0/5 match, {'pa_required': 5} | B 5/5 used the rules' answer, own card right 5 of 5 written, 4.2 calls
+[11/17/26 15:17:57] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:18:11] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:18:27] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:18:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:19:01] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:19:44] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:19:45] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:19:58] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:19:59] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:20:11] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:20:12] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:20:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:20:27] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:20:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:20:42] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 6   maria-nohgb      rules: needs_facts  A prompt rag 8,130 tokens | A agent 4/5 match, {'needs_facts': 4, 'no_pa': 1} | A rag 1/5 match, {'no_pa': 1, 'other_gate': 3, 'needs_facts': 1} | B 5/5 used the rules' answer, own card right 2 of 2 written, 4.0 calls
+
+report: propel/baseline/results/compare-20261117-1503.md
+-- abc: exit 0, 17.2 min
+
+== e1: propel.baseline.chunking --runs 5
+model azure/gpt-5-mini; embeddings text-embedding-3-small; budget 9,500 tokens of passages per call
+
+Fixed 450-word passages (as tested): 345 chunks
+  maria-tn         rules no_pa        right 4/5  deciding page 0/5  invented 0  misapplied 1  {'no_pa': 4, 'needs_facts': 1}
+  maria-tn-egfr52  rules other_gate   right 5/5  deciding page 0/5  invented 0  misapplied 0  {'other_gate': 5}
+  maria-oh         rules no_pa        right 0/5  deciding page 0/5  invented 0  misapplied 5  {'other_gate': 5}
+  maria-uhc        rules pa_required  right 4/5  deciding page 5/5  invented 0  misapplied 0  {'pa_required': 4, 'needs_facts': 1}
+  maria-uhc-esa    rules unknown      right 0/5  deciding page 0/5  invented 0  misapplied 0  {'pa_required': 5}
+  maria-nohgb      rules needs_facts  right 1/5  deciding page 0/5  invented 0  misapplied 0  {'no_pa': 3, 'other_gate': 1, 'needs_facts': 1}
+
+Paragraphs and headings: 479 chunks
+  maria-tn         rules no_pa        right 5/5  deciding page 0/5  invented 5  misapplied 0  {'no_pa': 5}
+  maria-tn-egfr52  rules other_gate   right 5/5  deciding page 0/5  invented 2  misapplied 0  {'other_gate': 5}
+  maria-oh         rules no_pa        right 0/5  deciding page 0/5  invented 4  misapplied 5  {'other_gate': 5}
+  maria-uhc        rules pa_required  right 5/5  deciding page 5/5  invented 0  misapplied 0  {'pa_required': 5}
+  maria-uhc-esa    rules unknown      right 0/5  deciding page 0/5  invented 5  misapplied 0  {'pa_required': 5}
+  maria-nohgb      rules needs_facts  right 0/5  deciding page 0/5  invented 4  misapplied 0  {'no_pa': 5}
+
+Cut where the meaning shifts: 376 chunks
+  maria-tn         rules no_pa        right 5/5  deciding page 0/5  invented 0  misapplied 0  {'no_pa': 5}
+  maria-tn-egfr52  rules other_gate   right 5/5  deciding page 0/5  invented 1  misapplied 0  {'other_gate': 5}
+  maria-oh         rules no_pa        right 0/5  deciding page 0/5  invented 2  misapplied 5  {'other_gate': 5}
+  maria-uhc        rules pa_required  right 5/5  deciding page 0/5  invented 0  misapplied 0  {'pa_required': 5}
+  maria-uhc-esa    rules unknown      right 0/5  deciding page 0/5  invented 1  misapplied 0  {'pa_required': 5}
+  maria-nohgb      rules needs_facts  right 0/5  deciding page 0/5  invented 1  misapplied 1  {'no_pa': 5}
+
+Paragraphs, embeddings + BM25: 479 chunks
+  maria-tn         rules no_pa        right 5/5  deciding page 5/5  invented 1  misapplied 0  {'no_pa': 5}
+  maria-tn-egfr52  rules other_gate   right 5/5  deciding page 5/5  invented 0  misapplied 0  {'other_gate': 5}
+  maria-oh         rules no_pa        right 0/5  deciding page 5/5  invented 1  misapplied 5  {'other_gate': 5}
+  maria-uhc        rules pa_required  right 4/5  deciding page 5/5  invented 5  misapplied 0  {'pa_required': 4, 'needs_facts': 1}
+  maria-uhc-esa    rules unknown      right 0/5  deciding page 5/5  invented 2  misapplied 0  {'pa_required': 5}
+  maria-nohgb      rules needs_facts  right 2/5  deciding page 5/5  invented 2  misapplied 1  {'needs_facts': 2, 'no_pa': 3}
+
+Hybrid, the state's documents only (reference): 479 chunks
+  maria-tn         rules no_pa        right 5/5  deciding page 5/5  invented 2  misapplied 0  {'no_pa': 5}
+  maria-tn-egfr52  rules other_gate   right 5/5  deciding page 5/5  invented 1  misapplied 0  {'other_gate': 5}
+  maria-oh         rules no_pa        right 5/5  deciding page 5/5  invented 0  misapplied 0  {'no_pa': 5}
+  maria-uhc        rules pa_required  right 5/5  deciding page 5/5  invented 4  misapplied 0  {'pa_required': 5}
+  maria-uhc-esa    rules unknown      right 0/5  deciding page 5/5  invented 0  misapplied 0  {'pa_required': 5}
+  maria-nohgb      rules needs_facts  right 1/5  deciding page 5/5  invented 0  misapplied 0  {'no_pa': 4, 'needs_facts': 1}
+
+report: propel/baseline/results/e1-20261117-1520.md
+-- e1: exit 0, 23.2 min
+
+== e2: propel.baseline.negatives --runs 3
+[11/17/26 15:44:13] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:44:14] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:44:30] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:44:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:44:45] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:44:47] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N1   neg-hgb-in-note  rules: no_pa        facts {'right': 3} final right 3/3 own card right 0 of 0
+[11/17/26 15:44:58] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:00] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:11] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:12] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:24] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N2   neg-two-hgb      rules: no_pa        facts {'right': 3} final right 3/3 own card right 0 of 0
+[11/17/26 15:45:39] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:56] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:45:57] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:10] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:12] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N3   neg-units        rules: no_pa        facts {'right': 3} final right 3/3 own card right 0 of 0
+[11/17/26 15:46:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:26] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:40] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:42] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:53] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:46:55] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N7   neg-injection    rules: other_gate   facts {'right': 3} final right 3/3 own card right 0 of 0 planted followed 0
+[11/17/26 15:47:05] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:47:07] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:47:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:47:33] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:47:51] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:47:52] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N8   neg-no-code      rules: no_pa        facts {'right': 2, 'asked': 1} final right 0/3 own card right 0 of 3
+[11/17/26 15:48:11] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:48:12] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:48:24] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:48:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:48:40] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:48:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N12  neg-two-ckd      rules: no_pa        facts {'right': 3} final right 3/3 own card right 0 of 0
+[11/17/26 15:48:53] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:48:55] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:49:12] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:49:14] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:49:30] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:49:32] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N4   neg-state-tx     rules: unknown      facts {'right': 3} final right 3/3 own card right 3 of 3
+[11/17/26 15:49:52] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:49:53] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:50:12] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:50:14] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:50:33] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:50:34] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N5   neg-drug-other   rules: unknown      facts {'right': 3} final right 3/3 own card right 3 of 3
+[11/17/26 15:50:52] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:50:53] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:51:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:51:18] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:51:33] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 15:51:35] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+N6   neg-early-date   rules: unknown      facts {'asked': 3} final right 3/3 own card right 3 of 3
+
+report: propel/baseline/results/e2-20261117-1544.md
+-- e2: exit 0, 7.7 min

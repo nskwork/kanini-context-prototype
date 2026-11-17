@@ -1,0 +1,52 @@
+
+== abc: propel.baseline.compare --runs 5 --a-docs agent,rag,whole
+[11/17/26 14:54:00] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:54:14] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:54:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:54:49] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:55:05] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 30 s, then trying again (1 of 7)
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 40 s, then trying again (2 of 7)
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 60 s, then trying again (3 of 7)
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 90 s, then trying again (4 of 7)
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 120 s, then trying again (5 of 7)
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 120 s, then trying again (6 of 7)
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  rate limit: waiting 120 s, then trying again (7 of 7)

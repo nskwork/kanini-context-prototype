@@ -1,0 +1,397 @@
+
+== abc: propel.baseline.compare --runs 5 --a-docs agent,rag,whole
+[11/17/26 14:38:48] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:39:20] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:39:34] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:39:51] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:40:02] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+Traceback (most recent call last):
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\llms\azure\azure.py", line 365, in completion
+    headers, response = self.make_sync_azure_openai_chat_completion_request(
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        azure_client=azure_client, data=data, timeout=timeout, logging_obj=logging_obj
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\llms\azure\azure.py", line 173, in make_sync_azure_openai_chat_completion_request
+    raise e
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\llms\azure\azure.py", line 158, in make_sync_azure_openai_chat_completion_request
+    raw_response: Final = azure_client.chat.completions.with_raw_response.create(**data, timeout=timeout)
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\openai\_legacy_response.py", line 364, in wrapped
+    return cast(LegacyAPIResponse[R], func(*args, **kwargs))
+                                      ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\openai\_utils\_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\openai\resources\chat\completions\completions.py", line 1611, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\openai\_base_client.py", line 1474, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\openai\_base_client.py", line 1248, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - Your requests to gpt-5-mini for gpt-5-mini in eastus2 have exceeded token rate limit.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\main.py", line 6455, in completion
+    response = _complete_azure(_dispatch_ctx)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\main.py", line 1636, in _complete_azure
+    response = azure_chat_completions.completion(
+        model=model,
+    ...<17 lines>...
+        client=client,  # pass AsyncAzureOpenAI, AzureOpenAI client
+    )
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\llms\azure\azure.py", line 400, in completion
+    raise AzureOpenAIError(
+    ...<5 lines>...
+    )
+litellm.llms.azure.common_utils.AzureOpenAIError: Error code: 429 - Your requests to gpt-5-mini for gpt-5-mini in eastus2 have exceeded token rate limit.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\utils.py", line 2147, in wrapper
+    result = original_function(*args, **kwargs)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\main.py", line 6676, in completion
+    raise exception_type(
+          ~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        extra_kwargs=kwargs,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2915, in exception_type
+    raise e  # it's already mapped
+    ^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2824, in exception_type
+    _map_azure_exception(
+    ~~~~~~~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<5 lines>...
+        extra_information=extra_information,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2221, in _map_azure_exception
+    raise RateLimitError(
+    ...<5 lines>...
+    )
+litellm.exceptions.RateLimitError: litellm.RateLimitError: AzureException RateLimitError - Your requests to gpt-5-mini for gpt-5-mini in eastus2 have exceeded token rate limit.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\propel\baseline\compare.py", line 435, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\propel\baseline\compare.py", line 341, in main
+    runs_m = [run_a_agent(pid) if m == "agent" else run_a(pid, m) for _ in range(args.runs)]
+                                                    ~~~~~^^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\propel\baseline\compare.py", line 127, in run_a
+    resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt}], num_retries=4,
+                              response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\chat_completions\dispatch.py", line 118, in completion
+    return _DISPATCH.run(
+           ~~~~~~~~~~~~~^
+        args,
+        ^^^^^
+    ...<3 lines>...
+        native=native_call_hook,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\rust_bridge\dispatch.py", line 72, in run
+    return python(*args, **kwargs)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\utils.py", line 2253, in wrapper
+    return litellm.completion_with_retries(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\main.py", line 6708, in completion_with_retries
+    return retryer(original_function, *args, **kwargs)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\NandhuKumar\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\NandhuKumar\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\utils.py", line 2296, in wrapper
+    raise e
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\utils.py", line 2147, in wrapper
+    result = original_function(*args, **kwargs)
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\main.py", line 6676, in completion
+    raise exception_type(
+          ~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        extra_kwargs=kwargs,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2915, in exception_type
+    raise e  # it's already mapped
+    ^^^^^^^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2824, in exception_type
+    _map_azure_exception(
+    ~~~~~~~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<5 lines>...
+        extra_information=extra_information,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\NandhuKumar\Desktop\kanini-context-prototype\.venv\Lib\site-packages\litellm\litellm_core_utils\exception_mapping_utils.py", line 2221, in _map_azure_exception
+    raise RateLimitError(
+    ...<5 lines>...
+    )
+litellm.exceptions.RateLimitError: litellm.RateLimitError: AzureException RateLimitError - Your requests to gpt-5-mini for gpt-5-mini in eastus2 have exceeded token rate limit.
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+-- abc: exit 1, 3.0 min
+
+== raw: propel.baseline.compare --runs 5 --only B --b-mode raw
+[11/17/26 14:41:43] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:41:44] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:00] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:02] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:15] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:32] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:46] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:42:48] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:01] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:02] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:17] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:32] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:46] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:43:47] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:01] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:15] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:17] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:29] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:30] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:43] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:57] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:44:58] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:11] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:13] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:25] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:26] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:39] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:41] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:52] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:45:53] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:04] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:15] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:27] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:29] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:46] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:46:47] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:47:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:47:05] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:47:22] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:47:24] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:47:43] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:47:45] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:01] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:15] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:16] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:29] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:31] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:44] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:48:45] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:49:02] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+[11/17/26 14:49:03] INFO     Starting MCP server               transport.py:241
+                             'propel-journey' with transport                   
+                             'stdio'                                           
+scenario 1   maria-tn         rules: no_pa        A prompt  tokens | B reading the chart 5/5 right answer, facts right 5/5
+scenario 2   maria-tn-egfr52  rules: other_gate   A prompt  tokens | B reading the chart 5/5 right answer, facts right 5/5
+scenario 3   maria-oh         rules: no_pa        A prompt  tokens | B reading the chart 5/5 right answer, facts right 5/5
+scenario 4   maria-uhc        rules: pa_required  A prompt  tokens | B reading the chart 5/5 right answer, facts right 5/5
+scenario 5   maria-uhc-esa    rules: unknown      A prompt  tokens | B reading the chart 5/5 right answer, facts right 5/5
+scenario 6   maria-nohgb      rules: needs_facts  A prompt  tokens | B reading the chart 5/5 right answer, facts right 5/5
+
+report: propel/baseline/results/compare-20261117-1449.md
+-- raw: exit 0, 7.7 min
+
+== e1: propel.baseline.chunking --runs 5
