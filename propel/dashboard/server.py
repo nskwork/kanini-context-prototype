@@ -261,6 +261,8 @@ VIEW_SQL = {
   JOIN kc_core.jurisdiction m ON m.entity_id = e.to_id
  WHERE e.relation_type = 'within' AND m.kind = 'mac_ab' AND upper_inf(e.recorded)
  GROUP BY m.code, m.name, m.contractor ORDER BY m.code""",
+    "releases": "SELECT * FROM kc_views.releases ORDER BY built_at DESC",
+    "source_rules": "SELECT source_id, rule_ref, rule_type, subject, summary, citation, page FROM kc_views.rules ORDER BY rule_type, subject",
     "plans": """SELECT e.natural_key AS plan, p.plan_type AS name FROM kc_core.plan p
   JOIN kc_core.entity e ON e.entity_id = p.entity_id ORDER BY 1""",
 }
@@ -285,9 +287,9 @@ def _views(*names: str) -> dict:
 @app.get("/api/sources")
 def sources():
     """The documents, with the rules each one gives, and what the pack covers (plans and contractor regions)."""
-    out = _views("documents", "regions", "plans")
-    with db() as c:
-        rules = _rows(c, "SELECT source_id, rule_ref, rule_type, subject, summary, citation, page FROM kc_views.rules ORDER BY rule_type, subject")
+    out = _views("documents", "regions", "plans", "releases", "source_rules")   # one connection, one rebuild check
+    rules = out.pop("source_rules")
+    out["sql"].pop("source_rules")
     for d in out["documents"]:
         d["rules"] = [r for r in rules if r["source_id"] == d["source_id"]]
     return out

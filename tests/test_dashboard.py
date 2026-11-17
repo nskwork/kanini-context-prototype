@@ -108,6 +108,7 @@ def test_pages_read_the_views(client, db):
     n_src = db.execute("SELECT count(*) FROM kc_core.source").fetchone()[0]
     assert len(s["documents"]) == n_src and s["sql"]["documents"].startswith("SELECT")
     assert {r["code"] for r in s["regions"]} >= {"J15", "JJ"}
+    assert s["releases"] and s["releases"][0]["covers_through"]
     lcd = next(x for x in s["documents"] if x["source_id"] == "mcd-lcd-l39237")
     assert [r["rule_type"] for r in lcd["rules"]] == ["Coverage criteria"]
     k = client.get("/api/knowledge").json()
