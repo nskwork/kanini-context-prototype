@@ -755,3 +755,5 @@ details.t-order .t-chips span{display:inline-flex;align-items:center;gap:5px}
 .t-cases th small{display:block;font-size:10.5px;font-weight:400;letter-spacing:0;text-transform:none;color:#7d8794;margin-top:2px}
 .t-cases tfoot th,.t-cases tfoot td{border-top:1px solid #353e4b;padding-top:10px;font-size:13px;color:#c9d0da}
 .t-cases tfoot b{color:#eceff4}
+.e-cards{margin:16px 0 6px}
+.e-list{display:block;margin-top:6px;line-height:1.6}
