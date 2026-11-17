@@ -22,12 +22,15 @@ from scripted_model import ScriptedModel
 
 
 async def run(patient_id: str, decision: str = "approve", prompt: str | None = None, skip_checks: bool = False,
-              model=None, wrong_card: bool = False) -> dict:
-    """model: None for the scripted model, or a real model (tests/test_agent_live.py passes GPT-5 mini)."""
-    agent = build_agent(model=model or ScriptedModel(patient_id=patient_id, skip_checks=skip_checks, wrong_card=wrong_card))
+              model=None, wrong_card: bool = False, raw: bool = False) -> dict:
+    """model: None for the scripted model, or a real model (tests/test_agent_live.py passes GPT-5 mini).
+    raw: raw chart mode (the patient-record server returns the chart; the model builds the facts)."""
+    agent = build_agent(model=model or ScriptedModel(patient_id=patient_id, skip_checks=skip_checks, wrong_card=wrong_card, raw=raw),
+                        raw=raw)
     svc = InMemorySessionService()
     runner = Runner(app_name="propel", agent=agent, session_service=svc)
     session = await svc.create_session(app_name="propel", user_id="staff")
+    calls, results = {}, {}
     trace, texts, msg = [], [], types.Content(role="user", parts=[types.Part(text=prompt or
         f"Check prior authorization for the open order for patient {patient_id}.")])
     for _ in range(3):   # first turn, then the approval answer
@@ -39,6 +42,9 @@ async def run(patient_id: str, decision: str = "approve", prompt: str | None = N
                         confirm_id = p.function_call.id
                     else:
                         trace.append(p.function_call.name)
+                        calls[p.function_call.name] = dict(p.function_call.args or {})
+                if p.function_response:
+                    results[p.function_response.name] = p.function_response.response
                 if p.text and ev.author == agent.name:
                     texts.append(p.text)
         if not confirm_id:
@@ -49,7 +55,7 @@ async def run(patient_id: str, decision: str = "approve", prompt: str | None = N
         close = getattr(t, "close", None)
         if close:
             await close()
-    return {"trace": trace, "text": "\n".join(texts)}
+    return {"trace": trace, "text": "\n".join(texts), "calls": calls, "results": results}
 
 
 if __name__ == "__main__":

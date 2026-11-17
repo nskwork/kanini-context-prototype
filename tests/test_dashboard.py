@@ -126,3 +126,32 @@ def test_explain_matches_the_workflow_answer(client, db):
            (ans["outcome"], ans["safe_to_act"], ans.get("primary_rule"))
     assert e["coverage"]["contractor"]["code"] == "J15" and e["sql"]["trace"].startswith("SELECT kc_api.explain_order(")
     assert client.get("/api/explain", params={"patient": "nobody"}).status_code == 404
+
+
+def test_ask_about_the_rules_answers_from_the_stored_text(client, db):
+    """"Ask about this rule": the rules whose summary or source quote has every word of the question, limited to one
+    case's rules when asked from that case; nothing is written by a model."""
+    refs = db.execute("""SELECT kc_api.evaluate_order('original-medicare','OH','HCPCS|J0885','2026-11-15',
+                         '{"dialysis_status":"none","diagnosis_codes":["D63.1","N18.31"],"hgb_g_dl":9.4,"egfr":52,
+                         "creatinine_date":"2026-11-02"}') -> 'rule_refs'""").fetchone()[0]
+    r = client.get("/api/ask", params={"q": "What hemoglobin level is required?", "refs": ",".join(refs)}).json()
+    assert r["scope"] == len(refs) and r["words"][:1] == ["hemoglobin"]
+    assert r["results"] and all(x["rule_ref"] in refs for x in r["results"])
+    assert any("L34356" in x["citation"] for x in r["results"])
+    one = client.get("/api/ask", params={"q": "dialysis", "refs": refs[0]}).json()
+    assert one["scope"] == 1
+    assert client.get("/api/ask", params={"q": "what is the"}).status_code == 400
+
+
+def test_raw_chart_run_streams_the_facts_b_built(client, kc_http, monkeypatch):
+    """Lane B in raw chart mode, with the scripted stand-in: the record server sends the chart, B builds the facts."""
+    from propel.dashboard import server
+    monkeypatch.setattr(server, "SCRIPTED", True)
+    rid = client.post("/api/run", json={"patient": "maria-oh", "mode": "agent", "raw": True}).json()["run"]
+    with client.stream("GET", f"/api/run/{rid}/events") as st:
+        evs = [json.loads(line[5:]) for line in st.iter_lines() if line.startswith("data:")]
+    assert evs[0]["raw"] is True
+    call = next(e for e in evs if e["kind"] == "tool_call" and e["name"] == "rules_evaluate")
+    assert call["args"]["facts"]["egfr"] == 52
+    got = next(e for e in evs if e["kind"] == "tool_result" and e["name"] == "journey_get")
+    assert "chart" in json.dumps(got) and "rules_evaluate_args" not in json.dumps(got)

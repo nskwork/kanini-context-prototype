@@ -669,3 +669,35 @@ details.sql pre,pre.q{background:#0b0d10}
 /* compare sheet: five rows and the note fit at 1366x768 */
 .sheet .match-t th,.sheet .match-t td{padding:4px 8px}
 .sheet .match .note{margin-top:6px}
+
+/* what agent B is given: facts, or the chart */
+.dock .chartmode{display:flex;gap:2px;padding:3px;border-radius:10px;background:#0b0d10;box-shadow:inset 0 0 0 1px #353e4b}
+.dock .chartmode button{font:inherit;font-size:12.5px;color:#9aa4b1;background:none;border:0;border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.dock .chartmode button[aria-checked="true"]{background:#1d2530;color:#eceff4}
+.dock .chartmode button:focus-visible{outline:2px solid #2f86ff;outline-offset:1px}
+.sheet .match h3.sub{font-size:13px;font-weight:600;margin:14px 0 6px;color:#c9d0da}
+
+/* ask about the rules (Knowledge page) */
+.kn-case{display:flex;align-items:center;gap:10px;font-size:14px;color:#c9d0da;margin:0 0 10px}
+.kask{flex:none;padding:14px 16px;margin:0;display:flex;flex-direction:column;gap:8px}
+.kask label{font-size:13.5px;color:#c9d0da;display:flex;align-items:center;gap:8px}
+.kask label .x{background:none;border:0;color:#9aa4b1;font-size:16px;cursor:pointer;padding:0 4px}
+.kask-row{display:flex;gap:8px}
+.kask-row input{flex:1;font:inherit;font-size:14px;color:#eceff4;background:#0b0d10;border:1px solid #353e4b;border-radius:8px;padding:8px 12px}
+.kask-row input:focus-visible{outline:2px solid #2f86ff;outline-offset:1px}
+.kask-out .hit{border-top:1px solid #353e4b;padding:10px 0 4px}
+.kask-out .hit .s{margin:0 0 6px;font-size:14px;color:#eceff4}
+.kask-out blockquote{margin:0;padding:8px 12px;border-left:3px solid #2f86ff;background:#0f1318;font-size:13px;color:#c9d0da}
+.kask-out blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:12px;color:#9aa4b1}
+.kask-out mark{background:rgba(255,181,71,.22);color:inherit;border-radius:2px;padding:0 1px}
+.linkish{background:none;border:0;padding:0;font:inherit;font-size:13px;color:#7fb6ff;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.linkish:focus-visible{outline:2px solid #2f86ff;outline-offset:2px}
+.rc .ask1{grid-column:1/-1;justify-self:start;margin-top:2px}
+#card #to-rules{display:block;margin-top:8px}
+
+/* E1 and E2 tables on the Testing page */
+.e-t{width:100%;font-size:13px}
+.e-t th,.e-t td{padding:5px 8px;text-align:left;vertical-align:top}
+.e-t tbody th{color:#eceff4;font-weight:600;white-space:nowrap}
+.kn-case{flex:none}
+.dock .btn{white-space:nowrap}

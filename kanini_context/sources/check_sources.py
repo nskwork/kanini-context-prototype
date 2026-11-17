@@ -218,8 +218,9 @@ def _mcd_version_api(doc: str, num: str, get: Get) -> tuple[int | None, str]:
     """The Coverage API's report of every final LCD (or article). Field names are read defensively: the entry is the one
     naming this document (L39237, A58982 or the bare number), the version the first integer field named *version*."""
     url = f"https://api.coverage.cms.gov/v1/reports/local-coverage-{'final-lcds' if doc == 'lcd' else 'articles'}"
-    p = _REPORTS.get((id(get), url)) or get(url)   # one report per run serves every policy
-    _REPORTS[(id(get), url)] = p
+    # one report per run serves every policy; keyed by the fetcher itself (an id() can be reused once it is freed)
+    p = _REPORTS.get((get, url)) or get(url)
+    _REPORTS[(get, url)] = p
     if not p.ok:
         return None, f"Coverage API not read (HTTP {p.status})"
     try:

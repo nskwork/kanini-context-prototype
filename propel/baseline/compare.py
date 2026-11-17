@@ -18,6 +18,7 @@ What "matches the rules" means in each lane:
 
     python -m propel.baseline.compare --offline          # C only, plus the size of A's prompts (no API key needed)
     python -m propel.baseline.compare --runs 5           # all three (needs OPENAI_API_KEY or Azure OpenAI, and the Kanini server)
+    python -m propel.baseline.compare --runs 5 --only B --b-mode raw   # B reading the raw chart (saved as B_raw)
 
 Mode A uses no part of Kanini Context. By default it is the same agent as B without the context layer
 (propel/agent/no_context_agent): same model, same patient-record tool, and document tools in place of Kanini
@@ -123,7 +124,7 @@ def run_a(pid: str, mode: str = "rag") -> dict:
     t = time.perf_counter()   # includes ranking the passages (one embedding call for the question) in RAG mode
     effort = (A_EFFORT or os.environ.get("PROPEL_REASONING_EFFORT", "low")).strip()
     prompt, _ = prompt_for(pid, mode)
-    resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt}],
+    resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt}], num_retries=4,
                               response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
     ms = (time.perf_counter() - t) * 1000
     try:
@@ -137,7 +138,20 @@ def run_a(pid: str, mode: str = "rag") -> dict:
 
 # --- B: the agent with Kanini Context ----------------------------------------------------------------------------
 
-async def run_b_async(pid: str) -> dict:
+FACT_KEYS = ("dialysis_status", "diagnosis_codes", "hgb_g_dl", "egfr", "creatinine_date")
+
+
+def facts_match(passed: dict | None, want: dict) -> bool | None:
+    """Whether the facts B passed to rules_evaluate are the patient's registered facts (raw chart mode)."""
+    if passed is None:
+        return None
+    norm = lambda v: sorted(v) if isinstance(v, list) else v  # noqa: E731
+    return all(norm(passed.get(k)) == norm(want.get(k)) for k in FACT_KEYS)
+
+
+async def run_b_async(pid: str, raw: bool = False, model=None) -> dict:
+    """One run of lane B. raw: the agent reads the chart. model: another model object (the scripted stand-in in
+    tests, or a smaller model for the sensitivity test); default the configured model."""
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
@@ -154,12 +168,16 @@ async def run_b_async(pid: str) -> dict:
             usage["out"] += um.candidates_token_count or 0
         return None
 
-    agent = build_agent(model=make_model())
+    agent = build_agent(model=model or make_model(), raw=raw)
+    own_records: list[dict] = []   # the record calls as the model wrote them, before the guard sets the fields
     guard = agent.after_model_callback   # keep the agent's own decision-card guard, and count usage after it
 
     def guarded(callback_context, llm_response):
         # the model's own words, kept before the guard sets the Outcome line from the rules
-        texts.extend(p.text for p in ((llm_response.content.parts if llm_response.content else None) or []) if getattr(p, "text", None))
+        parts = (llm_response.content.parts if llm_response.content else None) or []
+        texts.extend(p.text for p in parts if getattr(p, "text", None))
+        own_records.extend(dict(p.function_call.args or {}) for p in parts
+                           if getattr(p, "function_call", None) and p.function_call.name == "journey_record")
         guard(callback_context, llm_response)
         return count(callback_context, llm_response)
     agent.after_model_callback = guarded
@@ -173,15 +191,20 @@ async def run_b_async(pid: str) -> dict:
         await ts.get_tools()
     setup_ms = (time.perf_counter() - t0) * 1000
     msg = types.Content(role="user", parts=[types.Part(text=f"Check prior authorization for the open order for patient {pid}.")])
-    outcome, ev_result, t = None, None, time.perf_counter()
+    outcome, ev_result, passed, tools, t = None, None, None, [], time.perf_counter()
     # The run ends with the decision card, and with the staff confirmation prompt when the agent proposes a record.
     # Nothing is confirmed, so nothing is written; the staff member's click and the model's reply to it are not counted.
     async for ev in runner.run_async(user_id="staff", session_id=s.id, new_message=msg):
         for part in (ev.content.parts if ev.content else []) or []:
+            if part.function_call and part.function_call.name != "adk_request_confirmation":
+                tools.append(part.function_call.name)
+            if part.function_call and part.function_call.name == "rules_evaluate":
+                passed = dict(part.function_call.args or {})   # the last call counts: the model may correct itself
             if part.function_response and part.function_response.name == "rules_evaluate":
                 r = part.function_response.response or {}
                 r = r.get("structuredContent") or (json.loads(r["content"][0]["text"]) if r.get("content") else r)
-                outcome, ev_result = r.get("outcome"), r
+                if isinstance(r, dict) and "outcome" in r:   # a refused call (invalid input) is the model's to correct
+                    outcome, ev_result = r.get("outcome"), r
     ms = (time.perf_counter() - t) * 1000
     from propel.agent.authorization_agent.agent import _OUTCOME_LINE, outcome_line_agrees
     # the card's own Outcome line (same pattern the guard uses), not other lines that mention an outcome
@@ -194,7 +217,8 @@ async def run_b_async(pid: str) -> dict:
             # None: no card before the approval prompt (the model sent the record request alone and writes the card
             # after staff approve, which is not part of answering); otherwise whether its card agrees with the rules
             "card_by_model": (all(outcome_line_agrees(ln, ev_result) for ln in lines) if lines else None),
-            "card_lines": lines}
+            "card_lines": lines, "passed": passed, "texts": texts, "own_records": own_records, "tools": tools,
+            "result": ev_result}
 
 
 async def run_a_agent_async(pid: str, model=None) -> dict:
@@ -249,9 +273,9 @@ def run_a_agent(pid: str) -> dict:
     return asyncio.run(run_a_agent_async(pid))
 
 
-def run_b(pid: str) -> dict:
+def run_b(pid: str, raw: bool = False) -> dict:
     os.environ["PROPEL_DECISION_LOG"] = str(OUT / "compare_decisions.jsonl")
-    return asyncio.run(run_b_async(pid))
+    return asyncio.run(run_b_async(pid, raw))
 
 
 # --- report ------------------------------------------------------------------------------------------------------
@@ -286,6 +310,8 @@ def main(argv: list[str]) -> int:
                     "rag, whole, or a comma list such as agent,rag,whole")
     ap.add_argument("--only", choices=["A", "B"], help="run one of the model lanes only (C always runs: it is the key)")
     ap.add_argument("--offline", action="store_true", help="mode C and A's prompt sizes only; no LLM calls")
+    ap.add_argument("--b-mode", choices=["structured", "raw"], default="structured",
+                    help="B is handed the facts (structured, default) or reads the raw chart (saved as B_raw)")
     args = ap.parse_args(argv)
     global A_EFFORT
     A_EFFORT = args.a_effort
@@ -299,7 +325,8 @@ def main(argv: list[str]) -> int:
 
     effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip() or "provider default"
     report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL,
-              "reasoning_effort": effort, "a_reasoning_effort": args.a_effort or effort, "a_docs": a_modes, "scenarios": {}}
+              "reasoning_effort": effort, "a_reasoning_effort": args.a_effort or effort, "a_docs": a_modes,
+              "b_mode": args.b_mode, "scenarios": {}}
     for sc, pid in SCENARIOS:
         c_runs = [run_c(pid) for _ in range(args.runs)]
         ref = c_runs[0]["outcome"]
@@ -320,16 +347,23 @@ def main(argv: list[str]) -> int:
                         entry["A_agent"]["pages_read"] = statistics.mean(r["pages_read"] for r in runs_m)
                         entry["A_agent"]["searches"] = statistics.mean(r["searches"] for r in runs_m)
             if args.only != "A":
-                b_runs = [run_b(pid) for _ in range(args.runs)]
-                entry["B"] = summarise(b_runs, ref)
-                entry["B_card_lines"] = [r["card_lines"] for r in b_runs]   # what the model wrote, for checking
+                raw = args.b_mode == "raw"
+                key = "B_raw" if raw else "B"
+                b_runs = [run_b(pid, raw) for _ in range(args.runs)]
+                entry[key] = summarise(b_runs, ref)
+                entry[f"{key}_card_lines"] = [r["card_lines"] for r in b_runs]   # what the model wrote, for checking
+                if raw:   # did B read the chart right: the facts it passed against the registered facts
+                    entry[key]["facts_right"] = sum(1 for r in b_runs if facts_match((r["passed"] or {}).get("facts"), PATIENTS[pid]["facts"]))
+                    entry[f"{key}_passed"] = [r["passed"] for r in b_runs]
         report["scenarios"][sc] = entry
         print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt "
               + ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes if f"A_{m}_prompt_tokens" in entry) + " tokens"
               + "".join(f" | A {m} {entry[f'A_{m}']['matches_rules']}/{args.runs} match, {dict(entry[f'A_{m}']['outcomes'])}"
                         for m in a_modes if f"A_{m}" in entry)
               + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, own card right"
-                 f" {entry['B']['card_right_by_model']} of {entry['B']['card_written']} written, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else ""))
+                 f" {entry['B']['card_right_by_model']} of {entry['B']['card_written']} written, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else "")
+              + (f" | B reading the chart {entry['B_raw']['matches_rules']}/{args.runs} right answer, facts right "
+                 f"{entry['B_raw']['facts_right']}/{args.runs}" if "B_raw" in entry else ""))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
     (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -361,6 +395,14 @@ def main(argv: list[str]) -> int:
             return f"{s['matches_rules']}/{s['runs']} match the key; {cost}"
         lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | "
                      + " | ".join(cell(f"A_{m}") for m in a_modes) + f" | {cell('B')} | {cell('C')} |")
+    if any("B_raw" in e for e in report["scenarios"].values()):
+        lines += ["", "B reading the raw chart (labs with dates and units, diagnoses, notes; no ready-made facts):", "",
+                  "| Scenario | Rules say | Right answer | Facts read right | LLM calls | Tokens in |", "| --- | --- | --- | --- | --- | --- |"]
+        for sc, e in report["scenarios"].items():
+            if "B_raw" in e:
+                s = e["B_raw"]
+                lines.append(f"| {sc} ({e['patient']}) | {e['reference_outcome']} | {s['matches_rules']}/{s['runs']} | "
+                             f"{s['facts_right']}/{s['runs']} | {s['llm_calls']:.1f} | {s['tokens_in']:,.0f} |")
     for m in a_modes:
         if any(f"A_{m}" in e for e in report["scenarios"].values()):
             lines += ["", f"{A_MODES[m]}, answers per scenario: "

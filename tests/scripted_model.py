@@ -7,6 +7,7 @@ runs with GPT-5 mini (tests 9, 21 to 23) are done with OPENAI_API_KEY set, outsi
 from __future__ import annotations
 
 import json
+import re
 from typing import AsyncGenerator
 
 from google.adk.models.base_llm import BaseLlm
@@ -54,11 +55,48 @@ def _text(t: str) -> LlmResponse:
     return LlmResponse(content=types.Content(role="model", parts=[types.Part(text=t)]))
 
 
+# --- raw chart mode: the facts a careful reader takes from the chart, by fixed rules (a stand-in, not a model) ------
+
+_LAB = {"hemoglobin": "hgb_g_dl", "egfr": "egfr", "serum creatinine": "serum_creatinine_mg_dl"}
+_CODES = [(r"epoetin alfa|procrit|epogen", "J0885"), (r"ferric carboxymaltose|injectafer", "J1439")]
+
+
+def chart_facts(chart: dict, order: dict) -> tuple[dict, str]:
+    """(facts, code) from a raw chart: the latest lab on or before the date of service, from a lab entry or a note;
+    g/L converted to g/dL; current diagnoses, the latest of two stages of the same disease; the order's code, or the
+    code its drug name maps to."""
+    dos = order["date_of_service"]
+    found: dict[str, tuple[str, float]] = {}
+    for lab in chart.get("labs", []):
+        key = next((v for k, v in _LAB.items() if lab["test"].lower().startswith(k)), None)
+        if key and lab["date"] <= dos and (key not in found or lab["date"] >= found[key][0]):
+            val = lab["value"] / 10 if key == "hgb_g_dl" and lab["unit"] == "g/L" else lab["value"]
+            found[key] = (lab["date"], val)
+    for n in chart.get("notes", []):   # a value stated only in a note: "Hgb 9.4 on 3 Nov"
+        m = re.search(r"\bHgb (\d+(?:\.\d+)?) on (\d{1,2}) Nov", n["text"])
+        if m and "hgb_g_dl" not in found:
+            found["hgb_g_dl"] = (f"2026-11-{int(m.group(2)):02d}", float(m.group(1)))
+    facts = {k: v for k, (_, v) in found.items() if k != "serum_creatinine_mg_dl"}
+    if "serum_creatinine_mg_dl" in found:
+        facts["creatinine_date"] = found["serum_creatinine_mg_dl"][0]
+    dx = sorted((d for d in chart.get("diagnoses", []) if d.get("status") == "active"), key=lambda d: d["noted"])
+    latest: dict[str, str] = {}
+    for d in dx:   # same category (N18.3x): the latest entry wins
+        latest[d["code"][:4] if d["code"].startswith("N18") else d["code"]] = d["code"]
+    facts["diagnosis_codes"] = sorted(latest.values())
+    if any("not on dialysis" in n["text"].lower() for n in chart.get("notes", [])):
+        facts["dialysis_status"] = "none"
+    facts.update({k: order[k] for k in ("encounter_type", "urgency", "request_type")})
+    code = order.get("code") or next((c for rx, c in _CODES if re.search(rx, order.get("description", ""), re.I)), "")
+    return facts, code
+
+
 class ScriptedModel(BaseLlm):
     model: str = "scripted"
     patient_id: str = "maria-tn"
     skip_checks: bool = False   # behave like a model that obeys "skip the policy check": record straight away
     wrong_card: bool = False    # write a decision card whose Outcome line contradicts rules_evaluate
+    raw: bool = False           # raw chart mode: build the facts from the chart
     calls: int = 0
 
     async def generate_content_async(self, llm_request: LlmRequest, stream: bool = False) -> AsyncGenerator[LlmResponse, None]:
@@ -78,7 +116,12 @@ class ScriptedModel(BaseLlm):
                 return
             yield _text(f"record: {json.dumps(last['journey_record'])[:200]}")
             return
-        args = o["rules_evaluate_args"]
+        if self.raw:
+            facts, code = chart_facts(j["chart"], o)
+            args = {"plan": j["coverage"]["plan"], "state": j["coverage"]["state"], "code": code,
+                    "date_of_service": o["date_of_service"], "facts": facts}
+        else:
+            args = o["rules_evaluate_args"]
         base = {k: args[k] for k in ("plan", "state", "code", "date_of_service")}
         if "rules_evaluate" not in names:
             yield _calls(("context_applicable_rules", base), ("rules_evaluate", args))   # one turn, as instructed

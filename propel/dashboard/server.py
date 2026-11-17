@@ -17,6 +17,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 import uuid
@@ -186,16 +187,17 @@ def compare():
     hist: dict = {}   # every run of the one-call baselines and of lane A, so the Testing tab can show them all
     for f in files:
         rep = json.loads(f.read_text(encoding="utf-8"))
-        for lane, key in (("A", "A_agent"), ("A_rag", "A_rag"), ("A_whole", "A_whole")):
+        for lane, key in (("A", "A_agent"), ("A_rag", "A_rag"), ("A_whole", "A_whole"), ("B", "B"), ("B_raw", "B_raw")):
             sc = [e[key] for e in rep.get("scenarios", {}).values() if e.get(key)]
             if sc:
-                hist.setdefault(lane, []).append({"file": f.name, "at": rep.get("at"), "right": sum(x["matches_rules"] for x in sc),
+                hist.setdefault(lane, []).append({"file": f.name, "at": rep.get("at"), "model": rep.get("model"),
+                                                  "right": sum(x["matches_rules"] for x in sc),
                                                   "runs": sum(x["runs"] for x in sc)})
         for sc, e in rep.get("scenarios", {}).items():
             tgt = out["scenarios"].setdefault(sc, {"patient": e["patient"], "reference_outcome": e.get("reference_outcome")})
             if tgt["patient"] != e["patient"]:
                 continue
-            lanes = {"A": e.get("A_agent"), "A_rag": e.get("A_rag"), "A_whole": e.get("A_whole"), "B": e.get("B"), "C": e.get("C"),
+            lanes = {"A": e.get("A_agent"), "A_rag": e.get("A_rag"), "A_whole": e.get("A_whole"), "B": e.get("B"), "B_raw": e.get("B_raw"), "C": e.get("C"),
                      "A_sent": e.get("A_rag_sent"), "A_whole_tokens": e.get("A_whole_prompt_tokens"), "A_runs": e.get("A_agent_runs")}
             for lane, v in lanes.items():
                 if v and lane not in tgt:
@@ -215,6 +217,22 @@ def compare():
         out["explain"]["when"] = "; ".join(f"{names[k]} {failures._when(v)}" for k, v in at.items() if k in names)
     except Exception as ex:
         print(f"[dashboard] testing explanation not available: {ex}", flush=True)
+    return out
+
+
+@app.get("/api/experiments")
+def experiments():
+    """The newest E1 (search with other chunking) and E2 (tests built to make B fail) reports, without the run detail.
+    Missing: the Testing page says the test has not been run yet."""
+    out = {}
+    for key in ("e1", "e2"):
+        files = sorted(RESULTS.glob(f"{key}-*.json")) if RESULTS.exists() else []
+        if files:
+            rep = json.loads(files[-1].read_text(encoding="utf-8"))
+            rep.pop("detail", None)
+            for c in (rep.get("cases") or {}).values():
+                c.pop("detail", None)
+            out[key] = {**rep, "file": files[-1].name}
     return out
 
 
@@ -307,6 +325,64 @@ def knowledge():
     return _views("rules", "policy_scopes", "medicare_programs", "codes")
 
 
+# --- Ask about a rule: questions answered from the stored source text, never from a model --------------------------
+
+_STOP = set("""a an and are as at be by can do does for from has have how i if in is it its me my need needs of on or
+should so than that the their them then there these this those to under was what when where which who why will with
+would you your rule rules about tell say says said order patient required require requires requirement needed level
+levels value values much many any get""".split())
+_SAME = {"hemoglobin": ["hgb", "hemoglobin"], "hgb": ["hgb", "hemoglobin"], "kidney": ["kidney", "ckd"], "ckd": ["ckd", "kidney"],
+         "egfr": ["egfr", "gfr"], "approval": ["approval", "authorization"], "authorization": ["authorization", "approval"],
+         "pa": ["prior authorization", "pa"], "iron": ["iron", "ferric"], "epoetin": ["epoetin", "esa"]}
+
+
+def _terms(q: str) -> list[list[str]]:
+    """Each meaningful word of the question, with its plain variants (a plural's singular, a common synonym)."""
+    out = []
+    for w in re.findall(r"[a-z0-9][a-z0-9.\-]*", q.lower()):
+        if w in _STOP or len(w) < 2:
+            continue
+        forms = set(_SAME.get(w, [w]))
+        if len(w) > 4 and w.endswith("s"):
+            forms.add(w[:-1])
+        out.append([w] + sorted(forms - {w}))   # the word as asked first: it is what the page highlights
+    return out
+
+
+@app.get("/api/ask")
+def ask(q: str, refs: str = ""):
+    """A question about the rules, answered from the stored rules and their source quotes: the rules whose text has
+    every word of the question (kc_api.policy_search's test), or else the ones with the most of them. refs (comma
+    separated rule_refs) limits it to one case's rules, or one rule. No model writes anything here."""
+    terms = _terms(q)
+    if not terms:
+        raise HTTPException(400, "ask with a few words, for example: hemoglobin limit, eGFR, dialysis")
+    want = [r for r in refs.split(",") if r.strip()]
+    sql = ("SELECT r.rule_ref, r.summary, r.citation, r.page, r.quote, r.subject, r.rule_type, "
+           "lower(concat_ws(' ', r.summary, r.quote, r.citation, r.subject, r.rule_type, r.applies_in)) AS body "
+           "FROM kc_views.rules r" + (" WHERE r.rule_ref = ANY(%s)" if want else ""))
+    try:
+        with db() as c:
+            rows = _rows(c, sql, (want,) if want else ())
+    except (psycopg.errors.UndefinedTable, psycopg.errors.InvalidSchemaName):
+        raise HTTPException(503, REBUILD)
+    # a word few rules use says more than one most rules use: weight each by its rarity across the rules in scope
+    import math
+    df = {t[0]: sum(1 for r in rows if any(f in r["body"] for f in t)) for t in terms}
+    idf = {w: math.log(1 + len(rows) / n) for w, n in df.items() if n}
+    scored = []
+    for r in rows:
+        hit = [t[0] for t in terms if any(f in r["body"] for f in t)]
+        if hit:
+            scored.append((sum(idf[w] for w in hit), r, hit))
+    every = [x for x in scored if len(x[2]) == len(terms)]
+    pick = every or sorted(scored, key=lambda x: -x[0])[:5]
+    found = [{**{k: r[k] for k in ("rule_ref", "summary", "citation", "page", "quote", "subject", "rule_type")}, "matched": hit}
+             for _, r, hit in sorted(pick, key=lambda x: (-x[0], x[1]["citation"] or ""))]
+    return {"query": q, "words": [t[0] for t in terms], "scope": len(rows), "mode": "every word" if every else "most words",
+            "results": found, "sql": sql.replace("%s", "ARRAY[" + ", ".join("'" + x.replace("'", "''") + "'" for x in want) + "]")}
+
+
 def _order_args(pid: str) -> tuple:
     p, o = _order(pid)
     f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
@@ -333,9 +409,9 @@ def explain(patient: str):
 # --- Runs: the agent (B) or the workflow (C), streamed as events ----------------------------------------------------
 
 class Run:
-    def __init__(self, patient: str, mode: str):
+    def __init__(self, patient: str, mode: str, raw: bool = False):
         self.id = uuid.uuid4().hex[:12]
-        self.patient, self.mode = patient, mode
+        self.patient, self.mode, self.raw = patient, mode, raw
         self.events: list[dict] = []
         self.cond = asyncio.Condition()
         self.confirm: asyncio.Future | None = None
@@ -422,7 +498,7 @@ async def run_documents(run: Run):
 # The agent and its MCP connections (the journey server and Kanini Context) are made once and kept open, so a run
 # starts at its first model call. Each run has its own ADK session; the callbacks find the run by its session id.
 
-AGENT: dict = {"agent": None, "own": None, "nocontext": None}
+AGENT: dict = {"agent": None, "agent_raw": None, "own": None, "nocontext": None}   # one agent per mode
 SESSIONS: dict[str, Run] = {}
 
 
@@ -524,16 +600,17 @@ async def shared_agent(kind: str = "agent"):
                     print(f"[dashboard] tool connection not ready yet ({ex}); it opens on the first run", flush=True)
             AGENT["nocontext"] = agent
         return AGENT["nocontext"]
-    if AGENT["agent"] is None:
+    key = "agent_raw" if kind == "agent_raw" else "agent"   # raw chart mode has its own agent and connections
+    if AGENT[key] is None:
         from propel.agent.authorization_agent import agent as A
-        agent = _install(A.build_agent(model=A.make_model()))
+        agent = _install(A.build_agent(model=A.make_model(), raw=key == "agent_raw"))
         for ts in agent.tools or []:
             try:
                 await ts.get_tools()   # opens the connection now, not in the first run
             except Exception as ex:
                 print(f"[dashboard] tool connection not ready yet ({ex}); it opens on the first run", flush=True)
-        AGENT["agent"] = agent
-    return AGENT["agent"]
+        AGENT[key] = agent
+    return AGENT[key]
 
 
 _LIB_TOKENS: list[int] = []
@@ -560,7 +637,7 @@ async def _warm():
 
 @app.on_event("shutdown")
 async def _close():
-    for ts in [t for a in (AGENT["agent"], AGENT["nocontext"]) if a for t in (a.tools or []) if hasattr(t, "close")]:
+    for ts in [t for a in AGENT.values() if a for t in (getattr(a, "tools", None) or []) if hasattr(t, "close")]:
         try:
             await ts.close()
         except Exception:
@@ -587,9 +664,9 @@ async def run_agent(run: Run, kind: str = "agent"):
             from propel.agent.no_context_agent import agent as N
             agent = _install(N.build_agent(model=ScriptedNoContextModel(patient_id=run.patient)))
         else:
-            agent = _install(A.build_agent(model=ScriptedModel(patient_id=run.patient)))
+            agent = _install(A.build_agent(model=ScriptedModel(patient_id=run.patient, raw=run.raw), raw=run.raw))
     else:
-        agent = await shared_agent(kind)
+        agent = await shared_agent("agent_raw" if kind == "agent" and run.raw else kind)
     svc = InMemorySessionService()
     runner = Runner(app_name="dashboard", agent=agent, session_service=svc)
     s = await svc.create_session(app_name="dashboard", user_id="staff")
@@ -657,7 +734,7 @@ def _rules_answer(pid: str) -> dict:
 
 @app.post("/api/run")
 async def start(body: dict):
-    pid, mode = body.get("patient"), body.get("mode", "agent")
+    pid, mode, raw = body.get("patient"), body.get("mode", "agent"), bool(body.get("raw")) and body.get("mode", "agent") == "agent"
     if pid not in PATIENTS or mode not in ("agent", "nocontext", "workflow", "documents"):
         raise HTTPException(400, "patient must be a known patient id and mode agent, workflow or documents")
     for old in [x for x in RUNS.values() if x.mode == mode]:   # a new run of a mode replaces the last one of that mode
@@ -667,9 +744,9 @@ async def start(body: dict):
             old.stale = True
     for rid in [r for r, x in RUNS.items() if x.done][:-20]:   # keep the last runs only
         RUNS.pop(rid, None)
-    run = Run(pid, mode)
+    run = Run(pid, mode, raw)
     RUNS[run.id] = run
-    await run.emit("start", patient=pid, mode=mode, order=PATIENTS[pid]["orders"][0]["order_id"])
+    await run.emit("start", patient=pid, mode=mode, raw=raw, order=PATIENTS[pid]["orders"][0]["order_id"])
     run.task = asyncio.create_task({"agent": run_agent, "nocontext": lambda r: run_agent(r, "nocontext"), "workflow": run_workflow,
                                     "documents": run_documents}[mode](run))
     return {"run": run.id}

@@ -132,6 +132,10 @@ def review_of(d: dict, test_review: bool) -> tuple[list[str], str | None, str | 
         return [TEST_APPROVER], TEST_EXCEPTION, None
     if len(set(approvers)) == 1 and not exception:
         raise LoadError("one approver needs a recorded review_exception")
+    if rv.get("reviewed_sha"):   # approved with a fingerprint: the file must be what was approved
+        from .approve import content_sha
+        if content_sha(d) != rv["reviewed_sha"]:
+            raise LoadError("changed since it was approved (run curation/approve.py again)")
     return approvers, exception, rv.get("reviewed_at")
 
 

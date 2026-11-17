@@ -283,11 +283,10 @@ When the rules say nothing, the answer is never "no PA". No rule found, a missin
 
 | | |
 | :-- | :-- |
-| **Knowledge tab: the graph** | Every node and edge of the release, zoomable. Nodes settle in shells by type; labels appear as you zoom. When an order is answered, the nodes it rests on light up and move to the centre, the screened PA programs pulse orange, and dots travel the path from plan, code and state to the rule and its source page. Click any node for its page, quote, hash or links. |
-| **Schema tab** | The ontology as a class diagram, read from `kanini-context.ttl` at every release: one box per class with its fields and its kinds (53 classes, 93 fields), the Terminology and Coverage groups as frames, and the 17 relations as named arrows. Click a class to see all its fields and zoom to its neighbours; after an answer, the classes it passed through glow. |
-| **Decision card and approval** | Outcome, reasons, next step, deadline, route, evidence, the rule and its quote, with Approve and Reject. The approval goes to the decision log. |
-| **A, B and C side by side** | Three lanes run live on the chosen order, in turn or one at a time. **A** is the same agent and model with no Kanini Context: it searches and reads the policy documents itself for every order (each search and page shows as it happens) and its answer is marked against the rules. **B** is the agent with Kanini Context, making short calls with no document text. **C** is Kanini Context with no AI. The lanes are empty until a run; after it, each mark shows how often that way was right in testing. |
-| **Testing tab** | The same six orders over repeated runs, from `propel/baseline/results/`: A, and the single-call setups (with search, or with every document), with how often each was right, how often its answer changed between runs, tokens and calls, and the reasons it went wrong. |
+| **Sources** | Every saved document by group, with its edition, fingerprint, last check and freshness, the rules resting on it, and the ingestion pipeline: the scheduled source check, change flags and review. |
+| **Knowledge** | Every approved rule in plain words, filterable by place and kind, with its page and exact quote; "Ask about this rule" answers a question from the stored rules and their source text (no model writes the answer), for one rule or for the rules behind a case. Also the graph and the schema. |
+| **Ask** | One case, three ways: C (rules only) answers first and stays on screen, then B (the agent with Kanini Context) is graded against C field by field, then A (the same agent without it). "B gets facts" hands B the patient's facts; "B reads the chart" hands it the raw chart (labs with dates and units, diagnoses, notes) and shows the facts it built next to C's. "Why is this right?" is the trace from `kc_api.explain_order`. |
+| **Testing** | The six orders over repeated runs (A, B, B reading the chart, C), the single-call baselines, search with other chunking (E1), the cases built to make B fail (E2), and the limits. |
 
 With `--scripted` it uses a scripted stand-in model and needs no API key. The page says when it is in that mode.
 
@@ -362,7 +361,7 @@ An order's plan and state pick out a Plan and its Jurisdiction. From there the r
 | Layers and effects (4.1) | ✓ | ✓ unchanged resolver logic |
 | Dates: four bounds and record time (5.1) | ✓ | ✓ every tool takes an "as recorded" moment, so any answer can be replayed |
 | "Not required" (4.6) | from a stated rule | also `stated_by_exhaustion`: only when every program bound to the plan, state and date is a screened closed list |
-| Approval (6.5) | two approvers | one engineer with a recorded exception, as the prototype scope sets it |
+| Approval (6.5) | two approvers | two approvers supported (`approve.py --by` twice, or a second person later on the unchanged file); in the prototype one engineer approved, with a recorded exception |
 | Tools (7.2) | 7 tools | the 7 tools, plus the scope's 3 (`context_applicable_rules`, `rules_evaluate`, `policy_search`), over MCP |
 | Client copy and freshness (6.6) | signed read-only schema | second database `kc_client`; limits 14 and 45 days per source |
 | Ontology file (6.1) | ✓ | ✓ generated at every build |
@@ -398,9 +397,9 @@ cp .env.example .env                                        # add the Azure Open
 
 python -m kanini_context.sources.place ~/Downloads          # put the saved source copies in place (matched by hash)
 python -m kanini_context.curation.checks                    # every quote on its cited page
-python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
+python -m kanini_context.curation.approve --by "NANDHU S K" # approval, once per edition (a second person adds theirs the same way)
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 134 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 165 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
@@ -408,6 +407,7 @@ adk web propel/agent                                        # or the plain ADK w
 python -m propel.baseline.compare --runs 5                  # the A / B / C comparison (B needs the server running)
 python -m propel.baseline.compare --runs 5 --only A         # lane A only (the agent without Kanini Context); no server needed
 python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the one-call baselines: search and every document
+python -m propel.baseline.run_all --runs 5                  # every test run in one command: A/B/C, B reading the chart, E1, E2
 ```
 
 <details>
@@ -425,6 +425,11 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 | `python -m kanini_context.release.sync` | Records a client sync on the demo day |
 | `python -m propel.baseline.compare --offline` | Mode C and A's prompt sizes, with no model calls |
 | `python -m propel.baseline.compare --a-docs rag` | A by RAG only (`whole` for the whole library only) |
+| `python -m propel.baseline.compare --runs 5 --only B --b-mode raw` | B reading the raw chart instead of being handed the facts; saved as `B_raw`, with how often it read the facts right |
+| `python -m propel.baseline.chunking --runs 5` | E1: search with other chunking (paragraphs, semantic, hybrid, hybrid on the state's documents), the same passage budget; counts invented and misapplied answers. Refuses to run without an embedding model |
+| `python -m propel.baseline.negatives --runs 3` | E2: B reading charts built to make it fail (a value only in a note, two dated results, g/L, a planted instruction, no code, two CKD stages) and three boundary cases. `--model azure/<deployment> --effort minimal` for the smaller-model run (N11) |
+| `python -m propel.journey.server --raw` | The patient-record server in raw chart mode (`propel/journey/charts.json`) |
+| `python -m kanini_context.curation.approve --by "A" --by "B" FILE` | Two people approving together; no exception is recorded |
 
 </details>
 
@@ -439,9 +444,9 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 | `kanini_context/db/` | `schema.sql`, `registry.sql`, `resolver.sql`, `api.sql`, `spec_regression/` |
 | `kanini_context/release/` | `build.py`, `sync.py`, `owl.py`, `kanini-context.ttl` |
 | `kanini_context/server/` | The Kanini Context MCP server |
-| `propel/journey/` | Synthetic patients and orders, journey MCP server, decision log |
+| `propel/journey/` | Synthetic patients and orders, their synthetic charts and the cases built to make B fail (`charts.json`), journey MCP server, decision log |
 | `propel/agent/` | The ADK agents: `authorization_agent` (with Kanini Context, lane B) and `no_context_agent` (the same agent reading the documents itself, lane A) |
-| `propel/baseline/` | The A / B / C comparison |
+| `propel/baseline/` | The A / B / C comparison (`compare.py`), E1 (`chunking.py`), E2 (`negatives.py`), all of them in one command (`run_all.py`) |
 | `propel/dashboard/` | The browser dashboard: FastAPI server, page, vendored d3 and fonts |
 | `tests/` | Scope tests 1 to 23, pack tests, live-model tests, scripted model |
 | `docs/` | Scope findings, prototype notes, coverage map, README figures |

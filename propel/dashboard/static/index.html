@@ -47,6 +47,13 @@
     </aside>
     <div class="kn-main">
       <div class="kn-rules" id="kn-rules">
+        <div class="kn-case hidden" id="kn-case"></div>
+        <form class="panel kask" id="kn-ask" autocomplete="off">
+          <label for="kn-q" id="kn-ask-label">Ask about the rules</label>
+          <div class="kask-row"><input type="text" id="kn-q" placeholder="For example: what hemoglobin level is required?">
+            <button type="submit" class="btn">Ask</button></div>
+          <div class="kask-out" id="kn-answer" aria-live="polite"></div>
+        </form>
         <input type="search" class="search" id="kn-search" placeholder='Search the rules, for example "eGFR" or "J0885"' aria-label="Search the rules">
         <p class="count" id="kn-count"></p>
         <div class="rulelist" id="kn-list"></div>
@@ -73,6 +80,10 @@
       <section class="float detail hidden" id="detail" aria-label="Selected node"></section>
 
       <div class="float dock" role="toolbar" aria-label="Actions">
+        <div class="seg chartmode" role="radiogroup" id="chart-mode" aria-label="What agent B is given">
+          <button type="button" role="radio" aria-checked="true" data-m="facts" title="B is handed the patient's facts, ready to pass to the rules">B gets facts</button>
+          <button type="button" role="radio" aria-checked="false" data-m="raw" title="B is handed the chart (labs, diagnoses, notes) and builds the facts itself">B reads the chart</button>
+        </div>
         <button type="button" class="btn" id="run-race">Run C, B, A</button>
         <button type="button" class="btn ghost" id="open-why" aria-expanded="false">Why is this right?</button>
         <button type="button" class="btn ghost" id="open-cmp" aria-expanded="false">Compare A, B, C</button>
