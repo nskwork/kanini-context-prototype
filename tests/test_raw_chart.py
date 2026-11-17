@@ -118,8 +118,10 @@ def test_raw_mode_reaches_the_same_answer_as_structured(pid, kc_http, decision_l
 
 
 def test_no_code_order_is_recorded_in_raw_mode(kc_http, decision_log, kc):
-    """N8: the order has no code; the agent maps the drug to J0885. The record step finds that evaluation."""
+    """N8: the order has no code; the agent looks it up (codes_lookup) and gets J0885. The record step finds that
+    evaluation."""
     out = _agent("neg-no-code", "approve", raw=True)
+    assert out["trace"][:2] == ["journey_get", "codes_lookup"]
     assert out["calls"]["rules_evaluate"]["code"] == "J0885"
     want = kc("rules_evaluate", plan="original-medicare", state="TN", code="J0885", date_of_service=DOS,
               facts={**CHARTS["negatives"]["neg-no-code"]["expected_facts"], "encounter_type": "elective", "urgency": "standard",
@@ -153,3 +155,21 @@ def test_facts_verdict():
     assert facts_verdict({"facts": {**want, "hgb_g_dl": 94}}, want)[0] == "wrong"
     assert facts_verdict({"facts": {k: v for k, v in want.items() if k != "hgb_g_dl"}}, want)[0] == "asked"
     assert facts_verdict(None, want)[0] == "asked"
+
+
+@pytest.mark.parametrize("text,want", [
+    ("Epoetin alfa (Procrit), 10,000 units weekly subcutaneous, anemia of CKD, not on dialysis", ["HCPCS|J0885"]),
+    ("Retacrit 4000 units", ["HCPCS|Q5106"]),
+    ("darbepoetin alfa 40 mcg", ["HCPCS|J0881"]),
+    ("Procrit 10,000 units", []),          # a brand the pack's code list does not name: ask, do not guess
+])
+def test_codes_lookup_matches_whole_drug_names_only(kc, text, want):
+    out = kc("codes_lookup", text=text, date_of_service=DOS)
+    assert [c["code"] for c in out["candidates"]] == want
+    assert out["status"] == ("one_match" if want else "no_match")
+
+
+def test_a_service_name_is_refused_as_a_code(kc):
+    for code in ("SYSTEM|esa-ckd-nd", "esa-ckd-nd", "HCPCS|esa"):
+        out = kc("rules_evaluate", plan="original-medicare", state="TN", code=code, date_of_service=DOS, facts={})
+        assert out["status"] == "invalid_input" and "codes_lookup" in out["error"]

@@ -406,7 +406,7 @@ An order's plan and state pick out a Plan and its Jurisdiction. From there the r
 | Dates: four bounds and record time (5.1) | ✓ | ✓ every tool takes an "as recorded" moment, so any answer can be replayed |
 | "Not required" (4.6) | from a stated rule | also `stated_by_exhaustion`: only when every program bound to the plan, state and date is a screened closed list |
 | Approval (6.5) | two approvers | two approvers supported (`approve.py --by` twice, or a second person later on the unchanged file); in the prototype one engineer approved, with a recorded exception |
-| Tools (7.2) | 7 tools | the 7 tools, plus the scope's 3 (`context_applicable_rules`, `rules_evaluate`, `policy_search`), over MCP |
+| Tools (7.2) | 7 tools | the 7 tools, plus the scope's 3 (`context_applicable_rules`, `rules_evaluate`, `policy_search`) and `codes_lookup` (the code for an order that names a drug but has no code), over MCP |
 | Client copy and freshness (6.6) | signed read-only schema | second database `kc_client`; limits 14 and 45 days per source |
 | Ontology file (6.1) | ✓ | ✓ generated at every build |
 | Regression tests (8) | 61 | ✓ same verdicts |
@@ -443,7 +443,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # approval, once per edition (a second person adds theirs the same way)
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 165 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 172 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090

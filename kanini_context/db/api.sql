@@ -10,6 +10,7 @@
 --                               decision deadline, route, rule references, sources, freshness, safe to act
 --   kc_api.policy_cite          the source text behind one rule reference
 --   kc_api.policy_search        rule references whose source text or citation matches a phrase
+--   kc_api.codes_lookup         the HCPCS codes whose descriptor names the drug in an order text (no code on the order)
 -- A rule reference is rule_key@edition, the edition being the date the rule's edition takes effect,
 -- e.g. kc:rule/esa-ckd-nd/L39237@2026-09-17.
 
@@ -578,3 +579,32 @@ CREATE FUNCTION kc_api.policy_search(p_text text, p_recorded_as_of timestamptz D
            'page', d.source_locator -> 'page', 'quote', left(d.source_quote, 300)) ORDER BY d.citation, d.rule_key), '[]'))
     FROM (SELECT * FROM docs WHERE NOT EXISTS (SELECT 1 FROM words WHERE position(w IN body) = 0)
            AND EXISTS (SELECT 1 FROM words) ORDER BY citation, rule_key LIMIT 10) d $$;
+
+-------------------------------------------------------------------------------
+-- codes_lookup: the HCPCS codes in the pack whose descriptor names the drug in an order's text. For an order that
+-- names a drug but carries no code. A descriptor's drug is the name after "Injection, " (and a brand in brackets);
+-- it matches only as a whole name, so "epoetin alfa" does not match "darbepoetin alfa" or "epoetin alfa-epbx".
+-- One candidate: the code can be used. Several, or none: ask staff for the code. Nothing is guessed.
+-------------------------------------------------------------------------------
+CREATE FUNCTION kc_api.codes_lookup(p_text text, p_date date DEFAULT current_date, p_recorded_as_of timestamptz DEFAULT now())
+RETURNS jsonb LANGUAGE sql STABLE AS $$
+  WITH c AS (
+    SELECT c.code_system_id || '|' || c.code AS code, c.display, src.source_id, src.name AS title,
+           lower(trim(substring(c.display FROM '^Injection, ([^,(]+)'))) AS drug,
+           lower(substring(c.display FROM '\(([A-Z][A-Za-z]+)\)')) AS brand
+      FROM kc_core.code c
+      LEFT JOIN kc_core.snapshot sn ON sn.snapshot_id = c.snapshot_id
+      LEFT JOIN kc_core.source src ON src.source_id = sn.source_id
+     WHERE c.code_system_id = 'HCPCS' AND c.recorded @> p_recorded_as_of AND c.valid @> p_date),
+  hit AS (
+    SELECT *, CASE WHEN drug IS NOT NULL AND lower(p_text) ~ ('(^|[^a-z-])' || drug || '($|[^a-z-])') THEN 'drug name'
+                   WHEN brand IS NOT NULL AND lower(p_text) ~ ('(^|[^a-z])' || brand || '($|[^a-z])') THEN 'brand name' END AS matched_by
+      FROM c)
+  SELECT jsonb_build_object(
+    'status', CASE count(*) WHEN 0 THEN 'no_match' WHEN 1 THEN 'one_match' ELSE 'several_matches' END,
+    'query', p_text,
+    'candidates', coalesce(jsonb_agg(jsonb_build_object('code', code, 'display', display, 'matched_by', matched_by,
+                                                        'source', title) ORDER BY code), '[]'),
+    'next_step', CASE count(*) WHEN 1 THEN 'use this code if its description fits the order (for example, non-ESRD use), and say on the card that it was looked up from the drug name'
+                 ELSE 'ask staff for the order''s HCPCS code; do not choose one' END)
+    FROM hit WHERE matched_by IS NOT NULL $$;

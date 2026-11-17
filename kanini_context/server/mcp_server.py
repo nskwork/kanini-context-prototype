@@ -71,11 +71,18 @@ def invalid(error: str) -> dict:
     return {"status": "invalid_input", "error": error, "safe_to_act": False, "next_step": "fix_input"}
 
 
+CODE_SYSTEMS = {"HCPCS", "ICD10CM", "LOINC", "KCDE", "CPT", "NDC"}   # a system Kanini Context knows, or may hold
+
+
 def norm_code(code: str) -> str | None:
-    """'SYSTEM|code' as given, or a bare HCPCS code (one letter and four digits) with its system added."""
+    """'SYSTEM|code' as given (a known code system), or a bare HCPCS code (one letter and four digits) with its system
+    added. Anything else, such as a service key passed as a code ('SYSTEM|esa-ckd-nd'), is refused."""
     c = code.strip()
     if "|" in c:
-        return c if re.fullmatch(r"[A-Z0-9]+\|[A-Za-z0-9.\-]+", c) else None
+        system, _, value = c.partition("|")
+        if system == "HCPCS":
+            return c if re.fullmatch(r"[A-Z]\d{4}", value) else None
+        return c if system in CODE_SYSTEMS and re.fullmatch(r"[A-Za-z0-9.\-]+", value) else None
     c = c.upper()
     return "HCPCS|" + c if re.fullmatch(r"[A-Z]\d{4}", c) else None
 
@@ -95,7 +102,8 @@ def norm_item(service: str, code: str) -> tuple[str | None, str | None]:
     return sv, None
 
 
-CODE_ERROR = "code must be SYSTEM|code, or a HCPCS code (one letter and four digits)"
+CODE_ERROR = ("code must be a HCPCS code (one letter and four digits, e.g. J0885) or SYSTEM|code; if the order has no "
+              "code, call codes_lookup with the order's description")
 
 
 def norm_date(d: str) -> str | None:
@@ -213,6 +221,19 @@ def policy_search(query: str = "", rule_ref: str = "") -> dict:
     if not query.strip():
         return invalid("give rule_ref or query")
     return call("policy_search", "SELECT kc_api.policy_search(%s)", (query.strip(),))
+
+
+@mcp.tool
+def codes_lookup(text: str, date_of_service: str = "") -> dict:
+    """For an order that names a drug but has no HCPCS code: the codes in the pack whose description names that drug
+    (text: the order's description; date_of_service: YYYY-MM-DD). status one_match: that code may be used if its
+    description fits the order; several_matches or no_match: ask staff for the code, do not choose one."""
+    if not text.strip():
+        return invalid("give the order's description as text")
+    d = norm_date(date_of_service) if date_of_service.strip() else None
+    if date_of_service.strip() and not d:
+        return invalid("date_of_service must be YYYY-MM-DD")
+    return call("codes_lookup", "SELECT kc_api.codes_lookup(%s, coalesce(%s::date, current_date))", (text.strip()[:400], d))
 
 
 # --- The seven tools of spec section 7.2, over the same SQL functions -------------------------------------------

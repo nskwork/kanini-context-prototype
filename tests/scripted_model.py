@@ -118,6 +118,16 @@ class ScriptedModel(BaseLlm):
             return
         if self.raw:
             facts, code = chart_facts(j["chart"], o)
+            if not o.get("code"):   # no code on the order: look it up in Kanini Context, never guess
+                if "codes_lookup" not in names:
+                    yield _call("codes_lookup", {"text": o.get("description", ""), "date_of_service": o["date_of_service"]})
+                    return
+                found = last["codes_lookup"]
+                if found.get("status") != "one_match":
+                    yield _text(f"Decision card · {o['order_id']} · Outcome: Not known (route to staff) · not safe to act\n"
+                                "The order has no HCPCS code and the drug name does not identify one: please add the code.")
+                    return
+                code = found["candidates"][0]["code"].split("|", 1)[-1]
             args = {"plan": j["coverage"]["plan"], "state": j["coverage"]["state"], "code": code,
                     "date_of_service": o["date_of_service"], "facts": facts}
         else:
