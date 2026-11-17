@@ -343,6 +343,8 @@ def main(argv: list[str]) -> int:
     rep = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": llm.MODEL, "embeddings": emb,
            "runs": a.runs, "budget_tokens": BUDGET, "reference": {pid: r["outcome"] for pid, r in ref.items()},
            "strategies": {}, "detail": {}}
+    OUT.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M")
     for s in a.only or STRATEGIES:
         n = len(chunks(s))
         print(f"\n{NAMES[s]}: {n} chunks")
@@ -353,9 +355,9 @@ def main(argv: list[str]) -> int:
             rep["detail"][s][pid] = runs
             v = rep["strategies"][s][pid]
             print(f"  {pid:16} rules {ref[pid]['outcome']:12} right {v['right']}/{a.runs}  deciding page {v['deciding_found']}/{a.runs}"
-                  f"  invented {v['invented']}  misapplied {v['misapplied']}  {v['outcomes']}")
-    OUT.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M")
+                  f"  invented {v['invented']}  misapplied {v['misapplied']}  {v['outcomes']}", flush=True)
+            # saved after every order, so a run that stops part way keeps what it finished
+            (OUT / f"e1-{stamp}.json").write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
     (OUT / f"e1-{stamp}.json").write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
     (OUT / f"e1-{stamp}.md").write_text(markdown(rep), encoding="utf-8")
     print(f"\nreport: propel/baseline/results/e1-{stamp}.md")

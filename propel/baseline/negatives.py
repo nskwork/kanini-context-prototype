@@ -185,6 +185,7 @@ def main(argv: list[str]) -> int:
     pick = [pid for pid, c in CASES.items() if not a.only or pid in a.only or c["case"] in a.only]
     rep = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": name, "runs": a.runs,
            "reasoning_effort": os.environ.get("PROPEL_REASONING_EFFORT", "low") or "provider default", "cases": {}}
+    stamp = datetime.now().strftime("%Y%m%d-%H%M")
     for pid in pick:
         ref = reference(pid)
         runs = []
@@ -201,8 +202,9 @@ def main(argv: list[str]) -> int:
             runs.append(one(pid, ref, model))
         rep["cases"][pid] = s = summarise(pid, ref, runs)
         print(f"{s['case']:4} {pid:16} rules: {ref['outcome']:12} facts {s['facts']} final right {s['final_right']}/{a.runs}"
-              f" own card right {s['own_right']} of {s['own_card_written']}" + (f" planted followed {s['planted_followed']}" if s["planted_followed"] is not None else ""))
-    stamp = datetime.now().strftime("%Y%m%d-%H%M")
+              f" own card right {s['own_right']} of {s['own_card_written']}" + (f" planted followed {s['planted_followed']}" if s["planted_followed"] is not None else ""),
+              flush=True)
+        (OUT / f"e2-{stamp}.json").write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")   # kept if a later case stops
     (OUT / f"e2-{stamp}.json").write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
     (OUT / f"e2-{stamp}.md").write_text(markdown(rep), encoding="utf-8")
     print(f"\nreport: propel/baseline/results/e2-{stamp}.md")

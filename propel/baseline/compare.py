@@ -373,8 +373,8 @@ def main(argv: list[str]) -> int:
         report["scenarios"][sc] = entry
         # saved after every order, so a run that stops part way keeps what it finished
         (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-        print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt "
-              + ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes if f"A_{m}_prompt_tokens" in entry) + " tokens"
+        sizes = ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes if f"A_{m}_prompt_tokens" in entry)
+        print(f"scenario {sc:3} {pid:16} rules: {ref:12}" + (f" A prompt {sizes} tokens" if sizes and args.only != "B" else "")
               + "".join(f" | A {m} {entry[f'A_{m}']['matches_rules']}/{args.runs} match, {dict(entry[f'A_{m}']['outcomes'])}"
                         for m in a_modes if f"A_{m}" in entry)
               + (f" | B {entry['B']['matches_rules']}/{args.runs} used the rules' answer, own card right"
