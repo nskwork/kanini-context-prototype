@@ -169,3 +169,30 @@ def test_documents_show_a_pending_change(db):
 def test_releases_view(db):
     rows = db.execute("SELECT release_id, covers_through FROM kc_views.releases").fetchall()
     assert rows and all(r[0] for r in rows)
+
+
+def test_ohio_trace_matches_the_stored_rows(db):
+    """The Ohio trace, checked against the tables directly rather than through the resolver: the programs are every
+    CMS program bound on the date to Ohio, its contractor region or the nation; the policies are the ones bound to
+    Ohio's region; the hemoglobin limit is the stored one."""
+    t = explain(db, dict(ORDERS)["ord-003"])
+    stored = {r[0] for r in db.execute("""
+        SELECT DISTINCT a.citation FROM kc_core.authority a JOIN kc_core.authority_binding b ON b.authority_id = a.entity_id
+          JOIN kc_core.jurisdiction j ON j.entity_id = b.jurisdiction_id
+         WHERE a.kind = 'pa_program' AND upper_inf(b.recorded) AND b.valid @> date '2026-11-15'
+           AND b.item_scope IN ('all', 'drugs')
+           AND (j.code IN ('US', 'OH') OR j.entity_id IN (
+                 SELECT e.to_id FROM kc_core.edge e JOIN kc_core.jurisdiction s ON s.entity_id = e.from_id
+                  WHERE s.code = 'OH' AND e.relation_type = 'within' AND upper_inf(e.recorded)))""")}
+    assert {p["program"] for p in t["programs"]} == stored
+    policies = {r[0] for r in db.execute("""
+        SELECT DISTINCT a.citation FROM kc_core.authority a JOIN kc_core.authority_binding b ON b.authority_id = a.entity_id
+          JOIN kc_core.jurisdiction j ON j.entity_id = b.jurisdiction_id
+         WHERE a.kind IN ('lcd', 'billing_article') AND upper_inf(b.recorded) AND j.code = 'J15'""")}
+    assert {r["citation"] for r in t["policies"] if r["basis"] != "stated_by_exhaustion"} >= policies == {"LCD L34356", "Article A56462"}
+    limit = db.execute("""SELECT q.test ->> 'value' FROM kc_core.rule_requirement q JOIN kc_core.rule r USING (rule_id)
+                           JOIN kc_core.data_element d ON d.entity_id = q.data_element_id
+                          WHERE r.rule_key = 'kc:rule/esa-ckd-nd/L34356' AND upper_inf(r.recorded) AND d.name = 'Hemoglobin'""").fetchone()[0]
+    items = [i for p in t["answer"]["coverage_criteria"]["policies"] if p["citation"] == "LCD L34356"
+             for g in p["groups"] for i in g["items"] if i.get("element") == "Hemoglobin"]
+    assert items and items[0]["status"] == "met" and f"< {limit}" in items[0]["detail"]
