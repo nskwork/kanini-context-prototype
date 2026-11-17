@@ -400,7 +400,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 121 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 129 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090

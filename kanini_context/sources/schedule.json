@@ -1,5 +1,5 @@
 {
-  "about": "When each source is checked for a new edition, and how. Edit 'every' and 'day' freely: 'daily', or 'weekly' with a day (monday to sunday). The scheduler (Task Scheduler or cron) runs 'python -m kanini_context.sources.check_sources --due' once a night at run_at; this file decides which sources are due. Keep every source checked at least once in 14 days, or its answers start to age.",
+  "about": "When each source is checked for a new edition, and how. Edit 'every' and 'day' freely: 'daily', or 'weekly' with a day (monday to sunday). The scheduler (Task Scheduler or cron) runs 'python -m kanini_context.sources.check_sources --due' once a night at run_at; this file decides which sources are due. Keep every source checked well inside its freshness limits: the spec gives payer lists 2 and 7 days, so they are checked daily.",
   "run_at": "02:00",
   "sources": {
     "mcd-lcd-l39237":            {"kind": "mcd",       "every": "weekly", "day": "saturday"},
@@ -8,10 +8,9 @@
     "mcd-article-a56462":        {"kind": "mcd",       "every": "weekly", "day": "saturday"},
     "ecfr-42-422-568":           {"kind": "ecfr",      "every": "daily",  "section": "422.568"},
     "cfr-42-422-572":            {"kind": "ecfr",      "every": "daily",  "section": "422.572"},
-    "uhc-ma-pa-list":            {"kind": "payer_pdf", "every": "weekly", "day": "monday",
-                                  "index_url": null},
-    "uhc-ma-partb-step-therapy": {"kind": "payer_pdf", "every": "weekly", "day": "monday",
-                                  "index_url": null},
+    "uhc-ma-pa-list":            {"kind": "payer_pdf", "every": "daily",
+                                  "index_url": "https://www.uhcprovider.com/en/prior-auth-advance-notification/adv-notification-plan-reqs.html"},
+    "uhc-ma-partb-step-therapy": {"kind": "payer_pdf", "every": "daily", "index_url": null},
     "cms-wiser-factsheet":       {"kind": "pdf",       "every": "weekly", "day": "sunday"},
     "cms-pa-program-stats":      {"kind": "pdf",       "every": "weekly", "day": "sunday"},
     "cms-asc-pa-demo-codes":     {"kind": "pdf",       "every": "weekly", "day": "sunday"},

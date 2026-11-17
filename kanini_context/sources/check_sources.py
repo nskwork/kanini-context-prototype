@@ -27,6 +27,15 @@ curation/load.py turns into kc_gov.change_flag: from applies_from, answers resti
 "pending review" until new rules are drafted, checked and approved. A change already recorded is not raised again.
 New content is saved to sources/raw/incoming/ for the drafting step; the saved copy the rules rest on is not touched.
 A source that cannot be read (site down, page layout changed) records nothing and is listed for a check by hand.
+
+How sites are read. Where a source offers an API (the Coverage API for Medicare policies, the eCFR versioner), that
+is used; pages and files are read like a polite program: it says who it is, keeps to each site's robots.txt (with
+the wildcard rules CMS's file uses), pauses between requests to one site, backs off when asked (429, 503,
+Retry-After), and sends the file's ETag so an unchanged file is not downloaded again. A site that answers with its
+bot protection (401, 403, 429, or a challenge page instead of the PDF) is reported as BLOCKED and left alone: the
+check never disguises itself or tries to get round a block (UnitedHealthcare's terms of use forbid it). Those
+sources go by the manual route the spec keeps for them: save the file from a browser, then place --record, or
+record a look with place --checked.
 The next release.build carries the checks and flags into the database (--then-build runs it).
 """
 from __future__ import annotations
@@ -57,6 +66,7 @@ class Page:
     status: int
     body: bytes = b""
     content_type: str = ""
+    headers: dict = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -70,16 +80,92 @@ class Page:
         return json.loads(self.body)
 
 
-Get = Callable[[str], Page]
+Get = Callable[..., Page]   # get(url, *, head=False, etag=None) -> Page
+
+BLOCK_MARKS = (b"access denied", b"captcha", b"are you a robot", b"request unsuccessful", b"incapsula", b"cf-chl",
+               b"challenge-platform", b"bot detection", b"_abck", b"reference #")
 
 
-def http_get(url: str) -> Page:
-    import httpx
-    try:
-        r = httpx.get(url, headers={"User-Agent": UA}, timeout=45, follow_redirects=True)
-        return Page(r.status_code, r.content, r.headers.get("content-type", ""))
-    except httpx.HTTPError as ex:
-        return Page(0, str(ex).encode(), "error")
+def blocked(p: Page) -> bool:
+    """A site's bot protection answered instead of the document: 401/403/429, or a challenge page."""
+    if p.status in (401, 403, 429) or p.status == 999:
+        return True
+    head = p.body[:6000].lower()
+    return p.ok and b"<html" in head and any(m in head for m in BLOCK_MARKS) and len(p.body) < 60000
+
+
+def _robots_rules(text: str) -> list[tuple[bool, str]]:
+    """The rules for every crawler (User-agent: *), as (allow, pattern)."""
+    rules, mine = [], False
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line or ":" not in line:
+            continue
+        k, v = (x.strip() for x in line.split(":", 1))
+        k = k.lower()
+        if k == "user-agent":
+            mine = v == "*"
+        elif mine and k in ("allow", "disallow") and v:
+            rules.append((k == "allow", v))
+    return rules
+
+
+def robots_allows(rules: list[tuple[bool, str]], path_and_query: str) -> bool:
+    """Google's reading of robots.txt, which CMS's file relies on: * matches anything, $ ends the path, the longest
+    matching rule wins and Allow wins a tie. (Python's own parser ignores wildcards.)"""
+    best = None
+    for allow, pat in rules:
+        rx = "^" + re.escape(pat).replace(r"\*", ".*").replace(r"\$", "$")
+        if re.match(rx, path_and_query):
+            key = (len(pat), allow)
+            if best is None or key > best[0]:
+                best = (key, allow)
+    return True if best is None else best[1]
+
+
+class Fetcher:
+    """Reads public pages the way a polite program should: identifies itself, keeps to robots.txt, pauses between
+    requests to the same site, backs off when asked (429, 503, Retry-After), and never tries to get round a block."""
+
+    def __init__(self, pause: float = 1.5, retries: int = 2):
+        import httpx
+        self.client = httpx.Client(headers={"User-Agent": UA}, timeout=45, follow_redirects=True)
+        self.pause, self.retries, self.robots, self.last = pause, retries, {}, {}
+
+    def _allowed(self, url: str) -> bool:
+        u = urlparse(url)
+        if u.netloc not in self.robots:
+            try:
+                r = self.client.get(f"{u.scheme}://{u.netloc}/robots.txt")
+                self.robots[u.netloc] = _robots_rules(r.text) if r.status_code == 200 else []
+            except Exception:
+                self.robots[u.netloc] = []
+        return robots_allows(self.robots[u.netloc], u.path + (f"?{u.query}" if u.query else ""))
+
+    def __call__(self, url: str, *, head: bool = False, etag: str | None = None) -> Page:
+        import time
+        import httpx
+        if not self._allowed(url):
+            return Page(-1, b"not allowed by the site's robots.txt", "robots")
+        host = urlparse(url).netloc
+        for attempt in range(self.retries + 1):
+            wait = self.pause - (time.monotonic() - self.last.get(host, 0))
+            if wait > 0:
+                time.sleep(wait)
+            self.last[host] = time.monotonic()
+            try:
+                r = self.client.request("HEAD" if head else "GET", url, headers={"If-None-Match": etag} if etag else None)
+            except httpx.HTTPError as ex:
+                return Page(0, str(ex).encode(), "error")
+            if head and r.status_code in (403, 405, 501):   # some servers refuse HEAD: ask for the file instead
+                head = False
+                continue
+            if r.status_code in (429, 503) and attempt < self.retries:
+                ra = r.headers.get("retry-after", "")
+                time.sleep(min(60, int(ra)) if ra.isdigit() else 5 * (attempt + 1))
+                continue
+            return Page(r.status_code, r.content, r.headers.get("content-type", ""), dict(r.headers))
+        return Page(r.status_code, r.content, r.headers.get("content-type", ""), dict(r.headers))
 
 
 @dataclass
@@ -121,11 +207,15 @@ def _mcd_ids(url: str) -> tuple[str, str, int | None]:
     return doc, num, ver
 
 
+_REPORTS: dict = {}
+
+
 def _mcd_version_api(doc: str, num: str, get: Get) -> tuple[int | None, str]:
     """The Coverage API's report of every final LCD (or article). Field names are read defensively: the entry is the one
     naming this document (L39237, A58982 or the bare number), the version the first integer field named *version*."""
     url = f"https://api.coverage.cms.gov/v1/reports/local-coverage-{'final-lcds' if doc == 'lcd' else 'articles'}"
-    p = get(url)
+    p = _REPORTS.get((id(get), url)) or get(url)   # one report per run serves every policy
+    _REPORTS[(id(get), url)] = p
     if not p.ok:
         return None, f"Coverage API not read (HTTP {p.status})"
     try:
@@ -171,6 +261,8 @@ def check_mcd(m: dict, cfg: dict, get: Get) -> Result:
         r.detail.append(how)
     if cur is None or saved is None:
         r.note = "version not readable; check the policy page by hand"
+        if any("HTTP 403" in d or "HTTP 429" in d for d in r.detail):
+            r.outcome, r.note = "blocked", "the site's bot protection answered; check the policy page by hand"
         return r
     r.signal = f"version {cur} (saved copy: version {saved})"
     if cur <= saved:
@@ -191,6 +283,8 @@ def check_ecfr(m: dict, cfg: dict, get: Get) -> Result:
     r = Result(m["source_id"], "ecfr")
     sec = cfg["section"]
     p = get(f"https://www.ecfr.gov/api/versioner/v1/versions/title-42.json?part={sec.split('.')[0]}&section={sec}")
+    if _stop(r, p, "the section"):
+        return r
     if not p.ok:
         r.note = f"eCFR versioner not read (HTTP {p.status}); check the section by hand"
         return r
@@ -244,34 +338,69 @@ def _next_editions(url: str, after: date, months: int = 6) -> list[tuple[str, st
     return out
 
 
+def _name_date(name: str) -> str | None:
+    """The effective date a payer writes into a file name: …-Eff-10-1-26.pdf, …-Effective-1-1-2025.pdf, …-07012026.pdf."""
+    m = re.search(r"-Eff(?:ective)?-(\d{1,2})-(\d{1,2})-(\d{2,4})\.pdf$", name, re.I)
+    if m:
+        y = int(m.group(3)) + (2000 if len(m.group(3)) == 2 else 0)
+        return f"{y}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
+    m = re.search(r"-(\d{2})(\d{2})(\d{4})\.pdf$", name)
+    return f"{m.group(3)}-{m.group(1)}-{m.group(2)}" if m else None
+
+
 def _is_pdf(p: Page) -> bool:
-    return p.ok and (p.body[:5] == b"%PDF-" or "pdf" in p.content_type.lower())
+    """A real PDF, not a challenge page served with a PDF's name."""
+    return p.ok and p.body[:5] == b"%PDF-"
+
+
+def _stop(r: Result, p: Page, what: str) -> bool:
+    """Blocked or not allowed: record nothing, say so, and leave it to a person. Never a change."""
+    if p.status == -1:
+        r.outcome, r.note = "blocked", f"the site's robots.txt does not allow this address; check {what} by hand"
+        return True
+    if blocked(p):
+        r.outcome, r.note = "blocked", f"the site's bot protection answered (HTTP {p.status}); check {what} by hand or save it from a browser"
+        return True
+    return False
 
 
 def check_payer_pdf(m: dict, cfg: dict, get: Get) -> Result:
     r = Result(m["source_id"], "payer_pdf", suffix=".pdf")
     flagged = {f.get("url") for f in m.get("change_flags", [])}
-    p = get(m["url"])
+    w = m.get("watch") or {}
+    p = get(m["url"], etag=w.get("etag") if w.get("sha256") == m.get("sha256") else None)
+    if _stop(r, p, "the payer's page"):
+        return r
     same = None
-    if _is_pdf(p):
+    if p.status == 304:
+        same = True
+        r.detail.append("saved file's URL: the server confirms it is unchanged (ETag), not downloaded")
+    elif _is_pdf(p):
         same = sha(p.body) == m.get("sha256")
         r.detail.append(f"saved file's URL: SHA-256 {'matches' if same else 'differs from'} the saved copy")
+        if same and p.headers.get("etag"):
+            r.watch = {"etag": p.headers["etag"], "sha256": m.get("sha256")}
     else:
         r.detail.append(f"saved file's URL not read (HTTP {p.status})")
     eff = _date_in(m.get("edition", "")) or (m.get("retrieved_at") or "")[:10]
     found = []
     for url, applies in _next_editions(m["url"], date.fromisoformat(eff)):
-        q = get(url)
-        if _is_pdf(q):
-            found.append((url, applies, q))
+        h = get(url, head=True)                          # does the file exist? ask without downloading
+        if h.ok and "html" not in h.content_type.lower() and not blocked(h):
+            q = get(url)
+            if _is_pdf(q):
+                found.append((url, applies, q))
     if cfg.get("index_url"):
         ip = get(cfg["index_url"])
         if ip.ok:
             stem = re.sub(r"\d.*$", "", Path(urlparse(m["url"]).path).name)
             for href in sorted(set(re.findall(r'href="([^"]+\.pdf)"', ip.text, re.I))):
                 name = Path(urlparse(href).path).name
-                if name.startswith(stem) and name != Path(urlparse(m["url"]).path).name and all(href != f[0] for f in found):
-                    found.append((href, None, None))
+                when = _name_date(name)
+                full = href if href.startswith("http") else f"{urlparse(cfg['index_url']).scheme}://{urlparse(cfg['index_url']).netloc}{href}"
+                # only a later edition of the same document: older editions linked from the page are not changes
+                if name.startswith(stem) and when and when > eff and all(full != f[0] for f in found):
+                    found.append((full, when, None))
             r.detail.append(f"index page read: {len(found)} newer file name(s)")
     new = [f for f in found if f[0] not in flagged]
     known = [f for f in found if f[0] in flagged]
@@ -298,7 +427,13 @@ def check_payer_pdf(m: dict, cfg: dict, get: Get) -> Result:
 
 def check_pdf(m: dict, cfg: dict, get: Get) -> Result:
     r = Result(m["source_id"], "pdf", suffix=".pdf")
-    p = get(m["url"])
+    w = m.get("watch") or {}
+    p = get(m["url"], etag=w.get("etag") if w.get("sha256") == m.get("sha256") else None)
+    if _stop(r, p, "the file"):
+        return r
+    if p.status == 304:
+        r.outcome, r.note, r.signal = "unchanged", "the server confirms the file is unchanged (ETag); not downloaded", "ETag match"
+        return r
     if not _is_pdf(p):
         r.note = f"file not read (HTTP {p.status}); check by hand"
         return r
@@ -306,6 +441,8 @@ def check_pdf(m: dict, cfg: dict, get: Get) -> Result:
     r.signal = f"SHA-256 {now[:12]} (saved copy {(m.get('sha256') or '')[:12]})"
     if now == m.get("sha256"):
         r.outcome, r.note = "unchanged", "same fingerprint as the saved copy"
+        if p.headers.get("etag"):
+            r.watch = {"etag": p.headers["etag"], "sha256": now}
     elif any(f.get("sha256") == now for f in m.get("change_flags", [])):
         r.outcome, r.note = "already_flagged", "this new content is already recorded as a change"
     else:
@@ -328,6 +465,8 @@ def page_text(html: str) -> str:
 def check_cms_page(m: dict, cfg: dict, get: Get) -> Result:
     r = Result(m["source_id"], "cms_page", suffix=".html")
     p = get(m["url"])
+    if _stop(r, p, "the page"):
+        return r
     if not p.ok:
         r.note = f"page not read (HTTP {p.status}); check by hand"
         return r
@@ -377,10 +516,10 @@ def record(manifest: list[dict], results: list[Result], now: datetime, incoming:
     writes = 0
     for r in results:
         m = by_id[r.source_id]
-        if r.outcome == "unreadable":
+        if r.outcome in ("unreadable", "blocked"):
             continue
         if r.watch is not None and r.outcome in ("baseline", "unchanged", "changed"):
-            m["watch"] = {**r.watch, "at": at}
+            m["watch"] = {**(m.get("watch") or {}), **r.watch, "at": at}
         check = {"at": at, "ok": True, "by": BY, "note": f"automatic check: {r.note}" + (f" [{r.signal}]" if r.signal else "")}
         if r.outcome == "changed":
             saved = None
@@ -401,7 +540,7 @@ def record(manifest: list[dict], results: list[Result], now: datetime, incoming:
 
 
 WORD = {"unchanged": "unchanged", "changed": "CHANGED", "baseline": "baseline", "unreadable": "CHECK BY HAND",
-        "already_flagged": "already flagged"}
+        "blocked": "BLOCKED", "already_flagged": "already flagged"}
 
 
 def report(results: list[Result], dry: bool) -> str:
@@ -419,7 +558,9 @@ def report(results: list[Result], dry: bool) -> str:
     n = {k: sum(1 for r in results if r.outcome == k) for k in WORD}
     lines.append("")
     lines.append(f"{len(results)} checked: {n['unchanged']} unchanged, {n['changed']} changed, {n['already_flagged']} already flagged, "
-                 f"{n['baseline']} baseline recorded, {n['unreadable']} to check by hand." + (" Dry run: nothing written." if dry else ""))
+                 f"{n['baseline']} baseline recorded, {n['unreadable'] + n['blocked']} to check by hand"
+                 + (f" ({n['blocked']} blocked by the site: save those from a browser, then place --record or --checked)" if n["blocked"] else "")
+                 + "." + (" Dry run: nothing written." if dry else ""))
     return "\n".join(lines)
 
 
@@ -453,7 +594,7 @@ def main(argv: list[str]) -> int:
         print(f"not in schedule.json: {', '.join(unknown)}")
         return 1
     now = datetime.now(timezone.utc).astimezone()
-    results, writes = run(manifest, schedule, http_get, now=now, only=a.sources or None, due_only=a.due, dry=a.dry_run)
+    results, writes = run(manifest, schedule, Fetcher(), now=now, only=a.sources or None, due_only=a.due, dry=a.dry_run)
     text = report(results, a.dry_run) if results else "Nothing due today."
     print(text)
     if not a.dry_run:   # each real run's report is kept, so a scheduled run can be read the next morning

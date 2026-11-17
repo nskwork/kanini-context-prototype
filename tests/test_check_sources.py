@@ -24,7 +24,7 @@ def src(sid):
 
 def web(pages: dict):
     """A fake web: url (or url prefix ending in *) -> Page; anything else 404."""
-    def get(url):
+    def get(url, head=False, etag=None):
         for k, v in pages.items():
             if url == k or (k.endswith("*") and url.startswith(k[:-1])):
                 return v
@@ -142,3 +142,72 @@ def test_dry_run_writes_nothing(tmp_path):
 def test_due(every, day, last, expected):
     m = {"checks": [{"at": f"{last}T02:00:00+00:00", "ok": True, "by": "check_sources"}] if last else []}
     assert cs.is_due(m, {"every": every, "day": day}, NOW.date()) is expected
+
+
+CMS_ROBOTS = """User-agent: *
+Disallow: /core/
+Disallow: /*?
+Allow: /medicare-coverage-database/*?
+Allow: /sitemap.xml?
+"""
+
+
+def test_robots_reads_wildcards_the_way_cms_writes_them():
+    rules = cs._robots_rules(CMS_ROBOTS)
+    assert cs.robots_allows(rules, "/medicare-coverage-database/view/lcd.aspx?lcdid=39237")      # allowed by the longer rule
+    assert not cs.robots_allows(rules, "/search?q=lcd")                                         # any other query: not allowed
+    assert cs.robots_allows(rules, "/files/document/services-list-asc-pa-demonstration.pdf")
+    assert not cs.robots_allows(rules, "/core/misc/x.js")
+
+
+@pytest.mark.parametrize("page", [Page(403, b"Access Denied"), Page(429), Page(200, b"<html><body>Access Denied Reference #18.abc</body></html>")])
+def test_a_bot_block_is_reported_and_records_nothing(tmp_path, page):
+    m0 = src("uhc-ma-pa-list")
+    r, m, w = one("uhc-ma-pa-list", {m0["url"]: page}, incoming=tmp_path)
+    assert r.outcome == "blocked" and w == 0 and m == src("uhc-ma-pa-list")
+    assert "BLOCKED" in cs.report([r], False) and "from a browser" in cs.report([r], False)
+
+
+def test_a_challenge_page_is_never_fingerprinted_as_the_pdf(tmp_path):
+    m0 = src("cms-wiser-factsheet")
+    fake = Page(200, b"<html>please verify you are human: captcha</html>", "application/pdf")
+    r, m, _ = one("cms-wiser-factsheet", {m0["url"]: fake}, incoming=tmp_path)
+    assert r.outcome == "blocked" and not m.get("change_flags")
+
+
+def test_etag_avoids_downloading_an_unchanged_file(tmp_path, monkeypatch):
+    m0 = src("cms-wiser-factsheet")
+    monkeypatch.setattr(cs, "sha", lambda b: m0["sha256"] if b == PDF else "f" * 64)
+    first = {m0["url"]: Page(200, PDF, "application/pdf", {"etag": '"v1"'})}
+    r, m, _ = one("cms-wiser-factsheet", first, incoming=tmp_path)
+    assert r.outcome == "unchanged" and m["watch"]["etag"] == '"v1"'
+    sent = {}
+
+    def get(url, head=False, etag=None):
+        sent["etag"] = etag
+        return Page(304)
+    r2, _ = cs.run([m], SCHEDULE, get, now=NOW, only=["cms-wiser-factsheet"], incoming=tmp_path)
+    assert sent["etag"] == '"v1"' and r2[0].outcome == "unchanged" and "not downloaded" in r2[0].note
+
+
+def test_new_editions_are_probed_without_downloading(tmp_path):
+    m0 = src("uhc-ma-pa-list")
+    heads, gets = [], []
+
+    def get(url, head=False, etag=None):
+        (heads if head else gets).append(url)
+        return Page(200, PDF, "application/pdf") if url == m0["url"] else Page(404)
+    cs.run([src("uhc-ma-pa-list")], SCHEDULE, get, now=NOW, only=["uhc-ma-pa-list"], incoming=tmp_path)
+    assert len(heads) >= 6 and all(u in (m0["url"], SCHEDULE["sources"]["uhc-ma-pa-list"]["index_url"]) for u in gets)
+
+
+def test_index_page_counts_only_later_editions(tmp_path):
+    m0 = src("uhc-ma-pa-list")
+    idx = SCHEDULE["sources"]["uhc-ma-pa-list"]["index_url"]
+    base = "/content/dam/provider/docs/public/prior-auth/pa-requirements/medicare/"
+    html = f'<a href="{base}Med-Adv-Dual-Eff-8-1-26.pdf">Aug</a><a href="{base}Med-Adv-Dual-Eff-10-1-26.pdf">Oct</a>'.encode()
+    r, m, _ = one("uhc-ma-pa-list", {m0["url"]: Page(200, PDF, "application/pdf"), idx: Page(200, html)}, incoming=tmp_path)
+    assert r.outcome in ("unchanged", "changed") and not any("Eff-8-1-26" in f.get("url", "") for f in m.get("change_flags", []))
+    later = html + f'<a href="{base}Med-Adv-Dual-Eff-11-15-26.pdf">Nov</a>'.encode()
+    r2, m2, _ = one("uhc-ma-pa-list", {m0["url"]: Page(200, PDF, "application/pdf"), idx: Page(200, later)}, incoming=tmp_path)
+    assert r2.outcome == "changed" and r2.applies_from == "2026-11-15" and r2.new_url.startswith("https://www.uhcprovider.com/")
