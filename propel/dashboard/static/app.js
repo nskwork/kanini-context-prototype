@@ -147,7 +147,7 @@
     gNodes.selectAll("g").attr("class", (n) => "node" + (n.on ? " on" : "") + (n.prog ? " prog" : "") + (n.unscr ? " unscr" : "") + (n.cand ? " cand" : ""));
     gNodes.selectAll("text").text((n) => nodeLabel(n));
     gNodes.selectAll("circle.core").attr("r", (n) => (n.on ? 7 : n.prog || n.cand || n.unscr ? 5.5 : S.view === "onto" ? 5 : 3.6))
-      .attr("fill", nodeColor).attr("stroke", "#0B1033").attr("stroke-width", (n) => (n.on ? 2 : 1)).style("filter", null);
+      .attr("fill", nodeColor).attr("stroke", "#12161c").attr("stroke-width", (n) => (n.on ? 2 : 1)).style("filter", null);
     gNodes.selectAll("circle.halo").attr("r", (n) => (n.on && n.primary ? 16 : 0)).attr("stroke", nodeColor);
     gEdges.selectAll("line").attr("class", (l) => "edge" + (l.source.on && l.target.on ? " on" : "")
       + ((l.source.prog || l.target.prog) && (l.source.prog || l.source.on) && (l.target.prog || l.target.on) ? " prog" : "")
@@ -216,7 +216,7 @@
       dots.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, color: c.color });
     });
     gFx.selectAll("circle").data(dots).join("circle").attr("r", 3.4).attr("cx", (d) => d.x).attr("cy", (d) => d.y)
-      .attr("fill", (d) => d.color).attr("stroke", "#0B1033").attr("stroke-width", 1.5).style("filter", null);
+      .attr("fill", (d) => d.color).attr("stroke", "#12161c").attr("stroke-width", 1.5).style("filter", null);
     lanesTick(dt);
     requestAnimationFrame(fxLoop);
   }
