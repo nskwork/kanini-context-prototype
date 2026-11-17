@@ -619,3 +619,15 @@ details.sql pre,pre.q{background:#0b0d10}
 .code,code,pre{font-variant-ligatures:none;font-feature-settings:"tnum" 1,"zero" 1}
 .tip{background:#161b22;box-shadow:inset 0 0 0 1px #2a323d}
 .node text{stroke:#0b0d10}
+/* stronger contrast: secondary text and separators read clearly on graphite */
+:root{--ink:#f3f5f8;--ink2:#dde2ea;--mute:#aab3bf;--line:#353e4b;--edge:inset 0 0 0 1px #353e4b}
+.panel,.drawer,.sheet{box-shadow:inset 0 0 0 1px #353e4b}
+.float{box-shadow:inset 0 0 0 1px #3d4757,0 12px 30px rgba(0,0,0,.35)}
+.top{box-shadow:inset 0 -1px 0 #353e4b}
+.case,.chips button,.search,.flow5 li,.lane,.x{box-shadow:inset 0 0 0 1px #3d4757}
+.btn.ghost{box-shadow:inset 0 0 0 1px #4f5b6c}
+.steps li,.doc,.fail,.more-d .rule,.grp .ft,.drawer header,.sheet header,.sheet .log,.mini th,.tbl th,.t-table th{border-color:#353e4b}
+.mini td,.tbl td,.t-table td,.t-order{border-color:#2c3440}
+.three .nm small,.answer .k,.three .k,.rc .m,.count,.note,.grp .d,.dh .t span,.dh .m,.dr .fp,.filters h3,.cover,.legend{color:var(--mute)}
+.trace li.ai{color:#97a1ae}
+.with-drawer .dock{left:calc((100% - min(520px,46%)) / 2)}
