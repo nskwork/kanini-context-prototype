@@ -111,8 +111,12 @@ def load_sources(cur) -> dict[str, object]:
               VALUES (%s,%s,%s,%s,'application/pdf',%s) RETURNING snapshot_id""",
               (m["source_id"], m["retrieved_at"], digest, f"file://kanini_context/sources/raw/{m['file']}", m["edition"]))
         for fl in m.get("change_flags", []):
-            cur.execute("""INSERT INTO kc_gov.change_flag (source_id, snapshot_id, detected_at, applies_from, state)
-                           VALUES (%s,%s,%s,%s,'open')""", (m["source_id"], snaps[m["source_id"]], fl["detected_at"], fl["applies_from"]))
+            state = fl.get("state", "open")
+            if state != "open" and not fl.get("resolved_at"):
+                raise ValueError(f"{m['source_id']}: a {state} change flag needs resolved_at (check_sources --resolve sets both)")
+            cur.execute("""INSERT INTO kc_gov.change_flag (source_id, snapshot_id, detected_at, resolved_at, applies_from, state)
+                           VALUES (%s,%s,%s,%s,%s,%s)""",
+                        (m["source_id"], snaps[m["source_id"]], fl["detected_at"], fl.get("resolved_at"), fl["applies_from"], state))
     return snaps
 
 

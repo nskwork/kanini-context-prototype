@@ -96,7 +96,7 @@ def blocked(p: Page) -> bool:
 
 def _robots_rules(text: str) -> list[tuple[bool, str]]:
     """The rules for every crawler (User-agent: *), as (allow, pattern)."""
-    rules, mine = [], False
+    rules, mine, in_rules = [], False, False
     for raw in text.splitlines():
         line = raw.split("#", 1)[0].strip()
         if not line or ":" not in line:
@@ -104,9 +104,13 @@ def _robots_rules(text: str) -> list[tuple[bool, str]]:
         k, v = (x.strip() for x in line.split(":", 1))
         k = k.lower()
         if k == "user-agent":
-            mine = v == "*"
-        elif mine and k in ("allow", "disallow") and v:
-            rules.append((k == "allow", v))
+            if in_rules:                 # a new group starts; stacked User-agent lines share the group below them
+                mine, in_rules = False, False
+            mine = mine or v == "*"
+        elif k in ("allow", "disallow"):
+            in_rules = True
+            if mine and v:
+                rules.append((k == "allow", v))
     return rules
 
 
@@ -236,18 +240,21 @@ def _mcd_version_api(doc: str, num: str, get: Get) -> tuple[int | None, str]:
     return None, "Coverage API: document or version field not found"
 
 
-def _mcd_version_page(doc: str, num: str, get: Get) -> tuple[int | None, str, str | None]:
+def _revision_effective(text: str) -> str | None:
+    """The date a policy version applies from, as the policy page states it (Revision Effective Date)."""
+    eff = re.search(r"Revision Effective Date[^0-9]{0,80}(\d{1,2})/(\d{1,2})/(\d{4})", text or "", re.I)
+    return f"{eff.group(3)}-{int(eff.group(1)):02d}-{int(eff.group(2)):02d}" if eff else None
+
+
+def _mcd_version_page(doc: str, num: str, get: Get) -> tuple[int | None, str, Page]:
     """The policy page without a pinned version links to its current version (…?lcdid=39237&ver=14)."""
-    url = f"https://www.cms.gov/medicare-coverage-database/view/{doc}.aspx?{doc}id={num}"
-    p = get(url)
-    if not p.ok:
-        return None, f"policy page not read (HTTP {p.status})", None
+    p = get(f"https://www.cms.gov/medicare-coverage-database/view/{doc}.aspx?{doc}id={num}")
+    if not p.ok or blocked(p):
+        return None, f"policy page not read (HTTP {p.status})", p
     vers = [int(v) for v in re.findall(rf"{doc}id={num}(?:&|&amp;)ver=(\d+)", p.text, re.I)]
-    eff = re.search(r"Revision Effective Date[^0-9]{0,80}(\d{1,2})/(\d{1,2})/(\d{4})", p.text, re.I)
-    applies = f"{eff.group(3)}-{int(eff.group(1)):02d}-{int(eff.group(2)):02d}" if eff else None
     if not vers:
-        return None, "policy page: no version link found", applies
-    return max(vers), f"policy page links to version {max(vers)}", applies
+        return None, "policy page: no version link found", p
+    return max(vers), f"policy page links to version {max(vers)}", p
 
 
 def check_mcd(m: dict, cfg: dict, get: Get) -> Result:
@@ -255,14 +262,14 @@ def check_mcd(m: dict, cfg: dict, get: Get) -> Result:
     doc, num, saved = _mcd_ids(m["url"])
     cur, how = _mcd_version_api(doc, num, get)
     r.detail.append(how)
-    applies = None
+    page = None
     if cur is None:
-        cur, how, applies = _mcd_version_page(doc, num, get)
+        cur, how, page = _mcd_version_page(doc, num, get)
         r.detail.append(how)
+        if _stop(r, page, "the policy page"):
+            return r
     if cur is None or saved is None:
         r.note = "version not readable; check the policy page by hand"
-        if any("HTTP 403" in d or "HTTP 429" in d for d in r.detail):
-            r.outcome, r.note = "blocked", "the site's bot protection answered; check the policy page by hand"
         return r
     r.signal = f"version {cur} (saved copy: version {saved})"
     if cur <= saved:
@@ -273,7 +280,17 @@ def check_mcd(m: dict, cfg: dict, get: Get) -> Result:
         r.outcome, r.note = "already_flagged", f"version {cur} already recorded as a change"
         return r
     r.outcome, r.note = "changed", f"new version {cur} published (saved copy is version {saved})"
-    r.applies_from = applies
+    # The new version's own page gives the date it applies from (CMS often publishes weeks ahead) and is saved for
+    # drafting. If it cannot be read, the change still stands; it then applies now, the safe side.
+    q = get(r.new_url)
+    if q.ok and not blocked(q):
+        r.content, r.suffix = q.body, ".html"
+        r.applies_from = _revision_effective(q.text)
+    elif page is not None and page.ok:
+        r.content, r.suffix = page.body, ".html"
+        r.applies_from = _revision_effective(page.text)
+    if r.applies_from is None:
+        r.detail.append("revision effective date not read from the policy page; the change applies now")
     return r
 
 
@@ -316,17 +333,21 @@ def check_ecfr(m: dict, cfg: dict, get: Get) -> Result:
 
 # --- payer_pdf: payer lists and policies -----------------------------------------------------------------------------
 
-def _next_editions(url: str, after: date, months: int = 6) -> list[tuple[str, str]]:
-    """The file names a payer gives the next editions, effective the first of each coming month:
+def _next_editions(url: str, after: date, today: date | None = None, ahead: int = 3, cap: int = 12) -> list[tuple[str, str]]:
+    """The file names a payer gives the next editions, effective the first of each month after the saved one, through
+    `ahead` months past today (payers publish ahead), the latest `cap` at most:
     Med-Adv-Dual-Eff-10-1-26.pdf -> Med-Adv-Dual-Eff-11-1-26.pdf …; …-programs-07012026.pdf -> …-programs-08012026.pdf …"""
     out = []
     firsts = []
+    end = max(after, today or date.today())
+    end_y, end_mo = end.year + (end.month + ahead - 1) // 12, (end.month + ahead - 1) % 12 + 1
     y, mo = after.year, after.month
-    for _ in range(months):
+    while (y, mo) < (end_y, end_mo):
         mo += 1
         if mo > 12:
             y, mo = y + 1, 1
         firsts.append(date(y, mo, 1))
+    firsts = firsts[-cap:]
     short = re.match(r"(.*-Eff(?:ective)?-)(\d{1,2})-(\d{1,2})-(\d{2,4})\.pdf$", url, re.I)
     long_ = re.match(r"(.*-)(\d{2})(\d{2})(\d{4})\.pdf$", url)
     for d in firsts:
@@ -384,7 +405,7 @@ def check_payer_pdf(m: dict, cfg: dict, get: Get) -> Result:
         r.detail.append(f"saved file's URL not read (HTTP {p.status})")
     eff = _date_in(m.get("edition", "")) or (m.get("retrieved_at") or "")[:10]
     found = []
-    for url, applies in _next_editions(m["url"], date.fromisoformat(eff)):
+    for url, applies in _next_editions(m["url"], date.fromisoformat(eff), cfg.get("_today")):
         h = get(url, head=True)                          # does the file exist? ask without downloading
         if h.ok and "html" not in h.content_type.lower() and not blocked(h):
             q = get(url)
@@ -409,6 +430,11 @@ def check_payer_pdf(m: dict, cfg: dict, get: Get) -> Result:
     if new:
         url, applies, q = new[0]
         r.outcome, r.note, r.applies_from, r.new_url = "changed", f"new edition published: {Path(url).name}", applies, url
+        if q is None:                                    # found on the index page: download it, and keep it only if it is a PDF
+            q = get(url)
+            if not _is_pdf(q):
+                r.detail.append(f"{Path(url).name} not downloaded (HTTP {q.status}); save it by hand")
+                q = None
         if q is not None:
             r.content = q.body
         return r
@@ -478,7 +504,7 @@ def check_cms_page(m: dict, cfg: dict, get: Get) -> Result:
     lm = lm.group(1) if lm else None
     fp = sha(text.encode("utf-8"))
     w = m.get("watch") or {}
-    r.watch = {"text_sha256": fp, "last_modified": lm}
+    r.watch = {"text_sha256": fp, "last_modified": lm}   # recorded on baseline and unchanged only (see record)
     r.signal = f"page text {fp[:12]}" + (f", last modified {lm}" if lm else "")
     if not w.get("text_sha256"):
         r.outcome, r.note = "baseline", "first check: page fingerprint recorded as the baseline"
@@ -486,6 +512,8 @@ def check_cms_page(m: dict, cfg: dict, get: Get) -> Result:
         r.outcome = "unchanged"
         r.note = "page text unchanged" + (f" (its date moved {w.get('last_modified')} → {lm}, the text did not)"
                                           if lm and w.get("last_modified") and lm != w.get("last_modified") else "")
+    elif any(f.get("text_sha256") == fp for f in m.get("change_flags", [])):
+        r.outcome, r.note = "already_flagged", "this page change is already recorded"
     else:
         r.outcome, r.note, r.new_url, r.content = "changed", "page text changed" + (
             f" (last modified {w.get('last_modified')} → {lm})" if lm else ""), m["url"], p.body
@@ -518,9 +546,12 @@ def record(manifest: list[dict], results: list[Result], now: datetime, incoming:
         m = by_id[r.source_id]
         if r.outcome in ("unreadable", "blocked"):
             continue
-        if r.watch is not None and r.outcome in ("baseline", "unchanged", "changed"):
+        if r.watch is not None and r.outcome in ("baseline", "unchanged"):
             m["watch"] = {**(m.get("watch") or {}), **r.watch, "at": at}
-        check = {"at": at, "ok": True, "by": BY, "note": f"automatic check: {r.note}" + (f" [{r.signal}]" if r.signal else "")}
+        # ok (which resets the freshness clock) only when the saved copy was confirmed current. A change, new or
+        # already recorded, and a first baseline are logged as checks but leave the clock where it was.
+        check = {"at": at, "ok": r.outcome == "unchanged", "by": BY,
+                 "note": f"automatic check: {r.note}" + (f" [{r.signal}]" if r.signal else "")}
         if r.outcome == "changed":
             saved = None
             if r.content is not None:
@@ -530,6 +561,8 @@ def record(manifest: list[dict], results: list[Result], now: datetime, incoming:
             flag = {"detected_at": at, "applies_from": r.applies_from, "url": r.new_url, "signal": r.note, "by": BY}
             if r.content is not None:
                 flag["sha256"] = sha(r.content)
+            if r.kind == "cms_page" and r.watch:
+                flag["text_sha256"] = r.watch["text_sha256"]
             if saved is not None:
                 flag["saved_as"] = (str(saved.relative_to(ROOT)) if saved.is_relative_to(ROOT) else str(saved)).replace("\\", "/")
             m.setdefault("change_flags", []).append(flag)
@@ -573,11 +606,30 @@ def run(manifest: list[dict], schedule: dict, get: Get, *, now: datetime, only: 
         if cfg is None or (only and sid not in only) or (due_only and not is_due(m, cfg, now.date())):
             continue
         try:
-            results.append(KINDS[cfg["kind"]](m, cfg, get))
+            results.append(KINDS[cfg["kind"]](m, {**cfg, "_today": now.date()}, get))
         except Exception as ex:   # one source failing never stops the others, and never raises a change
             results.append(Result(sid, cfg["kind"], note=f"check failed ({type(ex).__name__}: {ex}); check by hand"))
     writes = 0 if dry else record(manifest, results, now, incoming)
     return results, writes
+
+
+def resolve(manifest: list[dict], source_id: str, state: str, by: str, note: str, now: datetime) -> int:
+    """Close a source's open change flags after a person has looked at the new copy: 'dismissed' when the change does
+    not touch any rule (the answers resting on the source come back at once), 'reviewed' when the rules were updated
+    from it. Returns the number of flags closed."""
+    if state not in ("reviewed", "dismissed"):
+        raise ValueError("state must be reviewed or dismissed")
+    if not by.strip() or not note.strip():
+        raise ValueError("a resolution needs the person's name (--by) and a note saying what was checked")
+    m = next((x for x in manifest if x["source_id"] == source_id), None)
+    if m is None:
+        raise ValueError(f"{source_id} is not in sources/manifest.json")
+    n = 0
+    for fl in m.get("change_flags", []):
+        if fl.get("state", "open") == "open":
+            fl.update(state=state, resolved_at=now.isoformat(timespec="seconds"), resolved_by=by.strip(), resolution=note.strip())
+            n += 1
+    return n
 
 
 def main(argv: list[str]) -> int:
@@ -586,9 +638,25 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--dry-run", action="store_true", help="read and report; write nothing")
     ap.add_argument("--due", action="store_true", help="only the sources due today by schedule.json")
     ap.add_argument("--then-build", action="store_true", help="after recording, rebuild the release")
+    ap.add_argument("--resolve", nargs=2, metavar=("SOURCE_ID", "reviewed|dismissed"),
+                    help="close the source's open change flags after looking at the new copy (needs --by and --note)")
+    ap.add_argument("--by", default="", help="with --resolve: who looked at the new copy")
+    ap.add_argument("--note", default="", help="with --resolve: what was checked, e.g. 'new FY2025 statistics; program lists unchanged'")
     a = ap.parse_args(argv)
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     schedule = json.loads(SCHEDULE_PATH.read_text(encoding="utf-8"))
+    if a.resolve:
+        try:
+            n = resolve(manifest, a.resolve[0], a.resolve[1], a.by, a.note, datetime.now(timezone.utc).astimezone())
+        except ValueError as ex:
+            print(ex)
+            return 1
+        if not n:
+            print(f"{a.resolve[0]} has no open change flag.")
+            return 0
+        MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(f"{n} change flag(s) on {a.resolve[0]} marked {a.resolve[1]}. Run python -m kanini_context.release.build to carry it into the release.")
+        return 0
     unknown = [s for s in a.sources if s not in schedule["sources"]]
     if unknown:
         print(f"not in schedule.json: {', '.join(unknown)}")

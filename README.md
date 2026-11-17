@@ -400,7 +400,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 129 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 134 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
@@ -416,7 +416,8 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 | Command | What it does |
 | :-- | :-- |
 | `python -m kanini_context.sources.check_sources --dry-run` | Reads every source's edition signal and fingerprint and prints what it would record; writes nothing |
-| `python -m kanini_context.sources.check_sources` | Checks every source and records the result: a dated check (the freshness clock resets) or, on a change, a change flag that sends the answers resting on it to staff |
+| `python -m kanini_context.sources.check_sources` | Checks every source and records the result: a dated check (the freshness clock resets only when the saved copy is confirmed current) or, on a change, a change flag that sends the answers resting on it to staff from the date the change applies; the new copy is saved in `sources/raw/incoming/` |
+| `python -m kanini_context.sources.check_sources --resolve SOURCE_ID dismissed --by NAME --note "what was checked"` | After a person has read the new copy: `dismissed` when no rule is affected (the answers come back), `reviewed` when the rules were updated from it. Then rebuild |
 | `python -m kanini_context.sources.check_sources --due --then-build` | What the scheduler runs each night: only the sources due by `kanini_context/sources/schedule.json`, then a rebuild |
 | `powershell -ExecutionPolicy Bypass -File kanini_context\sources\schedule_windows.ps1` | Registers that nightly run in Windows Task Scheduler (02:00; `-At 23:30` for another time). On Linux or macOS, a cron line: `0 2 * * * cd /path/to/repo && .venv/bin/python -m kanini_context.sources.check_sources --due --then-build` |
 | `python -m kanini_context.sources.place --checked SOURCE_ID "note"` | Records a recheck made by hand (answers are held after 14 days without one) |

@@ -69,6 +69,24 @@ def test_mcd_reads_the_coverage_api_first(tmp_path):
     assert r.outcome == "unchanged" and "Coverage API" in r.detail[0]
 
 
+def test_mcd_new_version_from_the_api_reads_its_effective_date_and_saves_the_page(tmp_path):
+    """CMS publishes versions weeks ahead: the flag applies from the revision's effective date, not today."""
+    api = Page(200, json.dumps({"data": [{"document_display_id": "L39237", "document_version": "14"}]}).encode())
+    v14 = Page(200, b"<html><body>LCD L39237 Revision Effective Date 01/01/2027 text</body></html>")
+    pages = {"https://api.coverage.cms.gov/v1/reports/local-coverage-final-lcds": api,
+             "https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=39237&ver=14": v14}
+    r, m, _ = one("mcd-lcd-l39237", pages, incoming=tmp_path)
+    assert r.outcome == "changed" and r.applies_from == "2027-01-01" and m["change_flags"][-1]["applies_from"] == "2027-01-01"
+    assert (tmp_path / "mcd-lcd-l39237-20261121.html").read_bytes() == v14.body
+    assert m["checks"][-1]["ok"] is False          # a change does not reset the freshness clock
+
+
+def test_mcd_policy_page_blocked_is_blocked(tmp_path):
+    r, m, w = one("mcd-lcd-l39237", {"https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=39237": Page(403, b"denied")},
+                  incoming=tmp_path)
+    assert r.outcome == "blocked" and w == 0
+
+
 def test_ecfr_amendment_after_the_saved_edition_is_a_change(tmp_path):
     later = Page(200, json.dumps({"content_versions": [{"amendment_date": "2027-01-01", "identifier": "422.568"}]}).encode())
     r, m, _ = one("ecfr-42-422-568", {"https://www.ecfr.gov/api/versioner/v1/versions/title-42.json*": later}, incoming=tmp_path)
@@ -119,6 +137,10 @@ def test_cms_page_first_run_is_a_baseline_then_a_text_change_is_a_change(tmp_pat
     edited = moved.replace("ASC services", "ASC services, phase 2 adds Ohio")
     r3, _ = cs.run([m], SCHEDULE, web({m0["url"]: Page(200, edited.encode())}), now=NOW, only=["cms-asc-pa-demo"], incoming=tmp_path)
     assert r3[0].outcome == "changed" and len(m["change_flags"]) == 1
+    # the baseline stays at the reviewed text, and the same edited page is not raised twice
+    base = m["watch"]["text_sha256"]
+    r4, _ = cs.run([m], SCHEDULE, web({m0["url"]: Page(200, edited.encode())}), now=NOW, only=["cms-asc-pa-demo"], incoming=tmp_path)
+    assert r4[0].outcome == "already_flagged" and m["watch"]["text_sha256"] == base and len(m["change_flags"]) == 1
 
 
 def test_unreadable_source_records_nothing(tmp_path):
@@ -198,7 +220,7 @@ def test_new_editions_are_probed_without_downloading(tmp_path):
         (heads if head else gets).append(url)
         return Page(200, PDF, "application/pdf") if url == m0["url"] else Page(404)
     cs.run([src("uhc-ma-pa-list")], SCHEDULE, get, now=NOW, only=["uhc-ma-pa-list"], incoming=tmp_path)
-    assert len(heads) >= 6 and all(u in (m0["url"], SCHEDULE["sources"]["uhc-ma-pa-list"]["index_url"]) for u in gets)
+    assert len(heads) == 4 and heads[-1].endswith("Eff-2-1-27.pdf") and all(u in (m0["url"], SCHEDULE["sources"]["uhc-ma-pa-list"]["index_url"]) for u in gets)
 
 
 def test_index_page_counts_only_later_editions(tmp_path):
@@ -211,3 +233,30 @@ def test_index_page_counts_only_later_editions(tmp_path):
     later = html + f'<a href="{base}Med-Adv-Dual-Eff-11-15-26.pdf">Nov</a>'.encode()
     r2, m2, _ = one("uhc-ma-pa-list", {m0["url"]: Page(200, PDF, "application/pdf"), idx: Page(200, later)}, incoming=tmp_path)
     assert r2.outcome == "changed" and r2.applies_from == "2026-11-15" and r2.new_url.startswith("https://www.uhcprovider.com/")
+    # a file named on the index page is downloaded and kept only when it is a real PDF
+    nov = f"https://www.uhcprovider.com{base}Med-Adv-Dual-Eff-11-15-26.pdf"
+    r3, _, _ = one("uhc-ma-pa-list", {m0["url"]: Page(200, PDF, "application/pdf"), idx: Page(200, later),
+                                      nov: Page(200, b"%PDF-1.7 november", "application/pdf")}, incoming=tmp_path)
+    assert r3.content == b"%PDF-1.7 november"
+    assert r2.content is None and any("save it by hand" in d for d in r2.detail)
+
+
+def test_next_editions_reach_past_today_even_for_an_old_saved_edition():
+    from datetime import date
+    names = [a for _, a in cs._next_editions("https://x/Med-Adv-Dual-Eff-1-1-26.pdf", date(2026, 1, 1), date(2026, 11, 17))]
+    assert names[-1] == "2027-02-01" and "2026-12-01" in names and len(names) <= 12
+
+
+def test_robots_stacked_user_agents_share_one_group():
+    rules = cs._robots_rules("User-agent: *\nUser-agent: SomeBot\nDisallow: /x\n\nUser-agent: Other\nDisallow: /y\n")
+    assert rules == [(False, "/x")]
+
+
+def test_resolve_closes_open_flags_and_needs_a_name_and_note():
+    m = src("uhc-ma-partb-step-therapy")
+    with pytest.raises(ValueError):
+        cs.resolve([m], m["source_id"], "dismissed", "", "x", NOW)
+    n = cs.resolve([m], m["source_id"], "dismissed", "Curator", "statistics only; lists unchanged", NOW)
+    assert n == len(m["change_flags"]) >= 1
+    assert all(f["state"] == "dismissed" and f["resolved_at"].startswith("2026-11-21") for f in m["change_flags"])
+    assert cs.resolve([m], m["source_id"], "reviewed", "Curator", "again", NOW) == 0

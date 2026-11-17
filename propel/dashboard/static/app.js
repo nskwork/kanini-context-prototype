@@ -131,7 +131,7 @@
   function nodeLabel(n) {
     if (S.view === "onto") return words(n.id);
     const id = String(n.id ?? "");
-    if (n.kind === "Rule") return cap(words(n.rule_kind || "rule"));   // the policy node beside it carries the citation
+    if (n.kind === "Rule") return n.basis === "stated_by_exhaustion" ? "List checked" : cap(words(n.rule_kind || "rule"));   // the policy node beside it carries the citation
     if (n.kind === "Source") return "Source: " + (n.doc || id);
     if (n.kind === "Snapshot") return "Saved copy";
     if (n.kind === "Concept") return n.label || id;
@@ -545,7 +545,10 @@
   }
   function showAnswer(p, L) {
     if (L === "C") S.cEval = p;
-    if (L === "B" && S.cEval) { gradeB(); renderMatch(); return; }   // C's answer is already on screen
+    if (L === "B" && S.cEval) {   // C's answer is already on screen: B's candidates step back, B is only graded
+      if (S.cEval.reason !== "no_reviewed_rule_in_scope") { nodes.forEach((n) => { n.cand = false; }); paint(); }
+      gradeB(); renderMatch(); return;
+    }
     const first = !S.eval || L === "C";
     S.eval = p; card(p);
     if (first) { unfocus(); lightAnswer(p); }
@@ -603,6 +606,7 @@
       st.ms = performance.now() - st.t0; st.done = true; st.active = false;
     } else if (e.kind === "confirm") {
       st.awaiting = false;
+      $("ok")?.closest(".approve")?.remove();   // decided: the buttons go, the trace keeps the decision
       chip(e.approved ? "staff approved" : "staff rejected");
       setTimeout(loadLog, 800);
     } else if (e.kind === "abandoned") {
@@ -1044,13 +1048,14 @@
   function whySteps(t) {   // five one-line steps, from the same answer C gives
     const a = t.answer || {}, cov = t.coverage || {}, ctr = cov.contractor;
     const pols = [...new Set((t.policies || []).filter((r) => r.basis !== "stated_by_exhaustion").map((r) => r.citation))];
-    const cc = (a.coverage_criteria || {}).policies || [];
+    const lead = (x) => x.rule_ref === a.primary_rule?.rule_ref;   // the deciding policy's criteria first
+    const cc = [...((a.coverage_criteria || {}).policies || [])].sort((x, y) => lead(y) - lead(x));
     const items = cc.flatMap((p) => (p.groups || []).flatMap((g) => g.items || []));
-    const short = (it) => String(it.detail || it.element || it.fact).replace(/^Diagnosis: [^:]*: /, "diagnosis ").replace(/ is on the order$/, " listed").replace(/ is < /, " below ");
+    const short = (it) => String(it.detail || it.element || it.fact).replace(/^Diagnosis: [^:]*: /, "diagnosis ").replace(/: one of the listed codes \([^)]+\) is on the order$/, " listed").replace(/ is on the order$/, " listed").replace(/ is < /, " below ");
     let facts;
     if (cc.length) {
       const bad = items.filter((i) => i.status === "not_met"), unk = cc.some((p) => p.status === "unknown");
-      facts = cc.every((p) => p.status === "met") ? ["The patient meets it", items.filter((i) => i.status === "met").slice(0, 2).map(short).join(" · ")]
+      facts = cc.every((p) => p.status === "met") ? ["The patient meets it", items.filter((i) => i.status === "met").slice(0, 3).map(short).join(" · ")]
         : bad.length ? ["The patient does not meet it", bad.slice(0, 2).map(short).join(" · ")]
         : unk ? ["A fact is missing", (a.missing_facts || []).map(words).join(", ") || "see the details"] : ["Checked against the facts", ""];
     } else {

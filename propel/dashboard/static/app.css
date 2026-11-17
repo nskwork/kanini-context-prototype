@@ -665,3 +665,7 @@ details.sql pre,pre.q{background:#0b0d10}
 .qa b{display:block;font-size:14.5px;color:#fff;margin-bottom:3px}
 .qa p{margin:0;font-size:13.5px;color:var(--ink2);line-height:1.55}
 @media (max-width:1100px){.qa{grid-template-columns:1fr}}
+
+/* compare sheet: five rows and the note fit at 1366x768 */
+.sheet .match-t th,.sheet .match-t td{padding:4px 8px}
+.sheet .match .note{margin-top:6px}
