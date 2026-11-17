@@ -152,7 +152,7 @@ def _order_key(plan: str, state: str, code: str, dos: str) -> str:
 
 def _write(entry: dict):
     LOG.parent.mkdir(parents=True, exist_ok=True)
-    with LOG.open("a") as f:
+    with LOG.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
 
 

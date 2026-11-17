@@ -179,7 +179,7 @@ def test_10b_logged_decision_replays(kc_http, decision_log, kc, asc_screened):
 
 
 def _journey_facts(patient):
-    p = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"][patient]
+    p = json.loads((ROOT / "propel/journey/patients.json").read_text(encoding="utf-8"))["patients"][patient]
     o = p["orders"][0]
     return {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
 
@@ -242,12 +242,12 @@ def test_19_stale_lab(kc):
 
 def test_20_overlapping_rule_version(release, tmp_path, db):
     import copy
-    src = json.loads((ROOT / "kanini_context/rules/mcd-lcd-l39237.json").read_text())
+    src = json.loads((ROOT / "kanini_context/rules/mcd-lcd-l39237.json").read_text(encoding="utf-8"))
     for p in (ROOT / "kanini_context/rules").glob("*.json"):
-        (tmp_path / p.name).write_text(p.read_text())
+        (tmp_path / p.name).write_text(p.read_text(encoding="utf-8"))
     dup = copy.deepcopy(src["rules"][0]) | {"valid_from": "2026-10-01"}
     src["rules"].append(dup)
-    (tmp_path / "mcd-lcd-l39237.json").write_text(json.dumps(src))
+    (tmp_path / "mcd-lcd-l39237.json").write_text(json.dumps(src), encoding="utf-8")
     with psycopg.connect("dbname=postgres", autocommit=True) as c:
         c.execute("DROP DATABASE IF EXISTS kct_overlap WITH (FORCE)")
         c.execute("CREATE DATABASE kct_overlap")

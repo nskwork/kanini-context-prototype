@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 RAW = ROOT / "raw"
-MANIFEST = json.loads((ROOT / "manifest.json").read_text())
+MANIFEST = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 
 
 def sha(p: Path) -> str:
@@ -47,7 +47,7 @@ def record(folders: list[Path]) -> None:
         changed = True
         print(f"recorded {m['file']}  sha256 {m['sha256'][:12]}...  (now run the checks and approve its rule file)")
     if changed:
-        (ROOT / "manifest.json").write_text(json.dumps(MANIFEST, indent=2, ensure_ascii=False) + "\n")
+        (ROOT / "manifest.json").write_text(json.dumps(MANIFEST, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def checked(source_id: str, note: str) -> int:
@@ -60,7 +60,7 @@ def checked(source_id: str, note: str) -> int:
     m.setdefault("checks", []).append({"at": now, "ok": True, "note": note})
     if m.get("open_question", "").startswith("the live page could not be confirmed"):
         m.pop("open_question")
-    (ROOT / "manifest.json").write_text(json.dumps(MANIFEST, indent=2, ensure_ascii=False) + "\n")
+    (ROOT / "manifest.json").write_text(json.dumps(MANIFEST, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"recorded check of {source_id} at {now}: {note}")
     return 0
 

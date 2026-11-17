@@ -8,7 +8,7 @@ import pytest
 
 from conftest import ROOT
 
-PATIENTS = json.loads((ROOT / "propel" / "journey" / "patients.json").read_text())["patients"]
+PATIENTS = json.loads((ROOT / "propel" / "journey" / "patients.json").read_text(encoding="utf-8"))["patients"]
 
 
 def order_args():
@@ -123,7 +123,7 @@ def test_effective_to_is_the_last_day(db):
 
 def test_views_change_no_table(db):
     """views.sql only adds read-only objects: no table, and every view is plain SELECT."""
-    text = (ROOT / "kanini_context" / "db" / "views.sql").read_text().upper()
+    text = (ROOT / "kanini_context" / "db" / "views.sql").read_text(encoding="utf-8").upper()
     assert "CREATE TABLE" not in text and "ALTER TABLE" not in text and "INSERT " not in text
     assert "UPDATE KC_" not in text and "DELETE " not in text
 
@@ -196,3 +196,19 @@ def test_ohio_trace_matches_the_stored_rows(db):
     items = [i for p in t["answer"]["coverage_criteria"]["policies"] if p["citation"] == "LCD L34356"
              for g in p["groups"] for i in g["items"] if i.get("element") == "Hemoglobin"]
     assert items and items[0]["status"] == "met" and f"< {limit}" in items[0]["detail"]
+
+
+def test_every_text_file_is_read_and_written_as_utf8():
+    """Windows reads text in its own code page unless told otherwise, which turned "m²" in views.sql into "mÂ²".
+    Every read_text, write_text and text-mode open in the repository names UTF-8."""
+    import re
+    import subprocess
+    files = subprocess.run(["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    bad = []
+    for f in files:
+        for n, line in enumerate((ROOT / f).read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r"\.(read_text|write_text)\(", line) and "encoding" not in line and "def " not in line:
+                bad.append(f"{f}:{n}")
+            if re.search(r"\.open\(\s*\"[aw]\"\s*\)", line):
+                bad.append(f"{f}:{n}")
+    assert not bad, bad

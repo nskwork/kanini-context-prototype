@@ -35,8 +35,8 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 STATIC = HERE / "static"
-PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"]
-MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())}
+PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text(encoding="utf-8"))["patients"]
+MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text(encoding="utf-8"))}
 RESULTS = ROOT / "propel/baseline/results"
 TTL = ROOT / "kanini_context/release/kanini-context.ttl"
 LOG = Path(os.environ.get("PROPEL_DECISION_LOG", ROOT / "propel/journey/decisions.jsonl"))
@@ -185,7 +185,7 @@ def compare():
     out: dict = {"files": {}, "scenarios": {}}
     hist: dict = {}   # every run of the one-call baselines and of lane A, so the Testing tab can show them all
     for f in files:
-        rep = json.loads(f.read_text())
+        rep = json.loads(f.read_text(encoding="utf-8"))
         for lane, key in (("A", "A_agent"), ("A_rag", "A_rag"), ("A_whole", "A_whole")):
             sc = [e[key] for e in rep.get("scenarios", {}).values() if e.get(key)]
             if sc:
@@ -222,7 +222,7 @@ def compare():
 def log():
     if not LOG.exists():
         return []
-    return [json.loads(x) for x in LOG.read_text().splitlines() if x.strip()][-50:]
+    return [json.loads(x) for x in LOG.read_text(encoding="utf-8").splitlines() if x.strip()][-50:]
 
 
 @app.get("/api/rule")

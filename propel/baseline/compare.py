@@ -45,8 +45,8 @@ from kanini_context.curation.pdftext import pages  # noqa: E402
 
 import psycopg  # noqa: E402
 
-PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"]
-MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())}
+PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text(encoding="utf-8"))["patients"]
+MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text(encoding="utf-8"))}
 OUT = ROOT / "propel/baseline/results"
 from propel.llm import MODEL, TOKEN_MODEL  # noqa: E402  (OpenAI or Azure OpenAI)
 SCENARIOS = [(str(i), pid) for i, pid in enumerate(PATIENTS, 1)]   # every patient in the journey data
@@ -332,7 +332,7 @@ def main(argv: list[str]) -> int:
                  f" {entry['B']['card_right_by_model']} of {entry['B']['card_written']} written, {entry['B']['llm_calls']:.1f} calls" if "B" in entry else ""))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
-    (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2))
+    (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     a_eff = f", A at {args.a_effort}" if args.a_effort else ""
     lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, reasoning effort {effort}{a_eff}, {args.runs} runs per scenario)", "",
              "C is the answer key: the engineer-approved rules applied by plain code. A is graded against it. "
@@ -384,7 +384,7 @@ def main(argv: list[str]) -> int:
               "- C is the same rules_evaluate call made by plain code: no model. It is the answer key, so its lane shows cost and "
               "repeatability, not accuracy. Its time is the database call alone.",
               "- Not counted in any lane: the one-off model use when the rules were drafted from the documents."]
-    (OUT / f"compare-{stamp}.md").write_text("\n".join(lines) + "\n")
+    (OUT / f"compare-{stamp}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\nreport: propel/baseline/results/compare-{stamp}.md")
     return 0
 

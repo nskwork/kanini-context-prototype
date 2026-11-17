@@ -91,7 +91,7 @@ def decision_log(tmp_path, monkeypatch):
 
 
 def read_log(path: Path) -> list[dict]:
-    return [json.loads(x) for x in path.read_text().splitlines()] if path.exists() else []
+    return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines()] if path.exists() else []
 
 
 def facts(**over):

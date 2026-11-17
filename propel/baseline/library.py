@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 from kanini_context.curation.pdftext import RAW, pages  # noqa: E402
 
-MANIFEST = json.loads((ROOT / "kanini_context" / "sources" / "manifest.json").read_text())
+MANIFEST = json.loads((ROOT / "kanini_context" / "sources" / "manifest.json").read_text(encoding="utf-8"))
 CACHE = ROOT / "propel" / "baseline" / "cache"
 PASSAGE_WORDS, OVERLAP_WORDS = 450, 60      # about 600 tokens a passage
 TOP_K = 16                                  # passages sent to the model, about 9,000 to 10,000 tokens
@@ -96,7 +96,7 @@ def _embed(texts: list[str], model: str) -> list[list[float]]:
     CACHE.mkdir(parents=True, exist_ok=True)
     path = CACHE / f"embeddings-{model.replace('/', '-')}.json"
     if model not in _STORE:   # each model's embeddings file is read once per process, then kept in memory
-        _STORE[model] = json.loads(path.read_text()) if path.exists() else {}
+        _STORE[model] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     store = _STORE[model]
     keys = [hashlib.sha256(t.encode()).hexdigest() for t in texts]
     todo = [(k, t) for k, t in zip(keys, texts) if k not in store]
@@ -106,7 +106,7 @@ def _embed(texts: list[str], model: str) -> list[list[float]]:
         for (k, _), row in zip(batch, resp.data):
             store[k] = row["embedding"] if isinstance(row, dict) else row.embedding
     if todo:
-        path.write_text(json.dumps(store))
+        path.write_text(json.dumps(store), encoding="utf-8")
     return [store[k] for k in keys]
 
 

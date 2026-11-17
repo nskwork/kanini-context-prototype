@@ -33,7 +33,7 @@ from .checks import check_file
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
 RAW = ROOT / "sources" / "raw"
-MANIFEST = json.loads((ROOT / "sources" / "manifest.json").read_text())
+MANIFEST = json.loads((ROOT / "sources" / "manifest.json").read_text(encoding="utf-8"))
 from kanini_context import env  # noqa: F401,E402  (loads .env)
 
 DSN = os.environ.get("KC_DSN", f"dbname={env.BUILD_DB}")
@@ -255,7 +255,7 @@ def insert_rule(cur, *, r: dict, aid, avid, ed: dict, snap, approvers, exception
 
 
 def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
-    d = json.loads(path.read_text())
+    d = json.loads(path.read_text(encoding="utf-8"))
     approvers, exception, reviewed_at = review_of(d, test_review)
     entries = d["programs"] if "programs" in d else [d]
     n = 0
@@ -291,7 +291,7 @@ def load_file(cur, path: Path, snaps: dict, test_review: bool) -> int:
 
 def file_order(paths: list[Path]) -> list[Path]:
     """Files that define codes and concepts load first, so rules about them can find them."""
-    return sorted(paths, key=lambda p: (0 if '"codes"' in p.read_text() else 1, p.name))
+    return sorted(paths, key=lambda p: (0 if '"codes"' in p.read_text(encoding="utf-8") else 1, p.name))
 
 
 def main(argv: list[str]) -> int:
@@ -312,7 +312,7 @@ def main(argv: list[str]) -> int:
         with psycopg.connect(DSN) as conn, conn.cursor() as cur:
             snaps = load_sources(cur)
             for p in paths:   # codes and concepts first
-                d = json.loads(p.read_text())
+                d = json.loads(p.read_text(encoding="utf-8"))
                 approvers, exception, _ = review_of(d, args.test_review)
                 for e in (d["programs"] if "programs" in d else [d]):
                     if e["source_id"] in snaps:

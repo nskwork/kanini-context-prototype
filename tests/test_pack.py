@@ -68,7 +68,7 @@ def test_freshness_names_source(db):
     # the question reads the pack as recorded at that moment): past its 14-day limit, so the answer is held and names it.
     from datetime import datetime, timedelta, timezone
     from zoneinfo import ZoneInfo
-    m = json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())
+    m = json.loads((ROOT / "kanini_context/sources/manifest.json").read_text(encoding="utf-8"))
     last = max(datetime.fromisoformat(c["at"]) for x in m if x["source_id"] == "mcd-article-a56462" for c in x["checks"] if c.get("ok"))
     shown = last.astimezone(ZoneInfo("America/Chicago")).date()
     asked = max(last + timedelta(days=15), datetime.now(timezone.utc)).isoformat()
@@ -83,7 +83,7 @@ def test_every_answer_shows_the_review_exception(kc):
     # Approved files carry the engineer's scope exception; files not yet approved load as TEST in the test build.
     from kanini_context.curation.approve import SCOPE_EXCEPTION
     from kanini_context.curation.load import TEST_EXCEPTION
-    reviews = [json.loads(p.read_text()).get("review", {}) for p in (ROOT / "kanini_context/rules").glob("*.json")]
+    reviews = [json.loads(p.read_text(encoding="utf-8")).get("review", {}) for p in (ROOT / "kanini_context/rules").glob("*.json")]
     expected = {SCOPE_EXCEPTION if any(r.get("reviewed_by") or []) else TEST_EXCEPTION for r in reviews}
     got = ev(kc)["review_exceptions"]
     assert got and set(got) <= expected
@@ -107,10 +107,10 @@ def test_same_question_same_answer(kc):
 @pytest.fixture()
 def l39237(tmp_path):
     def write(mutate):
-        d = json.loads((ROOT / "kanini_context/rules/mcd-lcd-l39237.json").read_text())
+        d = json.loads((ROOT / "kanini_context/rules/mcd-lcd-l39237.json").read_text(encoding="utf-8"))
         mutate(d)
         p = tmp_path / "rule.json"
-        p.write_text(json.dumps(d))
+        p.write_text(json.dumps(d), encoding="utf-8")
         from kanini_context.curation.checks import check_file
         return check_file(p).errors
     return write
@@ -168,9 +168,9 @@ def _load(files, db_name, *flags):
 def test_unapproved_rules_are_refused_outside_test_mode(release, tmp_path):
     # A copy of the rule files with every approval removed must be refused by a real (non-TEST) load.
     for p in (ROOT / "kanini_context/rules").glob("*.json"):
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         d.setdefault("review", {})["reviewed_by"] = []
-        (tmp_path / p.name).write_text(json.dumps(d))
+        (tmp_path / p.name).write_text(json.dumps(d), encoding="utf-8")
     _fresh("kct_approval")
     r = _load(sorted(tmp_path.glob("*.json")), "kct_approval")
     assert r.returncode == 1 and "not approved" in r.stdout
@@ -182,7 +182,7 @@ def test_engineer_approval_loads_as_a_real_release(release, tmp_path):
     import psycopg
     from kanini_context.curation.approve import SCOPE_EXCEPTION
     for p in (ROOT / "kanini_context/rules").glob("*.json"):
-        (tmp_path / p.name).write_text(p.read_text())
+        (tmp_path / p.name).write_text(p.read_text(encoding="utf-8"))
     files = sorted(tmp_path.glob("*.json"))
     a = subprocess.run([sys.executable, "-m", "kanini_context.curation.approve", "--by", "Test Engineer", "--yes", *map(str, files)],
                        cwd=ROOT, capture_output=True, text=True)

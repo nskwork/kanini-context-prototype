@@ -26,9 +26,9 @@ from kanini_context import env  # noqa: E402,F401
 
 import psycopg  # noqa: E402
 
-MANIFEST = json.loads((ROOT / "kanini_context/sources/manifest.json").read_text())
+MANIFEST = json.loads((ROOT / "kanini_context/sources/manifest.json").read_text(encoding="utf-8"))
 BY_SHA = {m["sha256"]: m for m in MANIFEST if m.get("sha256")}
-PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text())["patients"]
+PATIENTS = json.loads((ROOT / "propel/journey/patients.json").read_text(encoding="utf-8"))["patients"]
 LABEL = {"no_pa": "No PA", "pa_required": "PA required", "exempt": "Exempt", "other_gate": "Other gate",
          "needs_facts": "Not yet known", "unknown": "Not known", "unparseable": "no readable answer", "no card": "no decision card"}
 # the policy documents of each Medicare contractor region in the library (by source id)
@@ -240,7 +240,7 @@ def to_markdown(x: dict, report_name: str = "", when: dict | None = None, collap
 
 def merged(paths: list[Path]) -> tuple[dict, dict]:
     """Several reports as one, each baseline from the newest report holding it, and when each was tested."""
-    reps = sorted((json.loads(p.read_text()) | {"_file": p.name} for p in paths), key=lambda r: r["at"], reverse=True)
+    reps = sorted((json.loads(p.read_text(encoding="utf-8")) | {"_file": p.name} for p in paths), key=lambda r: r["at"], reverse=True)
     out, when = {"at": reps[0]["at"], "scenarios": {}}, {}
     names = {"A_agent": "A · agent without Kanini Context", "A_rag": "Single LLM call with search (RAG)", "A_whole": "Single LLM call with every document"}
     for r in reps:
@@ -259,7 +259,7 @@ def merged(paths: list[Path]) -> tuple[dict, dict]:
 if __name__ == "__main__":
     paths = [Path(p) for p in sys.argv[1:] if not p.startswith("--")]
     if len(paths) == 1:
-        print(to_markdown(explain(json.loads(paths[0].read_text())), paths[0].name))
+        print(to_markdown(explain(json.loads(paths[0].read_text(encoding="utf-8"))), paths[0].name))
     else:
         rep, when = merged(paths)
         print(to_markdown(explain(rep), when=when, collapsible="--collapsible" in sys.argv))

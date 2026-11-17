@@ -34,7 +34,7 @@ def normalise(text: str) -> str:
 
 def _columns(file_name: str) -> int:
     """Two-column printed pages (such as a printed CFR page) are read left column first, then right."""
-    manifest = json.loads((ROOT / "sources" / "manifest.json").read_text())
+    manifest = json.loads((ROOT / "sources" / "manifest.json").read_text(encoding="utf-8"))
     return next((m.get("columns", 1) for m in manifest if m["file"] == file_name), 1)
 
 
@@ -46,14 +46,14 @@ def pages(file_name: str) -> list[str]:
     cache = CACHE / f"{file_name}.c{cols}.pages.json"
     src = RAW / file_name
     if cache.exists() and cache.stat().st_mtime >= src.stat().st_mtime:
-        return json.loads(cache.read_text())
+        return json.loads(cache.read_text(encoding="utf-8"))
     with pdfplumber.open(src) as pdf:
         if cols == 2:
             out = [((p.crop((0, 0, p.width / 2, p.height)).extract_text() or "") + "\n" +
                     (p.crop((p.width / 2, 0, p.width, p.height)).extract_text() or "")) for p in pdf.pages]
         else:
             out = [(p.extract_text() or "") for p in pdf.pages]
-    cache.write_text(json.dumps(out))
+    cache.write_text(json.dumps(out), encoding="utf-8")
     return out
 
 

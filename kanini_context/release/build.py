@@ -68,7 +68,7 @@ def run_sql(db: str, files: list[str]):
     with psycopg.connect(dsn(db), autocommit=True) as c:
         for f in files:
             try:
-                c.execute((DB / f).read_text())
+                c.execute((DB / f).read_text(encoding="utf-8"))
             except psycopg.Error as ex:
                 raise SystemExit(f"{f}: {ex}")
 

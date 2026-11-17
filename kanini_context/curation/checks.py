@@ -29,8 +29,8 @@ from .pdftext import RAW, locate_text, normalise, pages
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
-MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "sources" / "manifest.json").read_text())}
-REGISTRY = (ROOT / "db" / "registry.sql").read_text()
+MANIFEST = {m["source_id"]: m for m in json.loads((ROOT / "sources" / "manifest.json").read_text(encoding="utf-8"))}
+REGISTRY = (ROOT / "db" / "registry.sql").read_text(encoding="utf-8")
 
 NEGATION = re.compile(r"\b(not required|no prior authorization|is not required|exempt)\b", re.I)
 HCPCS = re.compile(r"\b[A-V]\d{4}\b")
@@ -71,7 +71,7 @@ def concept_codes(concept: str) -> set[str]:
     """Every code a concept maps to, across the rule files (e.g. esa-ckd-nd: J0881, J0885, J0888, Q5106)."""
     out = set()
     for p in RULES.glob("*.json"):
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         for e in d.get("programs", [d]):
             for c in e.get("concepts", []):
                 if c["key"] == concept:
@@ -175,7 +175,7 @@ def check_rule(rep: Report, src: dict, rule: dict, located_codes: set[str]):
 
 
 def check_file(path: Path) -> Report:
-    d = json.loads(path.read_text())
+    d = json.loads(path.read_text(encoding="utf-8"))
     rep = Report(path.name)
     entries = d["programs"] if "programs" in d else [d]
     drafted: set[str] = set()

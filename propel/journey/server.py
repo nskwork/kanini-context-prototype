@@ -18,7 +18,7 @@ from pathlib import Path
 from fastmcp import FastMCP
 
 HERE = Path(__file__).resolve().parent
-PATIENTS = json.loads((HERE / "patients.json").read_text())["patients"]
+PATIENTS = json.loads((HERE / "patients.json").read_text(encoding="utf-8"))["patients"]
 LOG = Path(os.environ.get("PROPEL_DECISION_LOG", HERE / "decisions.jsonl"))
 REVIEWER = os.environ.get("PROPEL_REVIEWER", "demo-staff")
 
@@ -72,7 +72,7 @@ def journey_record(order_id: str, outcome: str, rule_ref: str, source: str, safe
              "approved_by": REVIEWER, "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     if note:
         entry["note"] = note[:500]
-    with LOG.open("a") as f:
+    with LOG.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
     return {"status": "recorded", "entry": entry}
 

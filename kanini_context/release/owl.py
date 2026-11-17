@@ -103,7 +103,7 @@ def export(db: str, out: Path = OUT) -> tuple[int, int, int, int]:
                 g.add((p, RDFS.range, XS.get(dt, XSD.string)))
                 g.add((p, RDFS.label, Literal(col.replace("_", " "))))
     g.add((KC.nearestFhirResource, RDF.type, OWL.AnnotationProperty))
-    out.write_text(g.serialize(format="turtle"))
+    out.write_text(g.serialize(format="turtle"), encoding="utf-8")
     h = Graph().parse(out, format="turtle")   # the file must load back cleanly
     return (len(h), len(set(h.subjects(RDF.type, OWL.Class))), len(set(h.subjects(RDF.type, OWL.ObjectProperty))),
             len(set(h.subjects(RDF.type, OWL.DatatypeProperty))))

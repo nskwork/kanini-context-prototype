@@ -63,14 +63,14 @@ def main(argv: list[str]) -> int:
         if rep.errors:
             print(f"\n{p.name}: automated checks fail, not approved:\n  " + "\n  ".join(rep.errors))
             continue
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         print(f"\n=== {p.name}")
         show(d)
         if not args.yes and input(f"\nApprove {p.name} as {args.by}? [y/N] ").strip().lower() != "y":
             print("  not approved")
             continue
         d["review"].update({"reviewed_by": [args.by], "reviewed_at": date.today().isoformat(), "review_exception": SCOPE_EXCEPTION})
-        p.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+        p.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         approved += 1
         print("  approved")
     print(f"\n{approved} file(s) approved. Commit them (git commit kanini_context/rules), then build without --test-review.")
