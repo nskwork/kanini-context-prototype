@@ -50,3 +50,29 @@ def test_refuses_to_run_without_an_embedding_model(monkeypatch, capsys):
     from propel import llm
     monkeypatch.setattr(llm, "embed_model", lambda: None)
     assert K.main(["--runs", "1"]) == 1 and "keyword search" in capsys.readouterr().out
+
+
+def test_model_calls_wait_and_retry_on_a_rate_limit(monkeypatch):
+    import litellm
+    from propel import llm
+    monkeypatch.setattr(llm, "BACKOFF", [0, 0, 0])
+    monkeypatch.setattr(llm.time if hasattr(llm, "time") else llm._time, "sleep", lambda s: None)
+    tries = {"n": 0}
+
+    class RateLimitError(Exception):
+        pass
+
+    def fake(**kw):
+        tries["n"] += 1
+        if tries["n"] < 3:
+            raise RateLimitError("Error code: 429 - exceeded token rate limit")
+        return "answer"
+    monkeypatch.setattr(litellm, "completion", fake)
+    assert llm.completion(model="x", messages=[{"role": "user", "content": "hi"}]) == "answer" and tries["n"] == 3
+
+
+def test_a_call_larger_than_the_limit_is_refused(monkeypatch):
+    from propel import llm
+    monkeypatch.setenv("PROPEL_TPM", "50000")
+    with pytest.raises(llm.TooLargeForLimit):
+        llm.pace(148_000)

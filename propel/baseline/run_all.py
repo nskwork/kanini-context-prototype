@@ -14,10 +14,17 @@ The reports carry the model name, so OpenAI and Azure runs are never added into 
     python -m kanini_context.server.mcp_server --http 8765     # terminal 1
     python -m propel.baseline.run_all --runs 5                  # terminal 2; about 1 to 2 hours on Azure
     python -m propel.baseline.run_all --runs 5 --skip e1        # leave out a step: abc, raw, e1, e2
+    python -m propel.baseline.run_all --runs 5 --a-docs agent,rag   # A without the every-document call
+
+Rate limits: every model call waits and tries again on a 429 (about nine minutes at most), and a lane that still fails
+is recorded as stopped while the rest carry on. Set PROPEL_TPM in .env to the deployment's tokens-per-minute limit to
+pace the calls under it; a single call larger than that limit (the every-document call is about 148,000 tokens) is
+skipped with a note, since the deployment would refuse it every time.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -31,9 +38,9 @@ from kanini_context import env  # noqa: E402,F401
 OUT = ROOT / "propel/baseline/results"
 
 
-def steps(runs: int, e2_runs: int) -> list[tuple[str, list[str]]]:
+def steps(runs: int, e2_runs: int, a_docs: str = "agent,rag,whole") -> list[tuple[str, list[str]]]:
     py = [sys.executable, "-m"]
-    return [("abc", py + ["propel.baseline.compare", "--runs", str(runs), "--a-docs", "agent,rag,whole"]),
+    return [("abc", py + ["propel.baseline.compare", "--runs", str(runs), "--a-docs", a_docs]),
             ("raw", py + ["propel.baseline.compare", "--runs", str(runs), "--only", "B", "--b-mode", "raw"]),
             ("e1", py + ["propel.baseline.chunking", "--runs", str(runs)]),
             ("e2", py + ["propel.baseline.negatives", "--runs", str(e2_runs)])]
@@ -45,6 +52,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--e2-runs", type=int, default=3)
     ap.add_argument("--skip", nargs="*", default=[], choices=["abc", "raw", "e1", "e2"])
     ap.add_argument("--dry-run", action="store_true", help="print the checks and the commands; run nothing")
+    ap.add_argument("--a-docs", default="agent,rag,whole", help="lane A's ways (default agent,rag,whole)")
     a = ap.parse_args(argv)
     from propel import llm
     from propel.baseline.compare import _server_up
@@ -55,11 +63,12 @@ def main(argv: list[str]) -> int:
         problems.append("no embedding model: set AZURE_OPENAI_EMBEDDING_DEPLOYMENT (search and E1 need one)")
     if not _server_up():
         problems.append("Kanini Context server not running: python -m kanini_context.server.mcp_server --http 8765")
-    print(f"provider {llm.PROVIDER}; model {llm.MODEL}; embeddings {llm.embed_model() or 'none'}")
+    print(f"provider {llm.PROVIDER}; model {llm.MODEL}; embeddings {llm.embed_model() or 'none'}; "
+          + (f"paced under {llm.tpm():,} tokens a minute" if llm.tpm() else "not paced (set PROPEL_TPM to the deployment's tokens-per-minute limit)"))
     if problems:
         print("Not starting:\n  " + "\n  ".join(problems))
         return 1
-    todo = [(k, cmd) for k, cmd in steps(a.runs, a.e2_runs) if k not in a.skip]
+    todo = [(k, cmd) for k, cmd in steps(a.runs, a.e2_runs, a.a_docs) if k not in a.skip]
     if a.dry_run:
         print("\n".join(" ".join(cmd[1:]) for _, cmd in todo))
         return 0
@@ -72,8 +81,9 @@ def main(argv: list[str]) -> int:
             print(f"\n== {key}: {' '.join(cmd[2:])}", flush=True)
             fh.write(f"\n== {key}: {' '.join(cmd[2:])}\n")
             fh.flush()
+            # unbuffered, so each order's line shows as it finishes, not at the end of the step
             p = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8",
-                                 errors="replace")
+                                 errors="replace", env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"})
             for line in p.stdout:
                 sys.stdout.write(line)
                 fh.write(line)

@@ -102,7 +102,8 @@ def one(pid: str, ref: dict, model=None) -> dict:
     from propel.baseline.compare import run_b_async
     os.environ["PROPEL_DECISION_LOG"] = str(OUT / "e2_decisions.jsonl")
     try:
-        r = asyncio.run(run_b_async(pid, raw=True, model=model))
+        from propel import llm
+        r = llm.with_backoff(lambda: asyncio.run(run_b_async(pid, raw=True, model=model)), what="agent run (B)")
     except Exception as ex:   # a run that fails is a finding, not a crash
         return {"error": f"{type(ex).__name__}: {str(ex)[:200]}", "facts": "asked", "final": None, "own": None, "no_answer": True}
     verdict, diff = facts_verdict(r["passed"], CASES[pid]["expected_facts"])

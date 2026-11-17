@@ -271,8 +271,9 @@ def run_one(strategy: str, pid: str, ref: dict, model: str) -> dict:
                              docs="\n\n".join(f"=== {c['title']}, page {c['page']}\n{c['text']}" for c in found))
     effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip()
     t = time.perf_counter()
-    resp = litellm.completion(model=model, messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"},
-                              num_retries=4, **({"reasoning_effort": effort} if effort else {}))
+    from propel import llm
+    resp = llm.completion(model=model, messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"},
+                          **({"reasoning_effort": effort} if effort else {}))
     ms = (time.perf_counter() - t) * 1000
     try:
         ans = json.loads(resp.choices[0].message.content)

@@ -124,7 +124,8 @@ def run_a(pid: str, mode: str = "rag") -> dict:
     t = time.perf_counter()   # includes ranking the passages (one embedding call for the question) in RAG mode
     effort = (A_EFFORT or os.environ.get("PROPEL_REASONING_EFFORT", "low")).strip()
     prompt, _ = prompt_for(pid, mode)
-    resp = litellm.completion(model=MODEL, messages=[{"role": "user", "content": prompt}], num_retries=4,
+    from propel import llm
+    resp = llm.completion(model=MODEL, messages=[{"role": "user", "content": prompt}],
                               response_format={"type": "json_object"}, **({"reasoning_effort": effort} if effort else {}))
     ms = (time.perf_counter() - t) * 1000
     try:
@@ -270,12 +271,14 @@ async def run_a_agent_async(pid: str, model=None) -> dict:
 
 
 def run_a_agent(pid: str) -> dict:
-    return asyncio.run(run_a_agent_async(pid))
+    from propel import llm
+    return llm.with_backoff(lambda: asyncio.run(run_a_agent_async(pid)), what="agent run (A)")
 
 
 def run_b(pid: str, raw: bool = False) -> dict:
+    from propel import llm
     os.environ["PROPEL_DECISION_LOG"] = str(OUT / "compare_decisions.jsonl")
-    return asyncio.run(run_b_async(pid, raw))
+    return llm.with_backoff(lambda: asyncio.run(run_b_async(pid, raw)), what="agent run (B)")
 
 
 # --- report ------------------------------------------------------------------------------------------------------
@@ -324,6 +327,7 @@ def main(argv: list[str]) -> int:
     import litellm
 
     effort = os.environ.get("PROPEL_REASONING_EFFORT", "low").strip() or "provider default"
+    stamp = datetime.now().strftime("%Y%m%d-%H%M")
     report = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": MODEL,
               "reasoning_effort": effort, "a_reasoning_effort": args.a_effort or effort, "a_docs": a_modes,
               "b_mode": args.b_mode, "scenarios": {}}
@@ -338,7 +342,12 @@ def main(argv: list[str]) -> int:
         if not args.offline:
             if args.only != "B":
                 for m in a_modes:
-                    runs_m = [run_a_agent(pid) if m == "agent" else run_a(pid, m) for _ in range(args.runs)]
+                    try:
+                        runs_m = [run_a_agent(pid) if m == "agent" else run_a(pid, m) for _ in range(args.runs)]
+                    except Exception as ex:   # one lane failing (a rate limit that never cleared) does not stop the rest
+                        entry[f"A_{m}_error"] = f"{type(ex).__name__}: {str(ex)[:300]}"
+                        print(f"  A {m} on {pid} stopped: {entry[f'A_{m}_error']}", flush=True)
+                        continue
                     entry[f"A_{m}"] = summarise(runs_m, ref)
                     # every run's answer and the AI's own words, so what broke can be quoted later
                     entry[f"A_{m}_runs"] = [{"outcome": r["outcome"], "reasons": r.get("reasons"), "card": r.get("card"),
@@ -349,13 +358,21 @@ def main(argv: list[str]) -> int:
             if args.only != "A":
                 raw = args.b_mode == "raw"
                 key = "B_raw" if raw else "B"
-                b_runs = [run_b(pid, raw) for _ in range(args.runs)]
+                try:
+                    b_runs = [run_b(pid, raw) for _ in range(args.runs)]
+                except Exception as ex:
+                    entry[f"{key}_error"] = f"{type(ex).__name__}: {str(ex)[:300]}"
+                    print(f"  {key} on {pid} stopped: {entry[f'{key}_error']}", flush=True)
+                    b_runs = []
+            if args.only != "A" and b_runs:
                 entry[key] = summarise(b_runs, ref)
                 entry[f"{key}_card_lines"] = [r["card_lines"] for r in b_runs]   # what the model wrote, for checking
                 if raw:   # did B read the chart right: the facts it passed against the registered facts
                     entry[key]["facts_right"] = sum(1 for r in b_runs if facts_match((r["passed"] or {}).get("facts"), PATIENTS[pid]["facts"]))
                     entry[f"{key}_passed"] = [r["passed"] for r in b_runs]
         report["scenarios"][sc] = entry
+        # saved after every order, so a run that stops part way keeps what it finished
+        (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(f"scenario {sc:3} {pid:16} rules: {ref:12} A prompt "
               + ", ".join(f"{m} {entry[f'A_{m}_prompt_tokens']:,}" for m in a_modes if f"A_{m}_prompt_tokens" in entry) + " tokens"
               + "".join(f" | A {m} {entry[f'A_{m}']['matches_rules']}/{args.runs} match, {dict(entry[f'A_{m}']['outcomes'])}"
@@ -365,7 +382,6 @@ def main(argv: list[str]) -> int:
               + (f" | B reading the chart {entry['B_raw']['matches_rules']}/{args.runs} right answer, facts right "
                  f"{entry['B_raw']['facts_right']}/{args.runs}" if "B_raw" in entry else ""))
 
-    stamp = datetime.now().strftime("%Y%m%d-%H%M")
     (OUT / f"compare-{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     a_eff = f", A at {args.a_effort}" if args.a_effort else ""
     lines = [f"# Kanini Context: LLM calls saved ({report['at']}, {MODEL}, reasoning effort {effort}{a_eff}, {args.runs} runs per scenario)", "",

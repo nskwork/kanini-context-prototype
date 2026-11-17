@@ -61,3 +61,82 @@ def embed_model() -> str | None:
 
 def describe() -> str:
     return f"{MODEL} ({PROVIDER})"
+
+
+# --- Rate limits on long runs ------------------------------------------------------------------------------------------
+# A deployment has a tokens-per-minute limit (Azure: the deployment's "Tokens per Minute Rate Limit"). Long test runs
+# wait and retry when it answers 429, instead of stopping, and can pace themselves under it (PROPEL_TPM).
+
+import time as _time
+from collections import deque as _deque
+
+_SENT: _deque = _deque()   # (time, tokens) of the calls sent in the last minute by this process
+BACKOFF = [20, 40, 60, 90, 120, 120, 120]   # seconds: about nine minutes in all before giving up on one call
+
+
+class TooLargeForLimit(RuntimeError):
+    """One request needs more tokens than the deployment allows per minute: it can never succeed there."""
+
+
+def tpm() -> int | None:
+    v = os.environ.get("PROPEL_TPM", "").strip()
+    return int(v) if v.isdigit() else None
+
+
+def is_rate_limit(ex: BaseException) -> bool:
+    return "RateLimit" in type(ex).__name__ or "429" in str(ex)[:400] or "rate limit" in str(ex).lower()[:400]
+
+
+def _retry_after(ex: BaseException, attempt: int) -> float:
+    resp = getattr(ex, "response", None)
+    try:
+        ra = float(resp.headers.get("retry-after")) if resp is not None and resp.headers.get("retry-after") else None
+    except (TypeError, ValueError, AttributeError):
+        ra = None
+    return max(ra or 0, BACKOFF[min(attempt, len(BACKOFF) - 1)])
+
+
+def pace(tokens: int):
+    """Wait until sending this many tokens keeps the last minute under PROPEL_TPM (when it is set)."""
+    limit = tpm()
+    if not limit:
+        return
+    if tokens > limit:
+        raise TooLargeForLimit(f"one call needs about {tokens:,} tokens; the deployment allows {limit:,} per minute")
+    while True:
+        now = _time.monotonic()
+        while _SENT and now - _SENT[0][0] > 60:
+            _SENT.popleft()
+        if sum(t for _, t in _SENT) + tokens <= limit:
+            _SENT.append((now, tokens))
+            return
+        _time.sleep(max(1.0, 60 - (now - _SENT[0][0]) + 0.5))
+
+
+def completion(**kw):
+    """litellm.completion, paced under PROPEL_TPM and retried with backoff on 429 (about nine minutes at most)."""
+    import litellm
+    est = litellm.token_counter(model=TOKEN_MODEL, messages=kw.get("messages") or []) + 2000
+    for attempt in range(len(BACKOFF) + 1):
+        pace(est)
+        try:
+            return litellm.completion(num_retries=0, **{k: v for k, v in kw.items() if k != "num_retries"})
+        except Exception as ex:
+            if not is_rate_limit(ex) or attempt == len(BACKOFF):
+                raise
+            wait = _retry_after(ex, attempt)
+            print(f"  rate limit: waiting {wait:.0f} s, then trying again ({attempt + 1} of {len(BACKOFF)})", flush=True)
+            _time.sleep(wait)
+
+
+def with_backoff(fn, *args, what: str = "run", **kwargs):
+    """Run a whole agent run again after a wait when the model's rate limit stops it."""
+    for attempt in range(len(BACKOFF) + 1):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as ex:
+            if not is_rate_limit(ex) or attempt == len(BACKOFF):
+                raise
+            wait = _retry_after(ex, attempt)
+            print(f"  rate limit during the {what}: waiting {wait:.0f} s, then running it again ({attempt + 1} of {len(BACKOFF)})", flush=True)
+            _time.sleep(wait)
