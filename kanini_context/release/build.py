@@ -41,9 +41,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kc_agent') THEN CREATE ROLE kc_agent NOLOGIN; END IF;
 END $$;
 GRANT kc_agent TO CURRENT_USER;
-GRANT USAGE ON SCHEMA kc_meta, kc_core, kc_api, kc_gov, kc_client TO kc_agent;
-GRANT SELECT ON ALL TABLES IN SCHEMA kc_meta, kc_core, kc_api, kc_gov, kc_client TO kc_agent;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA kc_api TO kc_agent;
+GRANT USAGE ON SCHEMA kc_meta, kc_core, kc_api, kc_gov, kc_client, kc_views TO kc_agent;
+GRANT SELECT ON ALL TABLES IN SCHEMA kc_meta, kc_core, kc_api, kc_gov, kc_client, kc_views TO kc_agent;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA kc_api, kc_views TO kc_agent;
 GRANT INSERT ON kc_client.tool_audit TO kc_agent;
 GRANT USAGE ON SEQUENCE kc_client.tool_audit_audit_id_seq TO kc_agent;
 """

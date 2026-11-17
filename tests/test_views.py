@@ -47,6 +47,9 @@ def test_explain_order_answer_equals_rules_evaluate(db, kc, name, args):
     trace = explain(db, args)
     assert same(trace["answer"], tool), name
     assert set(trace) == {"answer", "coverage", "policies", "programs"}
+    assert isinstance(trace["coverage"], dict), name
+    if name in {"unknown state", "unknown code", "unknown plan"}:
+        assert trace["programs"] == [], name
 
 
 def test_explain_order_ohio_trace(db):
@@ -90,7 +93,7 @@ def test_rules_view_matches_active_rules(db):
 
 
 def test_scope_programs_and_codes(db):
-    oh = db.execute("SELECT place_name FROM kc_views.policy_scope WHERE place_code = 'J15'").fetchall()
+    oh = db.execute("SELECT place_name FROM kc_views.policy_scopes WHERE place_code = 'J15'").fetchall()
     assert oh and all("CGS Administrators" in p[0] and "OH" in p[0] for p in oh)
     progs = db.execute("SELECT program, is_checked, finding FROM kc_views.medicare_programs").fetchall()
     n_prog = db.execute("SELECT count(*) FROM kc_core.authority WHERE kind = 'pa_program'").fetchone()[0]
@@ -108,13 +111,13 @@ def test_every_view_and_column_is_described(db):
     assert not missing, missing
     views = db.execute("""SELECT c.relname, obj_description(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                            WHERE n.nspname = 'kc_views' AND c.relkind = 'v'""").fetchall()
-    assert {v for v, _ in views} == {"documents", "rules", "policy_scope", "medicare_programs", "codes"}
+    assert {v for v, _ in views} == {"documents", "rules", "policy_scopes", "medicare_programs", "codes", "releases"}
     assert all(d for _, d in views)
 
 
 def test_effective_to_is_the_last_day(db):
     """effective_to is inclusive: WISeR year 1 ends on 31 Dec 2026, not 1 Jan 2027."""
-    row = db.execute("SELECT effective_to FROM kc_views.policy_scope WHERE citation LIKE 'CMS WISeR%' LIMIT 1").fetchone()
+    row = db.execute("SELECT effective_to FROM kc_views.policy_scopes WHERE citation LIKE 'CMS WISeR%' LIMIT 1").fetchone()
     assert str(row[0]) == "2026-12-31"
 
 
@@ -123,3 +126,46 @@ def test_views_change_no_table(db):
     text = (ROOT / "kanini_context" / "db" / "views.sql").read_text().upper()
     assert "CREATE TABLE" not in text and "ALTER TABLE" not in text and "INSERT " not in text
     assert "UPDATE KC_" not in text and "DELETE " not in text
+
+
+def test_explain_order_lists_only_checks_made_for_this_item(db):
+    """A program list counts as checked only when it was checked for the ordered item: the iron infusion (J1439) was
+    never checked against the CMS lists, so no program shows the ESA finding for it; past the pack's dates, none."""
+    t = explain(db, {"plan": "original-medicare", "state": "OH", "code": "J1439", "date_of_service": "2026-11-15", "facts": {}})
+    assert t["programs"] and not any(p["screened"] for p in t["programs"])
+    late = explain(db, {"plan": "original-medicare", "state": "OH", "code": "J0885", "date_of_service": "2027-06-15", "facts": {}})
+    assert late["answer"]["reason"] == "pack_not_current_for_date" and late["programs"] == []
+
+
+def test_codes_include_code_lists_defined_by_a_rule(db):
+    groups = {r[0] for r in db.execute("SELECT code_group FROM kc_views.codes WHERE code = 'J1439'")}
+    assert {"All drug codes", "All items"} <= groups
+
+
+def test_summaries_read_as_the_source_says(db):
+    says = dict(db.execute("SELECT rule_key, summary FROM kc_views.rules").fetchall())
+    l39 = says["kc:rule/esa-ckd-nd/L39237"]
+    assert "Hematocrit below 30%" in l39 and "30 %" not in l39
+    assert "at initiation" in l39                                    # Hgb, Hct and eGFR apply when therapy starts
+    assert "1 month at initiation" not in l39                        # the creatinine date applies on every request
+    assert says["kc:rule/esa-ckd-nd/L34356"].endswith("These apply at initiation of therapy.")
+    assert "; or " in says["kc:rule/J1439/uhc-step-therapy"]
+
+
+def test_plans_and_programs_show_by_name(db):
+    rows = db.execute("SELECT applies_in FROM kc_views.rules WHERE rule_key LIKE '%uhc%'").fetchall()
+    assert rows and all("uhc-ma" not in r[0] and "UHC Medicare Advantage" in r[0] for r in rows)
+    plan = db.execute("SELECT plan, plan_code FROM kc_views.policy_scopes WHERE plan_code = 'uhc-ma' LIMIT 1").fetchone()
+    assert plan == ("UHC Medicare Advantage", "uhc-ma")
+    wiser = db.execute("SELECT applies_in FROM kc_views.medicare_programs WHERE program LIKE 'CMS WISeR%'").fetchone()[0]
+    assert "from 2026-01-01 until 2026-12-31" in wiser
+
+
+def test_documents_show_a_pending_change(db):
+    row = db.execute("SELECT is_change_pending, change_applies_from FROM kc_views.documents WHERE source_id = 'uhc-ma-partb-step-therapy'").fetchone()
+    assert row[0] is True and str(row[1]) == "2027-01-01"
+
+
+def test_releases_view(db):
+    rows = db.execute("SELECT release_id, covers_through FROM kc_views.releases").fetchall()
+    assert rows and all(r[0] for r in rows)

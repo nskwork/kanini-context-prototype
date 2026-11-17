@@ -1108,7 +1108,7 @@
     const docs = S.src.documents.filter((x) => x.document_group === GROUPS[i][0]);
     box.innerHTML = `<h2>${esc(GROUPS[i][0])}</h2>` + docs.map((x, k) => `<div class="doc"><div class="dh" data-k="${k}">`
       + `<div class="t"><b>${esc(x.title)}</b><span>${esc(x.document_type)}${x.edition ? " · " + esc(x.edition) : ""}</span></div>`
-      + `<div class="m"><span class="st ${FRESH[x.freshness] || "mute"}">${esc(x.freshness)}</span><span>checked ${ago(x.last_checked_at)}</span>`
+      + `<div class="m">${x.is_change_pending ? `<span class="st warn" title="A new edition was detected and is waiting for review">change pending${x.change_applies_from ? " from " + ago(x.change_applies_from) : ""}</span>` : ""}<span class="st ${FRESH[x.freshness] || "mute"}">${esc(x.freshness)}</span><span>checked ${ago(x.last_checked_at)}</span>`
       + `${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">original</a>` : ""}</div></div>`
       + `<div class="dr">${x.rules.length ? x.rules.map((r) => `<p><span>${esc(r.rule_type)}</span>${esc(r.summary)}${r.page ? ` <i>page ${esc(r.page)}</i>` : ""}</p>`).join("") : `<p class="role">${esc(x.role)}</p>`}`
       + `${x.fingerprint ? `<p class="fp">Fingerprint <code>${esc(x.fingerprint)}</code> · saved ${ago(x.saved_at)}</p>` : ""}</div></div>`).join("");
@@ -1122,10 +1122,10 @@
     .map(([h, d, t, c]) => `<li><b>${h}</b><span>${d}</span><em class="st ${c}">${t}</em></li>`).join("");
 
   /* ---------------------------------------------------------------- Knowledge page */
-  const WHERE = [["Tennessee", (r) => /\bTN\b/.test(r.applies_in || "")], ["Ohio", (r) => /\bOH\b/.test(r.applies_in || "")],
-    ["UHC Advantage", (r) => /uhc-ma/.test(r.applies_in || "")], ["Nationwide", (r) => /nationwide/.test(r.applies_in || "")]];
+  const WHERE = [["Tennessee", (r) => /\bTN\b|Tennessee/.test(r.applies_in || "")], ["Ohio", (r) => /\bOH\b|Ohio/.test(r.applies_in || "")],
+    ["UHC Advantage", (r) => /UHC Medicare Advantage/.test(r.applies_in || "")], ["Nationwide", (r) => /nationwide/.test(r.applies_in || "")]];
   const whereText = (s) => String(s || "").replace(/Medicare A\/B Jurisdiction \w+ \(([^:]+): ([^)]+)\)/g, "$2")
-    .replace(/\buhc-ma\b/g, "UHC Medicare Advantage").replace(/;/g, ",");
+    .replace(/;/g, ",");
   const KF = { where: null, kind: null, q: "" };
   async function knShow(k) {
     S.kTab = k;

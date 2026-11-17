@@ -111,7 +111,7 @@ def test_pages_read_the_views(client, db):
     lcd = next(x for x in s["documents"] if x["source_id"] == "mcd-lcd-l39237")
     assert [r["rule_type"] for r in lcd["rules"]] == ["Coverage criteria"]
     k = client.get("/api/knowledge").json()
-    assert {"rules", "policy_scope", "medicare_programs", "codes", "sql"} <= set(k) and k["rules"]
+    assert {"rules", "policy_scopes", "medicare_programs", "codes", "sql"} <= set(k) and k["rules"]
 
 
 def test_explain_matches_the_workflow_answer(client, db):

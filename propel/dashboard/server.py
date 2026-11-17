@@ -253,7 +253,7 @@ def source(source_id: str):
 VIEW_SQL = {
     "documents": "SELECT * FROM kc_views.documents ORDER BY document_group, rule_count DESC, title",
     "rules": "SELECT * FROM kc_views.rules ORDER BY rule_type, subject, citation",
-    "policy_scope": "SELECT * FROM kc_views.policy_scope ORDER BY citation, program, place_name",
+    "policy_scopes": "SELECT * FROM kc_views.policy_scopes ORDER BY citation, program, place_name",
     "medicare_programs": "SELECT * FROM kc_views.medicare_programs ORDER BY program",
     "codes": "SELECT * FROM kc_views.codes ORDER BY code_group, code",
     "regions": """SELECT m.code, m.name, m.contractor, string_agg(s.code, ', ' ORDER BY s.code) AS states
@@ -296,7 +296,7 @@ def sources():
 @app.get("/api/knowledge")
 def knowledge():
     """What is stored, as plain tables: rules, where each policy applies, the Medicare PA programs, the codes."""
-    return _views("rules", "policy_scope", "medicare_programs", "codes")
+    return _views("rules", "policy_scopes", "medicare_programs", "codes")
 
 
 def _order_args(pid: str) -> tuple:
