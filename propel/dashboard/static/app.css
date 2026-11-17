@@ -761,3 +761,14 @@ details.t-order .t-chips span{display:inline-flex;align-items:center;gap:5px}
 .rid{display:block;font-size:11px;color:#6f7986;margin-top:2px}
 .qa-d{margin-top:14px}
 .qa-d>summary{cursor:pointer;font-size:13.5px;color:#7fb6ff}
+
+/* long plain-language answers wrap instead of overflowing */
+.three .r{grid-template-columns:22px minmax(0,1fr) 16px;grid-template-areas:"l n m" "l a m";row-gap:2px;align-items:start}
+.three .r .L{grid-area:l;align-self:center}
+.three .r .nm{grid-area:n}
+.three .r b{grid-area:a;white-space:normal;font-size:14px;line-height:1.25}
+.three .r .ok,.three .r .bad{grid-area:m;align-self:center}
+.three{width:340px}
+.nums{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr)}
+.nums>div:last-child .n{font-family:var(--display);font-size:15px;line-height:1.25;white-space:normal}
+.answer .big-ans{font-size:34px;line-height:1.08}

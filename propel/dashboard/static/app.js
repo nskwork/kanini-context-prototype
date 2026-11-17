@@ -388,9 +388,9 @@
   // A is the same agent without the context layer: it finds and reads the policy documents for every order. B is
   // the agent with Kanini Context (reduce: short calls, no document text); C is Kanini Context with no AI (eliminate).
   // Earlier baselines (an LLM application with search, or given every document) are in the Testing tab.
-  const LANES = { C: ["workflow", "Rules only, no AI: Kanini Context answers", "#01B574", "The answer"],
-    B: ["agent", "AI agent with Kanini Context", "#0075FF", "Matches C"],
-    A: ["nocontext", "AI agent without Kanini Context", "#F04F4F", "Matches C"] };
+  const LANES = { C: ["workflow", "Rules only (no AI)", "#01B574", "The answer"],
+    B: ["agent", "AI with Kanini Context", "#0075FF", "Matches C"],
+    A: ["nocontext", "AI alone", "#F04F4F", "Matches C"] };
   const MODE_LANE = { nocontext: "A", agent: "B", workflow: "C" };
   const A_STEP = { journey_get: "patient record", list_documents: "lists the documents", search_documents: "searches the documents",
     read_pages: "reads pages" };

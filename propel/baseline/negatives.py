@@ -122,7 +122,7 @@ def summarise(pid: str, ref: dict, runs: list[dict]) -> dict:
     finals = Counter(str(x["final"]) for x in runs)
     return {"case": c["case"], "kind": c.get("kind", "model"), "tests": c["tests"], "safe": c["safe"], "reference": ref,
             "runs": n, "facts": dict(Counter(x["facts"] for x in runs)),
-            "code_right": sum(1 for x in runs if x.get("code") == ref["code"]),
+            "code_right": sum(1 for x in runs if str(x.get("code") or "").upper().removeprefix("HCPCS|") == ref["code"]),   # J0885 or HCPCS|J0885
             "own_card_written": sum(1 for x in runs if x.get("own")),
             "own_right": sum(1 for x in runs if x.get("own") == ref["outcome"]),
             "final_right": sum(1 for x in runs if x["final"] == ref["outcome"]),
