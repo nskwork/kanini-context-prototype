@@ -56,7 +56,7 @@ SELECT coalesce(least(
          (SELECT min(valid_to_lo) FROM kc_core.authority_version WHERE valid_to_lo > %(d)s::date AND upper_inf(recorded))) - 1,
        (date_trunc('month', %(d)s::date) + interval '2 months' - interval '1 day')::date)"""
 GRAPH = "ref"
-SQL_FILES = ["schema.sql", "registry.sql", "resolver.sql", "api.sql"]
+SQL_FILES = ["schema.sql", "registry.sql", "resolver.sql", "api.sql", "views.sql"]
 
 
 def dsn(db: str) -> str:
