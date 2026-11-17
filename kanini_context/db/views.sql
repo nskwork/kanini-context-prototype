@@ -1,14 +1,29 @@
--- Kanini Context: read-only views of what the pack holds, for people rather than agents.
+-- Kanini Context: read-only views of the release, for people rather than agents.
 --
--- Loaded after api.sql. Additive only: nothing here changes a table, a function the tools call, or an answer.
--- The views show the release in plain columns (documents, rules in plain words, where each policy applies, the
--- Medicare prior authorization programs checked, codes), and kc_api.explain_order traces one answer step by step
--- by calling the same kc_api.evaluate_order the tools call, so the trace can never disagree with the answer.
+-- Loaded after api.sql. Nothing here changes a table, a tool or an answer.
+--
+-- Five views in their own schema, kc_views, each one row per thing a reader would point at:
+--   kc_views.documents          one row per source document
+--   kc_views.rules              one row per approved rule, with what it says in plain words
+--   kc_views.policy_scope       one row per place, plan or program where a policy applies
+--   kc_views.medicare_programs  one row per CMS prior authorization program, with what its list says
+--   kc_views.codes              one row per code in a code group the rules use
+-- and one function in kc_api, explain_order, which traces one answer step by step.
+--
+-- Conventions, the same in every view:
+--   * names are plural nouns; columns are lower snake_case words, never abbreviations;
+--   * only current records: rows superseded in a later release and retired rules are left out;
+--   * effective_from and effective_to are both inclusive dates; an empty effective_to means no end date;
+--   * true/false columns start with is_;
+--   * every view and column carries a description (COMMENT ON), shown by \d+ in psql.
+
+CREATE SCHEMA kc_views;
+COMMENT ON SCHEMA kc_views IS 'Read-only views of the release in plain words, for people. Agents use kc_api.';
 
 -------------------------------------------------------------------------------
 -- Plain-words helpers
 -------------------------------------------------------------------------------
-CREATE FUNCTION kc_api.kind_label(p_kind text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+CREATE FUNCTION kc_views.document_type_label(p_kind text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE p_kind
     WHEN 'lcd' THEN 'Medicare coverage policy (LCD)'
     WHEN 'ncd' THEN 'National coverage determination'
@@ -24,7 +39,7 @@ CREATE FUNCTION kc_api.kind_label(p_kind text) RETURNS text LANGUAGE sql IMMUTAB
     WHEN 'guideline' THEN 'Guideline'
     ELSE p_kind END $$;
 
-CREATE FUNCTION kc_api.rule_kind_label(p_kind text, p_basis text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+CREATE FUNCTION kc_views.rule_type_label(p_kind text, p_basis text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE
     WHEN p_kind = 'approval_required' AND p_basis = 'stated_by_exhaustion' THEN 'Program list checked'
     WHEN p_kind = 'approval_required' THEN 'Prior authorization'
@@ -36,55 +51,55 @@ CREATE FUNCTION kc_api.rule_kind_label(p_kind text, p_basis text) RETURNS text L
     WHEN p_kind = 'obligation' THEN 'Obligation'
     ELSE p_kind END $$;
 
-CREATE FUNCTION kc_api.unit_text(p_unit text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+CREATE FUNCTION kc_views.unit_text(p_unit text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE p_unit WHEN 'mL/min/{1.73_m2}' THEN 'mL/min/1.73 m²' ELSE coalesce(p_unit, '') END $$;
 
-CREATE FUNCTION kc_api.list_text(p_values jsonb, p_join text DEFAULT ', ') RETURNS text LANGUAGE sql IMMUTABLE AS $$
+CREATE FUNCTION kc_views.list_text(p_values jsonb, p_join text DEFAULT ', ') RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE jsonb_typeof(p_values)
     WHEN 'array' THEN (SELECT string_agg(replace(v, '_', ' '), p_join ORDER BY o)
                          FROM jsonb_array_elements_text(p_values) WITH ORDINALITY AS t(v, o))
     ELSE replace(p_values #>> '{}', '_', ' ') END $$;
 
--- one test on one data element, e.g. "Hemoglobin below 10 g/dL"
-CREATE FUNCTION kc_api.test_text(p_name text, p_unit text, p_test jsonb, p_lookback interval) RETURNS text
+-- one requirement on one data element, e.g. "Hemoglobin below 10 g/dL"
+CREATE FUNCTION kc_views.requirement_text(p_name text, p_unit text, p_test jsonb, p_lookback interval) RETURNS text
 LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE p_test ->> 'op'
-    WHEN 'lt'  THEN p_name || ' below '    || (p_test ->> 'value') || ' ' || kc_api.unit_text(coalesce(p_test ->> 'unit', p_unit))
-    WHEN 'lte' THEN p_name || ' at most '  || (p_test ->> 'value') || ' ' || kc_api.unit_text(coalesce(p_test ->> 'unit', p_unit))
-    WHEN 'gt'  THEN p_name || ' above '    || (p_test ->> 'value') || ' ' || kc_api.unit_text(coalesce(p_test ->> 'unit', p_unit))
-    WHEN 'gte' THEN p_name || ' '          || (p_test ->> 'value') || ' ' || kc_api.unit_text(coalesce(p_test ->> 'unit', p_unit)) || ' or more'
+    WHEN 'lt'  THEN p_name || ' below '   || (p_test ->> 'value') || ' ' || kc_views.unit_text(coalesce(p_test ->> 'unit', p_unit))
+    WHEN 'lte' THEN p_name || ' at most ' || (p_test ->> 'value') || ' ' || kc_views.unit_text(coalesce(p_test ->> 'unit', p_unit))
+    WHEN 'gt'  THEN p_name || ' above '   || (p_test ->> 'value') || ' ' || kc_views.unit_text(coalesce(p_test ->> 'unit', p_unit))
+    WHEN 'gte' THEN p_name || ' '         || (p_test ->> 'value') || ' ' || kc_views.unit_text(coalesce(p_test ->> 'unit', p_unit)) || ' or more'
     WHEN 'present' THEN p_name || CASE WHEN p_lookback IS NULL THEN ' on file'
                                        ELSE ' from the past ' || replace(replace(p_lookback::text, ' mons', ' months'), ' mon', ' month') END
     WHEN 'includes' THEN p_name || ' (' || (p_test ->> 'value') || ')'
-    WHEN 'includes_any' THEN p_name || ' (one of ' || kc_api.list_text(p_test -> 'value') || ')'
+    WHEN 'includes_any' THEN p_name || ' (one of ' || kc_views.list_text(p_test -> 'value') || ')'
     ELSE p_name || ' ' || p_test::text END $$;
 
--- one condition on when a rule applies, e.g. "patient not on dialysis"
-CREATE FUNCTION kc_api.condition_text(p_cond jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+-- one condition on when a rule applies, e.g. "the patient is not on dialysis"
+CREATE FUNCTION kc_views.condition_text(p_cond jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE
     WHEN p_cond ->> 'fact' = 'dialysis_status' AND p_cond -> 'value' = '["none"]' THEN 'the patient is not on dialysis'
-    WHEN p_cond ->> 'fact' = 'encounter_type' THEN 'the encounter is ' || kc_api.list_text(p_cond -> 'value', ' or ')
+    WHEN p_cond ->> 'fact' = 'encounter_type' THEN 'the encounter is ' || kc_views.list_text(p_cond -> 'value', ' or ')
     WHEN p_cond ->> 'fact' = 'diagnosis_codes' AND p_cond ->> 'op' = 'prefix_overlaps'
-      THEN 'a diagnosis code starts with ' || kc_api.list_text(p_cond -> 'value', ' or ')
-    WHEN p_cond ->> 'op' = 'in' THEN replace(p_cond ->> 'fact', '_', ' ') || ' is ' || kc_api.list_text(p_cond -> 'value', ' or ')
-    ELSE replace(p_cond ->> 'fact', '_', ' ') || ' ' || (p_cond ->> 'op') || ' ' || kc_api.list_text(p_cond -> 'value') END $$;
+      THEN 'a diagnosis code starts with ' || kc_views.list_text(p_cond -> 'value', ' or ')
+    WHEN p_cond ->> 'op' = 'in' THEN replace(p_cond ->> 'fact', '_', ' ') || ' is ' || kc_views.list_text(p_cond -> 'value', ' or ')
+    ELSE replace(p_cond ->> 'fact', '_', ' ') || ' ' || (p_cond ->> 'op') || ' ' || kc_views.list_text(p_cond -> 'value') END $$;
 
-CREATE FUNCTION kc_api.conditions_text(p_conds jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$
-  SELECT string_agg(kc_api.condition_text(c), ' and ' ORDER BY o)
+CREATE FUNCTION kc_views.conditions_text(p_conds jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT string_agg(kc_views.condition_text(c), ' and ' ORDER BY o)
     FROM jsonb_array_elements(coalesce(p_conds, '[]')) WITH ORDINALITY AS t(c, o) $$;
 
--- what a rule says, in plain words
-CREATE FUNCTION kc_api.rule_summary(p_rule_id uuid) RETURNS text LANGUAGE plpgsql STABLE AS $$
-DECLARE r kc_core.rule; v_groups text; v_items text; v_when text;
+-- what a rule says, in one plain sentence
+CREATE FUNCTION kc_views.rule_summary(p_rule_id uuid) RETURNS text LANGUAGE plpgsql STABLE AS $$
+DECLARE r kc_core.rule; v_groups text; v_when text;
 BEGIN
   SELECT * INTO r FROM kc_core.rule WHERE rule_id = p_rule_id;
   IF NOT FOUND THEN RETURN NULL; END IF;
-  v_when := kc_api.conditions_text(r.conditions);
+  v_when := kc_views.conditions_text(r.conditions);
   SELECT CASE WHEN count(*) > 1 AND r.rule_kind = 'coverage_criteria'
               THEN 'all of these hold: ' || string_agg(group_no || ') ' || g, '; ' ORDER BY group_no)
               ELSE string_agg(g, '; ' ORDER BY group_no) END INTO v_groups FROM (
     SELECT q.group_no,
-           string_agg(kc_api.test_text(d.name, d.unit, q.test, q.lookback),
+           string_agg(kc_views.requirement_text(d.name, d.unit, q.test, q.lookback),
                       CASE q.group_logic WHEN 'any' THEN ' or ' ELSE ' and ' END ORDER BY d.name) AS g
       FROM kc_core.rule_requirement q JOIN kc_core.data_element d ON d.entity_id = q.data_element_id
      WHERE q.rule_id = p_rule_id GROUP BY q.group_no) x;
@@ -113,16 +128,16 @@ BEGIN
     ELSE r.payload::text END;
 END $$;
 
--- what a rule is about: the concept's label, or the code
-CREATE FUNCTION kc_api.subject_label(p_entity uuid) RETURNS text LANGUAGE sql STABLE AS $$
+-- what a rule is about: the concept's label, the code list's name, or the code
+CREATE FUNCTION kc_views.subject_label(p_entity uuid) RETURNS text LANGUAGE sql STABLE AS $$
   SELECT coalesce(c.label, vs.name, replace(e.natural_key, 'HCPCS|', 'HCPCS '))
     FROM kc_core.entity e
     LEFT JOIN kc_core.concept c ON c.entity_id = e.entity_id
     LEFT JOIN kc_core.value_set vs ON vs.entity_id = e.entity_id
    WHERE e.entity_id = p_entity $$;
 
--- where an authority applies: "Original Medicare (fee-for-service): Ohio, Kentucky (J15)" and so on
-CREATE FUNCTION kc_api.binding_place(p_jurisdiction uuid) RETURNS text LANGUAGE sql STABLE AS $$
+-- a place in plain words: "nationwide", "Ohio", or a contractor region with its states
+CREATE FUNCTION kc_views.place_label(p_jurisdiction uuid) RETURNS text LANGUAGE sql STABLE AS $$
   SELECT CASE j.kind
     WHEN 'nation' THEN 'nationwide'
     WHEN 'state'  THEN j.name
@@ -135,110 +150,155 @@ CREATE FUNCTION kc_api.binding_place(p_jurisdiction uuid) RETURNS text LANGUAGE 
     FROM kc_core.jurisdiction j WHERE j.entity_id = p_jurisdiction $$;
 
 -------------------------------------------------------------------------------
--- The documents
+-- documents
 -------------------------------------------------------------------------------
-CREATE VIEW kc_api.v_sources AS
-WITH snap AS (
-  SELECT DISTINCT ON (source_id) source_id, snapshot_id, retrieved_at, content_sha256, stated_effective, blob_uri
+CREATE VIEW kc_views.documents AS
+WITH latest AS (
+  SELECT DISTINCT ON (source_id) source_id, snapshot_id, retrieved_at, content_sha256, stated_effective
     FROM kc_core.snapshot ORDER BY source_id, retrieved_at DESC),
 checked AS (
   SELECT source_id, max(checked_at) FILTER (WHERE ok) AS last_ok FROM kc_core.source_check GROUP BY source_id),
-kinds AS (
-  SELECT av.snapshot_id, string_agg(DISTINCT kc_api.kind_label(a.kind), ', ') AS kind
+types AS (
+  SELECT av.snapshot_id, string_agg(DISTINCT kc_views.document_type_label(a.kind), ', ') AS document_type
     FROM kc_core.authority_version av JOIN kc_core.authority a ON a.entity_id = av.authority_id
    WHERE upper_inf(av.recorded) GROUP BY av.snapshot_id),
-rules AS (
+counts AS (
   SELECT snapshot_id, count(*) AS n FROM kc_core.rule
    WHERE status = 'active' AND upper_inf(recorded) GROUP BY snapshot_id)
 SELECT s.source_id,
-       s.name                      AS title,
+       s.name                                              AS title,
        s.publisher,
-       coalesce(k.kind, CASE
+       CASE WHEN s.source_class = 'medicare_policy' THEN 'Medicare coverage policies'
+            WHEN s.source_class IN ('payer_list', 'payer_policy') THEN 'Payer documents'
+            WHEN s.publisher LIKE 'Office of the Federal Register%' THEN 'Federal regulations'
+            ELSE 'CMS program lists' END                   AS document_group,
+       coalesce(t.document_type, CASE
          WHEN s.source_id LIKE '%-codes' THEN 'CMS program code list'
          WHEN s.source_id = 'cms-pa-initiatives-index' THEN 'CMS index of prior authorization programs'
          WHEN s.source_id LIKE 'cms-%' THEN 'CMS prior authorization program'
-         ELSE initcap(replace(s.source_class, '_', ' ')) END) AS kind,
-       sn.stated_effective         AS edition,
+         ELSE initcap(replace(s.source_class, '_', ' ')) END) AS document_type,
+       l.stated_effective                                  AS edition,
        s.url,
-       sn.retrieved_at             AS saved_at,
-       left(sn.content_sha256, 12) AS fingerprint,
-       sn.content_sha256           AS sha256,
-       c.last_ok                   AS last_checked,
-       CASE WHEN sn.snapshot_id IS NULL THEN 'not saved'
+       l.retrieved_at                                      AS saved_at,
+       l.content_sha256                                    AS sha256,
+       left(l.content_sha256, 12)                          AS fingerprint,
+       c.last_ok                                           AS last_checked_at,
+       CASE WHEN l.snapshot_id IS NULL THEN 'not saved'
             WHEN c.last_ok IS NULL THEN 'never checked'
             WHEN now() - c.last_ok > s.stale_after THEN 'stale'
             WHEN now() - c.last_ok > s.aging_after THEN 'aging'
-            ELSE 'current' END     AS freshness,
+            ELSE 'current' END                             AS freshness,
        s.aging_after,
        s.stale_after,
-       coalesce(r.n, 0)            AS rules,
+       coalesce(n.n, 0)::int                               AS rule_count,
        CASE
-         WHEN sn.snapshot_id IS NULL THEN 'Not saved in this copy of the pack'
-         WHEN coalesce(r.n, 0) > 0 THEN coalesce(r.n, 0) || ' rule' || CASE WHEN r.n = 1 THEN '' ELSE 's' END
-         WHEN s.source_id = 'cms-asc-pa-demo-codes' THEN 'Code list for the CMS ASC demonstration screen'
-         WHEN s.source_id = 'cms-dmepos-ppa-codes' THEN 'Code list for the CMS DMEPOS probationary screen'
-         WHEN s.source_id = 'cms-pa-initiatives-index' THEN 'Confirms the set of CMS prior authorization programs'
-         ELSE 'Supporting document' END AS used_for
+         WHEN l.snapshot_id IS NULL THEN 'Not saved in this copy of the pack'
+         WHEN coalesce(n.n, 0) > 0 THEN 'Source of ' || n.n || ' rule' || CASE WHEN n.n = 1 THEN '' ELSE 's' END
+         WHEN s.source_id = 'cms-asc-pa-demo-codes' THEN 'Code list for the CMS ASC demonstration check'
+         WHEN s.source_id = 'cms-dmepos-ppa-codes' THEN 'Code list for the CMS DMEPOS probationary check'
+         WHEN s.source_id = 'cms-pa-initiatives-index' THEN 'Confirms the full set of CMS prior authorization programs'
+         ELSE 'Supporting document' END                    AS role
   FROM kc_core.source s
-  LEFT JOIN snap sn ON sn.source_id = s.source_id
+  LEFT JOIN latest l ON l.source_id = s.source_id
   LEFT JOIN checked c ON c.source_id = s.source_id
-  LEFT JOIN kinds k ON k.snapshot_id = sn.snapshot_id
-  LEFT JOIN rules r ON r.snapshot_id = sn.snapshot_id;
+  LEFT JOIN types t ON t.snapshot_id = l.snapshot_id
+  LEFT JOIN counts n ON n.snapshot_id = l.snapshot_id;
+
+COMMENT ON VIEW kc_views.documents IS 'One row per source document: what it is, which edition is saved, when it was last checked, and what it is used for.';
+COMMENT ON COLUMN kc_views.documents.source_id IS 'Short identifier of the document, as in the sources manifest.';
+COMMENT ON COLUMN kc_views.documents.title IS 'Title of the document.';
+COMMENT ON COLUMN kc_views.documents.publisher IS 'Who publishes it.';
+COMMENT ON COLUMN kc_views.documents.document_group IS 'One of four groups: Medicare coverage policies, Payer documents, Federal regulations, CMS program lists.';
+COMMENT ON COLUMN kc_views.documents.document_type IS 'What kind of document it is, in plain words.';
+COMMENT ON COLUMN kc_views.documents.edition IS 'The edition or effective date stated in the saved copy.';
+COMMENT ON COLUMN kc_views.documents.url IS 'Where the original is published.';
+COMMENT ON COLUMN kc_views.documents.saved_at IS 'When the saved copy was taken.';
+COMMENT ON COLUMN kc_views.documents.sha256 IS 'SHA-256 fingerprint of the saved copy. A change here means the document changed.';
+COMMENT ON COLUMN kc_views.documents.fingerprint IS 'First 12 characters of sha256, for display.';
+COMMENT ON COLUMN kc_views.documents.last_checked_at IS 'Last time the original was checked against the saved copy and found unchanged.';
+COMMENT ON COLUMN kc_views.documents.freshness IS 'current, aging (due for a check), stale (answers resting on it are withheld), never checked, or not saved.';
+COMMENT ON COLUMN kc_views.documents.aging_after IS 'How long after a check the document counts as aging.';
+COMMENT ON COLUMN kc_views.documents.stale_after IS 'How long after a check the document counts as stale.';
+COMMENT ON COLUMN kc_views.documents.rule_count IS 'Number of approved rules taken from this document.';
+COMMENT ON COLUMN kc_views.documents.role IS 'What the document is used for, in plain words.';
 
 -------------------------------------------------------------------------------
--- The rules, in plain words
+-- rules
 -------------------------------------------------------------------------------
-CREATE VIEW kc_api.v_rules AS
-SELECT r.rule_key,
-       kc_api.rule_ref(r.rule_key, r.valid::text) AS rule_ref,
-       kc_api.rule_kind_label(r.rule_kind, r.basis)      AS kind,
-       kc_api.subject_label(r.subject_id)                AS about,
-       kc_api.rule_summary(r.rule_id)                    AS says,
-       a.citation                                        AS source,
-       kc_api.kind_label(a.kind)                         AS source_kind,
-       (r.source_locator ->> 'page')::int                AS page,
-       r.source_quote                                    AS quote,
-       sn.stated_effective                               AS edition,
-       lower(r.valid)                                    AS in_force_from,
-       upper(r.valid)                                    AS in_force_until,
+CREATE VIEW kc_views.rules AS
+SELECT kc_api.rule_ref(r.rule_key, r.valid::text)         AS rule_ref,
+       r.rule_key,
+       kc_views.rule_type_label(r.rule_kind, r.basis)     AS rule_type,
+       kc_views.subject_label(r.subject_id)               AS subject,
+       kc_views.rule_summary(r.rule_id)                   AS summary,
+       coalesce(
+         (SELECT kc_views.place_label(r.jurisdiction_id) WHERE r.jurisdiction_id IS NOT NULL),
+         (SELECT string_agg(DISTINCT kc_views.place_label(b.jurisdiction_id), '; ') FROM kc_core.authority_binding b
+           WHERE b.authority_id = r.authority_id AND upper_inf(b.recorded) AND b.jurisdiction_id IS NOT NULL),
+         (SELECT string_agg(DISTINCT e.natural_key, ', ') FROM kc_core.authority_binding b
+            JOIN kc_core.entity e ON e.entity_id = b.plan_id
+           WHERE b.authority_id = r.authority_id AND upper_inf(b.recorded)))   AS applies_in,
        coalesce(
          (SELECT string_agg(DISTINCT pr.name, ', ') FROM kc_core.program pr WHERE pr.entity_id = r.program_id),
          (SELECT string_agg(DISTINCT pr.name, ', ') FROM kc_core.authority_binding b
             JOIN kc_core.program pr ON pr.entity_id = b.program_id
            WHERE b.authority_id = r.authority_id AND upper_inf(b.recorded)))   AS programs,
-       coalesce(
-         (SELECT kc_api.binding_place(r.jurisdiction_id) WHERE r.jurisdiction_id IS NOT NULL),
-         (SELECT string_agg(DISTINCT kc_api.binding_place(b.jurisdiction_id), '; ') FROM kc_core.authority_binding b
-           WHERE b.authority_id = r.authority_id AND upper_inf(b.recorded) AND b.jurisdiction_id IS NOT NULL),
-         (SELECT string_agg(DISTINCT e.natural_key, ', ') FROM kc_core.authority_binding b
-            JOIN kc_core.entity e ON e.entity_id = b.plan_id
-           WHERE b.authority_id = r.authority_id AND upper_inf(b.recorded)))   AS applies_in,
+       a.citation,
+       kc_views.document_type_label(a.kind)               AS document_type,
+       sn.source_id,
+       (r.source_locator ->> 'page')::int                 AS page,
+       r.source_quote                                     AS quote,
+       sn.stated_effective                                AS edition,
+       lower(r.valid)                                     AS effective_from,
+       upper(r.valid) - 1                                 AS effective_to,
        r.basis,
-       array_to_string(r.reviewed_by, ', ')              AS approved_by,
-       r.reviewed_at                                     AS approved_at,
-       r.review_exception                                AS approval_note,
-       r.release_id                                      AS first_release,
-       sn.source_id
+       array_to_string(r.reviewed_by, ', ')               AS approved_by,
+       r.reviewed_at                                      AS approved_at,
+       r.review_exception                                 AS approval_note,
+       r.release_id
   FROM kc_core.rule r
   JOIN kc_core.authority a ON a.entity_id = r.authority_id
   JOIN kc_core.snapshot sn ON sn.snapshot_id = r.snapshot_id
  WHERE r.status = 'active' AND upper_inf(r.recorded);
 
+COMMENT ON VIEW kc_views.rules IS 'One row per approved rule in force or scheduled, with what it says in one plain sentence and the exact quote it rests on.';
+COMMENT ON COLUMN kc_views.rules.rule_ref IS 'The rule and its edition (rule_key@date), as the tools and the decision log cite it.';
+COMMENT ON COLUMN kc_views.rules.rule_key IS 'Stable identifier of the rule across editions.';
+COMMENT ON COLUMN kc_views.rules.rule_type IS 'Coverage criteria, Prior authorization, Program list checked, Exemption, Evidence needed or Decision deadline.';
+COMMENT ON COLUMN kc_views.rules.subject IS 'The drug, service or code group the rule is about.';
+COMMENT ON COLUMN kc_views.rules.summary IS 'What the rule says, in one plain sentence generated from its stored conditions.';
+COMMENT ON COLUMN kc_views.rules.applies_in IS 'Where the rule applies: nationwide, a state, a contractor region with its states, or a plan.';
+COMMENT ON COLUMN kc_views.rules.programs IS 'The programs it applies to, such as Original Medicare or Medicare Advantage.';
+COMMENT ON COLUMN kc_views.rules.citation IS 'The policy or regulation the rule comes from.';
+COMMENT ON COLUMN kc_views.rules.document_type IS 'What kind of document that is, in plain words.';
+COMMENT ON COLUMN kc_views.rules.source_id IS 'The saved document the quote is in (kc_views.documents.source_id).';
+COMMENT ON COLUMN kc_views.rules.page IS 'Page of the saved document the quote is on.';
+COMMENT ON COLUMN kc_views.rules.quote IS 'The exact words of the document the rule rests on.';
+COMMENT ON COLUMN kc_views.rules.edition IS 'The edition of the document the rule was taken from.';
+COMMENT ON COLUMN kc_views.rules.effective_from IS 'First day the rule is in force.';
+COMMENT ON COLUMN kc_views.rules.effective_to IS 'Last day the rule is in force; empty means no end date.';
+COMMENT ON COLUMN kc_views.rules.basis IS 'stated (the document says it), stated_by_exhaustion (the item is absent from a complete list) or interpreted.';
+COMMENT ON COLUMN kc_views.rules.approved_by IS 'Who approved the rule.';
+COMMENT ON COLUMN kc_views.rules.approved_at IS 'When it was approved.';
+COMMENT ON COLUMN kc_views.rules.approval_note IS 'Any exception recorded with the approval, such as a single reviewer in the prototype.';
+COMMENT ON COLUMN kc_views.rules.release_id IS 'The release the rule first shipped in.';
+
 -------------------------------------------------------------------------------
--- Where each policy applies
+-- policy_scope
 -------------------------------------------------------------------------------
-CREATE VIEW kc_api.v_bindings AS
-SELECT a.citation                            AS policy,
-       kc_api.kind_label(a.kind)             AS kind,
-       pr.name                               AS program,
-       pe.natural_key                        AS plan,
-       j.code                                AS place_code,
-       kc_api.binding_place(b.jurisdiction_id) AS place,
-       j.kind                                AS place_kind,
+CREATE VIEW kc_views.policy_scope AS
+SELECT a.citation,
+       kc_views.document_type_label(a.kind)               AS document_type,
+       pr.name                                            AS program,
+       pe.natural_key                                     AS plan,
+       j.code                                             AS place_code,
+       kc_views.place_label(b.jurisdiction_id)            AS place_name,
+       CASE j.kind WHEN 'nation' THEN 'nation' WHEN 'state' THEN 'state'
+                   WHEN 'mac_ab' THEN 'Medicare contractor region' ELSE j.kind END AS place_type,
        CASE b.item_scope WHEN 'all' THEN 'all items' WHEN 'drugs' THEN 'drugs'
-                         ELSE 'items and services' END AS items,
-       lower(b.valid)                        AS from_date,
-       upper(b.valid)                        AS until_date
+                         ELSE 'items and services' END    AS items,
+       lower(b.valid)                                     AS effective_from,
+       upper(b.valid) - 1                                 AS effective_to
   FROM kc_core.authority_binding b
   JOIN kc_core.authority a ON a.entity_id = b.authority_id
   LEFT JOIN kc_core.program pr ON pr.entity_id = b.program_id
@@ -246,60 +306,96 @@ SELECT a.citation                            AS policy,
   LEFT JOIN kc_core.jurisdiction j ON j.entity_id = b.jurisdiction_id
  WHERE upper_inf(b.recorded);
 
+COMMENT ON VIEW kc_views.policy_scope IS 'One row per place, plan or program where a policy applies, with the dates.';
+COMMENT ON COLUMN kc_views.policy_scope.citation IS 'The policy, regulation or program.';
+COMMENT ON COLUMN kc_views.policy_scope.document_type IS 'What kind of document it is, in plain words.';
+COMMENT ON COLUMN kc_views.policy_scope.program IS 'The program it applies to, such as Original Medicare.';
+COMMENT ON COLUMN kc_views.policy_scope.plan IS 'The plan it applies to, when it is bound to one plan.';
+COMMENT ON COLUMN kc_views.policy_scope.place_code IS 'Code of the place: US, a state code, or a Medicare contractor region code.';
+COMMENT ON COLUMN kc_views.policy_scope.place_name IS 'The place in plain words; a contractor region lists its states.';
+COMMENT ON COLUMN kc_views.policy_scope.place_type IS 'nation, state or Medicare contractor region.';
+COMMENT ON COLUMN kc_views.policy_scope.items IS 'Which items it covers: all items, drugs, or items and services.';
+COMMENT ON COLUMN kc_views.policy_scope.effective_from IS 'First day it applies there.';
+COMMENT ON COLUMN kc_views.policy_scope.effective_to IS 'Last day it applies there; empty means no end date.';
+
 -------------------------------------------------------------------------------
--- The Medicare prior authorization programs, and what each screen found
+-- medicare_programs
 -------------------------------------------------------------------------------
-CREATE VIEW kc_api.v_program_screens AS
-SELECT a.citation                                   AS program,
+CREATE VIEW kc_views.medicare_programs AS
+SELECT a.citation                                         AS program,
        a.title,
-       a.closed_list,
+       a.closed_list                                      AS is_complete_list,
        (SELECT string_agg(DISTINCT CASE j.kind WHEN 'nation' THEN 'nationwide' ELSE j.code END
-                          || CASE WHEN upper(b.valid) IS NOT NULL THEN ' (to ' || (upper(b.valid) - 1) || ')'
+                          || CASE WHEN upper(b.valid) IS NOT NULL THEN ' (until ' || (upper(b.valid) - 1) || ')'
                                   ELSE ' (from ' || lower(b.valid) || ')' END, ', ')
           FROM kc_core.authority_binding b JOIN kc_core.jurisdiction j ON j.entity_id = b.jurisdiction_id
-         WHERE b.authority_id = a.entity_id AND upper_inf(b.recorded))  AS binds,
-       s.rule_key IS NOT NULL                       AS screened,
-       kc_api.subject_label(s.subject_id)           AS drug,
-       CASE WHEN s.rule_key IS NULL THEN 'Not screened: the program''s list is not saved in this copy of the pack'
+         WHERE b.authority_id = a.entity_id AND upper_inf(b.recorded))  AS applies_in,
+       s.rule_key IS NOT NULL                             AS is_checked,
+       kc_views.subject_label(s.subject_id)               AS subject,
+       CASE WHEN s.rule_key IS NULL THEN 'Not checked: the program''s list is not saved in this copy of the pack'
             ELSE s.source_locator ->> 'screen_finding' END AS finding,
-       (s.source_locator ->> 'page')::int           AS page,
-       s.source_quote                               AS quote,
-       s.rule_key
+       (s.source_locator ->> 'page')::int                 AS page,
+       s.source_quote                                     AS quote,
+       CASE WHEN s.rule_key IS NOT NULL THEN kc_api.rule_ref(s.rule_key, s.valid::text) END AS rule_ref
   FROM kc_core.authority a
   LEFT JOIN kc_core.rule s ON s.authority_id = a.entity_id AND s.basis = 'stated_by_exhaustion'
                           AND s.status = 'active' AND upper_inf(s.recorded)
  WHERE a.kind = 'pa_program';
 
+COMMENT ON VIEW kc_views.medicare_programs IS 'One row per CMS prior authorization program: where it applies and what its list says about the drugs in the pack.';
+COMMENT ON COLUMN kc_views.medicare_programs.program IS 'Short name of the program.';
+COMMENT ON COLUMN kc_views.medicare_programs.title IS 'Full title of the program.';
+COMMENT ON COLUMN kc_views.medicare_programs.is_complete_list IS 'true when the program publishes a complete list, so an item absent from it does not need prior authorization under it.';
+COMMENT ON COLUMN kc_views.medicare_programs.applies_in IS 'Where and since when (or until when) the program applies.';
+COMMENT ON COLUMN kc_views.medicare_programs.is_checked IS 'true when the program''s list was checked for the drugs in the pack.';
+COMMENT ON COLUMN kc_views.medicare_programs.subject IS 'The drug group the check covers.';
+COMMENT ON COLUMN kc_views.medicare_programs.finding IS 'What the check found, or why the program is not checked.';
+COMMENT ON COLUMN kc_views.medicare_programs.page IS 'Page of the saved document the finding rests on.';
+COMMENT ON COLUMN kc_views.medicare_programs.quote IS 'The exact words of that page.';
+COMMENT ON COLUMN kc_views.medicare_programs.rule_ref IS 'The rule recording the finding (kc_views.rules.rule_ref).';
+
 -------------------------------------------------------------------------------
--- Codes and code lists the rules use
+-- codes
 -------------------------------------------------------------------------------
-CREATE VIEW kc_api.v_codes AS
-SELECT c.label                       AS concept,
-       m.code_system_id              AS system,
+CREATE VIEW kc_views.codes AS
+SELECT c.label                                            AS code_group,
+       'concept'                                          AS group_type,
+       m.code_system_id                                   AS code_system,
        m.code,
        (SELECT k.display FROM kc_core.code k WHERE k.code_system_id = m.code_system_id AND k.code = m.code
-          AND upper_inf(k.recorded) ORDER BY lower(k.valid) DESC LIMIT 1) AS display,
-       m.map_kind                    AS relation,
-       lower(m.valid)                AS from_date,
-       upper(m.valid)                AS until_date
+          AND upper_inf(k.recorded) ORDER BY lower(k.valid) DESC LIMIT 1) AS description,
+       m.map_kind                                         AS relation,
+       lower(m.valid)                                     AS effective_from,
+       upper(m.valid) - 1                                 AS effective_to
   FROM kc_core.concept_map m JOIN kc_core.concept c ON c.entity_id = m.concept_id
  WHERE upper_inf(m.recorded)
 UNION ALL
-SELECT vs.name, vm.code_system_id, vm.code,
+SELECT vs.name, 'code list', vm.code_system_id, vm.code,
        (SELECT k.display FROM kc_core.code k WHERE k.code_system_id = vm.code_system_id AND k.code = vm.code
           AND upper_inf(k.recorded) ORDER BY lower(k.valid) DESC LIMIT 1),
-       'member', lower(vm.valid), upper(vm.valid)
+       'member', lower(vm.valid), upper(vm.valid) - 1
   FROM kc_core.value_set_member vm JOIN kc_core.value_set vs ON vs.entity_id = vm.value_set_id
  WHERE upper_inf(vm.recorded);
 
+COMMENT ON VIEW kc_views.codes IS 'One row per code in a group the rules use: the codes a concept maps to, and the members of each code list.';
+COMMENT ON COLUMN kc_views.codes.code_group IS 'The concept (such as "ESA, CKD not on dialysis") or code list the code belongs to.';
+COMMENT ON COLUMN kc_views.codes.group_type IS 'concept or code list.';
+COMMENT ON COLUMN kc_views.codes.code_system IS 'The code system, such as HCPCS or ICD-10-CM.';
+COMMENT ON COLUMN kc_views.codes.code IS 'The code.';
+COMMENT ON COLUMN kc_views.codes.description IS 'The code''s description; empty where the description is licensed.';
+COMMENT ON COLUMN kc_views.codes.relation IS 'How the code relates to the group: equivalent, narrower, broader, related, or member.';
+COMMENT ON COLUMN kc_views.codes.effective_from IS 'First day the code belongs to the group.';
+COMMENT ON COLUMN kc_views.codes.effective_to IS 'Last day the code belongs to the group; empty means no end date.';
+
 -------------------------------------------------------------------------------
--- One answer, step by step
+-- kc_api.explain_order: one answer, step by step
 -------------------------------------------------------------------------------
 -- Returns the answer exactly as kc_api.evaluate_order gives it (key "answer"), plus:
---   coverage  the plan, program and state, with the state's name and its Medicare A/B contractor
---   policies  the reviewed rules in force on the date (kc_api.applicable_rules)
---   programs  every Medicare prior authorization program bound to this coverage on the date, with its list
---             finding, page and quote, and whether the answer used it
+--   coverage  the plan, program and state, with the state's name and its Medicare contractor region
+--   policies  the approved rules in force on the date (kc_api.applicable_rules)
+--   programs  every CMS prior authorization program that applies to this coverage on the date, with what its list
+--             says, the page and quote, and whether the answer used it
+-- It calls the same function the tools call, so the trace cannot disagree with the answer.
 CREATE FUNCTION kc_api.explain_order(p_plan text, p_state text, p_code text, p_as_of date, p_facts jsonb DEFAULT '{}',
                                      p_recorded_as_of timestamptz DEFAULT now()) RETURNS jsonb
 LANGUAGE plpgsql STABLE AS $$
@@ -340,3 +436,5 @@ BEGIN
     'policies', coalesce(v_pol -> 'rules', '[]'),
     'programs', v_prog);
 END $$;
+COMMENT ON FUNCTION kc_api.explain_order(text, text, text, date, jsonb, timestamptz) IS
+  'One answer step by step: the answer from evaluate_order, the coverage with its contractor region, the policies in force and the CMS programs checked.';

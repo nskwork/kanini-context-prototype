@@ -65,19 +65,21 @@ def test_explain_order_ohio_trace(db):
     assert {r["citation"] for r in t["policies"]} >= {"LCD L34356", "Article A56462"}
 
 
-def test_sources_view(db):
-    rows = db.execute("SELECT source_id, kind, fingerprint, freshness, rules, used_for FROM kc_api.v_sources").fetchall()
-    assert rows
+def test_documents_view(db):
+    rows = db.execute("SELECT source_id, document_group, document_type, fingerprint, freshness, rule_count, role FROM kc_views.documents").fetchall()
+    n = db.execute("SELECT count(*) FROM kc_core.source").fetchone()[0]
+    assert len(rows) == n
     by = {r[0]: r for r in rows}
     lcd = by["mcd-lcd-l39237"]
-    assert lcd[1] == "Medicare coverage policy (LCD)" and len(lcd[2]) == 12 and lcd[4] >= 1
-    assert all(r[3] in {"current", "aging", "stale", "never checked", "not saved"} for r in rows)
-    assert all(r[5] for r in rows)
+    assert lcd[1] == "Medicare coverage policies" and lcd[2] == "Medicare coverage policy (LCD)" and len(lcd[3]) == 12 and lcd[5] >= 1
+    assert {r[1] for r in rows} <= {"Medicare coverage policies", "Payer documents", "Federal regulations", "CMS program lists"}
+    assert all(r[4] in {"current", "aging", "stale", "never checked", "not saved"} for r in rows)
+    assert all(r[6] for r in rows)
 
 
 def test_rules_view_matches_active_rules(db):
     n = db.execute("SELECT count(*) FROM kc_core.rule WHERE status = 'active' AND upper_inf(recorded)").fetchone()[0]
-    rows = db.execute("SELECT rule_ref, kind, says, source, approved_by FROM kc_api.v_rules").fetchall()
+    rows = db.execute("SELECT rule_ref, rule_type, summary, citation, approved_by FROM kc_views.rules").fetchall()
     assert len(rows) == n
     assert all(r[0] and r[1] and r[2] and r[3] for r in rows)
     says = {r[0].split("@")[0]: r[2] for r in rows}
@@ -87,18 +89,37 @@ def test_rules_view_matches_active_rules(db):
     assert "emergency or urgent" in says["kc:rule/all-items/uhc-ma-emergency-urgent"]
 
 
-def test_bindings_and_screens_and_codes(db):
-    oh = db.execute("SELECT place FROM kc_api.v_bindings WHERE place_code = 'J15'").fetchall()
+def test_scope_programs_and_codes(db):
+    oh = db.execute("SELECT place_name FROM kc_views.policy_scope WHERE place_code = 'J15'").fetchall()
     assert oh and all("CGS Administrators" in p[0] and "OH" in p[0] for p in oh)
-    screens = db.execute("SELECT program, screened, finding FROM kc_api.v_program_screens").fetchall()
+    progs = db.execute("SELECT program, is_checked, finding FROM kc_views.medicare_programs").fetchall()
     n_prog = db.execute("SELECT count(*) FROM kc_core.authority WHERE kind = 'pa_program'").fetchone()[0]
-    assert len(screens) == n_prog and all(s[2] for s in screens)
-    codes = {r[0] for r in db.execute("SELECT code FROM kc_api.v_codes WHERE concept = 'ESA, CKD not on dialysis'")}
+    assert len(progs) == n_prog and all(p[2] for p in progs)
+    codes = {r[0] for r in db.execute("SELECT code FROM kc_views.codes WHERE code_group = 'ESA, CKD not on dialysis'")}
     assert {"J0885"} <= codes
 
 
+def test_every_view_and_column_is_described(db):
+    """Each view and each of its columns carries a description, so \\d+ in psql explains it."""
+    missing = db.execute("""SELECT c.relname || '.' || a.attname FROM pg_attribute a
+                              JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+                             WHERE n.nspname = 'kc_views' AND c.relkind = 'v' AND a.attnum > 0
+                               AND col_description(c.oid, a.attnum) IS NULL""").fetchall()
+    assert not missing, missing
+    views = db.execute("""SELECT c.relname, obj_description(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                           WHERE n.nspname = 'kc_views' AND c.relkind = 'v'""").fetchall()
+    assert {v for v, _ in views} == {"documents", "rules", "policy_scope", "medicare_programs", "codes"}
+    assert all(d for _, d in views)
+
+
+def test_effective_to_is_the_last_day(db):
+    """effective_to is inclusive: WISeR year 1 ends on 31 Dec 2026, not 1 Jan 2027."""
+    row = db.execute("SELECT effective_to FROM kc_views.policy_scope WHERE citation LIKE 'CMS WISeR%' LIMIT 1").fetchone()
+    assert str(row[0]) == "2026-12-31"
+
+
 def test_views_change_no_table(db):
-    """views.sql only adds read-only objects in kc_api: no table, and every view is plain SELECT."""
+    """views.sql only adds read-only objects: no table, and every view is plain SELECT."""
     text = (ROOT / "kanini_context" / "db" / "views.sql").read_text().upper()
     assert "CREATE TABLE" not in text and "ALTER TABLE" not in text and "INSERT " not in text
     assert "UPDATE KC_" not in text and "DELETE " not in text

@@ -251,11 +251,11 @@ def source(source_id: str):
 # has none of these views: the routes then say how to rebuild, and the rest of the page works as before.
 
 VIEW_SQL = {
-    "sources": "SELECT * FROM kc_api.v_sources ORDER BY rules DESC, title",
-    "rules": "SELECT * FROM kc_api.v_rules ORDER BY kind, about, source",
-    "bindings": "SELECT * FROM kc_api.v_bindings ORDER BY policy, program, place",
-    "screens": "SELECT * FROM kc_api.v_program_screens ORDER BY program",
-    "codes": "SELECT * FROM kc_api.v_codes ORDER BY concept, code",
+    "documents": "SELECT * FROM kc_views.documents ORDER BY document_group, rule_count DESC, title",
+    "rules": "SELECT * FROM kc_views.rules ORDER BY rule_type, subject, citation",
+    "policy_scope": "SELECT * FROM kc_views.policy_scope ORDER BY citation, program, place_name",
+    "medicare_programs": "SELECT * FROM kc_views.medicare_programs ORDER BY program",
+    "codes": "SELECT * FROM kc_views.codes ORDER BY code_group, code",
     "regions": """SELECT m.code, m.name, m.contractor, string_agg(s.code, ', ' ORDER BY s.code) AS states
   FROM kc_core.edge e JOIN kc_core.jurisdiction s ON s.entity_id = e.from_id
   JOIN kc_core.jurisdiction m ON m.entity_id = e.to_id
@@ -278,25 +278,25 @@ def _views(*names: str) -> dict:
     try:
         with db() as c:
             return {n: _rows(c, VIEW_SQL[n]) for n in names} | {"sql": {n: VIEW_SQL[n] for n in names}}
-    except psycopg.errors.UndefinedTable:
+    except (psycopg.errors.UndefinedTable, psycopg.errors.InvalidSchemaName):
         raise HTTPException(503, REBUILD)
 
 
 @app.get("/api/sources")
 def sources():
     """The documents, with the rules each one gives, and what the pack covers (plans and contractor regions)."""
-    out = _views("sources", "regions", "plans")
+    out = _views("documents", "regions", "plans")
     with db() as c:
-        rules = _rows(c, "SELECT source_id, rule_ref, kind, about, says, source, page FROM kc_api.v_rules ORDER BY kind, about")
-    for s in out["sources"]:
-        s["rule_list"] = [r for r in rules if r["source_id"] == s["source_id"]]
+        rules = _rows(c, "SELECT source_id, rule_ref, rule_type, subject, summary, citation, page FROM kc_views.rules ORDER BY rule_type, subject")
+    for d in out["documents"]:
+        d["rules"] = [r for r in rules if r["source_id"] == d["source_id"]]
     return out
 
 
 @app.get("/api/knowledge")
 def knowledge():
     """What is stored, as plain tables: rules, where each policy applies, the Medicare PA programs, the codes."""
-    return _views("rules", "bindings", "screens", "codes")
+    return _views("rules", "policy_scope", "medicare_programs", "codes")
 
 
 def _order_args(pid: str) -> tuple:
