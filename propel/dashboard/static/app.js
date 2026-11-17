@@ -27,6 +27,7 @@
   };
 
   const S = { seq: 0, orders: [], order: null, inst: null, onto: null, view: "inst", compare: {}, run: null, es: null,
+    page: "ask", overlay: "graph", cEval: null, trace: null, kn: null, kTab: "rules", src: null,
     live: { mode: null, turns: 0, tin: 0, tout: 0, t0: 0, ms: null, eval: null, quote: null } };
 
   /* ---------------------------------------------------------------- the star field behind everything */
@@ -178,6 +179,7 @@
     const pts = set.filter((n) => Number.isFinite(n.x));
     if (!pts.length) return;
     const [w, h] = size();
+    if (w < 10 || h < 10) return;   // the graph is on a page not in view
     const x0 = d3.min(pts, (n) => n.x), x1 = d3.max(pts, (n) => n.x), y0 = d3.min(pts, (n) => n.y), y1 = d3.max(pts, (n) => n.y);
     const k = Math.min(2.4, 0.7 / Math.max((x1 - x0 + 100) / w, (y1 - y0 + 100) / h));
     const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
@@ -375,15 +377,15 @@
   // A is the same agent without the context layer: it finds and reads the policy documents for every order. B is
   // the agent with Kanini Context (reduce: short calls, no document text); C is Kanini Context with no AI (eliminate).
   // Earlier baselines (an LLM application with search, or given every document) are in the Testing tab.
-  const LANES = { A: ["nocontext", "No context: the same agent reads the documents", "#F04F4F", "Matches the rules"],
-    B: ["agent", "Reduce: the AI agent asks Kanini Context", "#0075FF", "From the rules"],
-    C: ["workflow", "Eliminate: Kanini Context answers, no AI", "#01B574", "From the rules"] };
+  const LANES = { C: ["workflow", "Rules only, no AI: Kanini Context answers", "#01B574", "The answer"],
+    B: ["agent", "AI agent with Kanini Context", "#0075FF", "Matches C"],
+    A: ["nocontext", "AI agent without Kanini Context", "#F04F4F", "Matches C"] };
   const MODE_LANE = { nocontext: "A", agent: "B", workflow: "C" };
   const A_STEP = { journey_get: "patient record", list_documents: "lists the documents", search_documents: "searches the documents",
     read_pages: "reads pages" };
   const lanes = {};
   const blank = () => ({ run: null, es: null, active: false, done: false, t0: 0, ms: null, tin: 0, tout: 0, turns: 0, prompt: 0,
-    answer: null, ref: null, ok: null, callMs: null, note: "" });
+    answer: null, ref: null, ok: null, callMs: null, note: "", eval: null, wrote: null });
   function scenarioFor(pid) {
     return Object.values(S.compare.scenarios || {}).find((e) => e.patient === pid) || null;
   }
@@ -405,19 +407,19 @@
   function renderAnswers() {   // the card's comparison strip: what each way answered for this order, and whether it matches the rules
     const box = $("answers");
     if (!box) return;
-    const rules = S.eval ? S.eval.outcome : lanes.A?.st.ref;
     const row = (L, name) => {
       const st = lanes[L].st;
       let ans = null, ok = null;
       if (L === "A") { ans = st.answer; ok = st.ok; }
-      else if (st.ok) { ans = rules; ok = true; }
+      else if (L === "B") { ans = st.eval ? st.eval.outcome : null; ok = st.done ? st.ok : null; }
+      else if (st.eval) { ans = st.eval.outcome; ok = null; }
       const label = st.skipped ? "not run (no API key)" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : "not run";
       const mark = L === "B" && ans && st.cardFixed ? '<span class="ok" title="The AI wrote a different outcome on its card; the card was set from the rules">✓ card fixed</span>'
         : ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       return `<div class="ans" style="--lc:${LANES[L][2]}"><b>${L}</b><span class="nm">${name}</span><span class="av">${esc(label)}</span>${mark}</div>`;
     };
-    box.innerHTML = `<div class="k first">How each way answered</div>` + row("A", "Same agent, no Kanini Context") + row("B", "AI agent + Kanini Context") + row("C", "No AI, Kanini Context directly")
-      + `<div class="ans-note">B and C answer from the same approved rules: the agent explains, the direct lookup needs no AI. A reads the documents again for every order.</div>`;
+    box.innerHTML = `<div class="k first">How each way answered</div>` + row("C", "Rules only, no AI") + row("B", "AI agent + Kanini Context") + row("A", "Same agent, no Kanini Context")
+      + `<div class="ans-note">C is the answer. B and A are marked against it: outcome, safe to act and deciding rule must all match.</div>`;
   }
   function laneNumbers() {
     renderAnswers();
@@ -451,7 +453,7 @@
       : b.done ? "This run: short answers from checked rules" : b.active ? "Running now…" : "Short AI calls: the facts come from the context, not from re-reading documents";
     $("nB1").innerHTML = scripted ? "–" : b.active || b.done ? fmt(b.tin) : "–";
     $("nB2").innerHTML = b.active || b.done ? `${b.turns} · ${secs(b)}<small> s</small>` : "–";
-    $("nB3").innerHTML = b.done ? tick(b.ok) + overall("B") : "–";   // marked when the agent has finished, with its final time
+    $("nB3").innerHTML = b.done && b.eval ? tick(b.ok) + overall("B") : b.done ? tick(false) : "–";   // marked against C when the agent has finished
     lanes.B.target = b.active || b.done ? b.tin / 900 : 0;
     // C: plain code, timed
     const c = lanes.C.st;
@@ -459,7 +461,7 @@
       : c.active ? "Looking up…" : "The information is already in the context: no AI call at all";
     $("nC1").innerHTML = c.done ? "0" : "–";
     $("nC2").innerHTML = c.done && c.callMs != null ? `0 · ${c.callMs}<small> ms</small>` : "–";
-    $("nC3").innerHTML = c.done ? '<span class="ok">✓</span><small class="overall">same answer every run</small>' : "–";
+    $("nC3").innerHTML = c.done && c.eval ? `<b class="c-ans">${esc(OUTCOME[c.eval.outcome]?.[0] || c.eval.outcome)}</b><small class="overall">same answer every run</small>` : "–";
   }
   function lanesTick(dt) {
     Object.values(lanes).forEach((ln) => {
@@ -483,8 +485,11 @@
   /* ---------------------------------------------------------------- runs (each lane has its own) */
   function chip(text, cls, title) {
     const t = $("trace"), last = t.lastElementChild;
-    if (last && last.textContent === text) return;   // a confirmed call is reported again when it resumes
-    const s = document.createElement("span"); s.textContent = text; if (cls) s.className = cls; if (title) s.title = title; t.appendChild(s);
+    if (last && last.dataset.t === text) return;   // a confirmed call is reported again when it resumes
+    const s = document.createElement("li"); s.dataset.t = text; if (cls) s.className = cls; if (title) s.title = title;
+    if (cls === "ai") s.textContent = "AI";   // the model's turns sit between the numbered steps
+    else s.innerHTML = `<b>${t.querySelectorAll("li:not(.ai)").length + 1}</b> ${esc(text.charAt(0).toUpperCase() + text.slice(1))}`;
+    t.appendChild(s);
     // keep only whole chips: the oldest go when the row is full, the latest stay in view
     let room = t.clientWidth - 24;
     const kids = [...t.children].reverse();
@@ -492,18 +497,20 @@
   }
   function setBusy() {   // buttons stay usable: a new run replaces a slow one (the server releases its approval wait)
     const b = lanes.B?.st;
-    $("run-agent").textContent = b && b.active ? "Asking… (press to restart)" : "Ask the AI agent";
+    $("run-agent").textContent = b && b.active ? "B · Asking…" : "B · AI agent";
   }
   function closeAll() { Object.values(lanes).forEach((l) => { if (l.st.es) l.st.es.close(); }); }
   function clearAnswer() {
     unfocus(); card(null); $("outcome").classList.add("hidden"); $("trace").innerHTML = ""; $("detail").classList.add("hidden");
-    S.eval = null; S.quote = null; S.lit = false;
+    S.eval = null; S.quote = null; S.lit = false; S.cEval = null; S.trace = null;
+    renderWhy(); renderMatch(); setOverlay("graph");
   }
   async function race(which) {
     if (!S.order) return;
     if (S.view !== "inst") await setView("inst");
     which.forEach((L) => { const l = lanes[L]; if (l.st.es) l.st.es.close(); l.st = blank(); l.parts.length = 0; });
-    if (which.includes("B") || which.includes("C")) clearAnswer();
+    if (which.includes("C") || (which.includes("B") && !S.cEval)) clearAnswer();
+    else if (which.includes("B")) $("trace").innerHTML = "";
     const seq = ++S.seq;   // a newer run or order choice stops this sequence
     for (const L of which) {   // one lane at a time, so each gets the model to itself and its time is its own
       if (seq !== S.seq) return;
@@ -514,15 +521,33 @@
       st.run = r.run;
       st.es = new EventSource(`/api/run/${r.run}/events`);
       st.es.onmessage = (m) => onEvent(L, JSON.parse(m.data));
+      if (L === "B" && S.eval) card(S.eval);   // C's answer stays; the card gains B's approve buttons
       setBusy(); laneNumbers();
       await finished;
     }
   }
-  function showAnswer(p) {   // the rules' answer: card and graph (from B or C, whichever comes first)
-    const first = !S.eval;
+  /* the answer on screen is C's. B's own result stays on B's lane and is marked against C: the same outcome, the same
+     safe-to-act flag and the same deciding rule (no deciding rule on both sides counts as the same). With no C answer
+     yet, B's result is shown and marked against the expected answer from testing. */
+  const usable = (p) => p && !["invalid_input", "unavailable", "error"].includes(p.status);
+  const ruleOf = (p) => (p && p.primary_rule && p.primary_rule.rule_ref) || null;
+  function sameAnswer(b, c) {
+    return !!b && !!c && b.outcome === c.outcome && !!b.safe_to_act === !!c.safe_to_act && ruleOf(b) === ruleOf(c);
+  }
+  function gradeB() {
+    const b = lanes.B.st;
+    if (!b.eval) { b.ok = b.done ? false : null; return; }
+    if (S.cEval) b.ok = sameAnswer(b.eval, S.cEval);
+    else { const e = S.order && scenarioFor(S.order.patient); b.ok = e ? b.eval.outcome === e.reference_outcome : null; }
+  }
+  function showAnswer(p, L) {
+    if (L === "C") S.cEval = p;
+    if (L === "B" && S.cEval) { gradeB(); renderMatch(); return; }   // C's answer is already on screen
+    const first = !S.eval || L === "C";
     S.eval = p; card(p);
-    if (first) lightAnswer(p);
-    ["B", "C"].forEach((L) => { if (lanes[L].st.active || lanes[L].st.done) lanes[L].st.ok = lanes[L].st.ok ?? null; });
+    if (first) { unfocus(); lightAnswer(p); }
+    gradeB(); renderMatch();
+    if (L === "C" || !S.trace) loadWhy(L === "C");
   }
   function onEvent(L, e) {
     const st = lanes[L].st;
@@ -532,7 +557,7 @@
       // B's numbers stop at the decision card: the model's reply after staff approve is not part of answering
       if (!(L === "B" && st.confirmed)) { st.turns = e.turn; st.tin += e.tokens_in; st.tout += e.tokens_out; }
       if (L === "B") {
-        chip(e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
+        chip(`AI step ${e.turn}`, "ai", e.tokens_in ? `AI step ${e.turn} · ${fmt(e.tokens_in)} tokens` : `AI step ${e.turn}`);
         if (e.text && e.text.includes("(Outcome line set from rules_evaluate.)")) st.cardFixed = true;
         if (e.text && $("agent-text")) { $("agent-text").classList.remove("hidden"); $("agent-text").textContent = e.text; }
       }
@@ -553,13 +578,14 @@
         : e.name === "search_documents" ? ` "${String(a.query || "").slice(0, 60)}"` : "");
     } else if (e.kind === "tool_call") {
       const lbl = TOOL_LABEL[e.name] || e.name;
-      if (L === "B" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.textContent === lbl))) chip(lbl, "tool", e.name);
+      if (L === "B" && e.name === "journey_record") st.wrote = e.args || {};   // what the model itself wrote, before the guardrail
+      if (L === "B" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.dataset.t === lbl))) chip(lbl, "tool", e.name);
     } else if (e.kind === "tool_result") {
       if (e.name === "context_applicable_rules") lightCandidates(e.payload);
-      if (e.name === "rules_evaluate") {
-        st.ok = true;   // B and C state the rules' answer itself
-        showAnswer(e.payload);
+      if (e.name === "rules_evaluate" && usable(e.payload)) {   // a refused call is the model's to fix, not an answer
+        st.eval = e.payload;
         if (L === "C") { st.callMs = e.call_ms; lanes.C.flash = 1.6; }
+        showAnswer(e.payload, L);
       }
       if (e.name === "policy_search" && e.payload && e.payload.quote) {
         S.quote = { quote: e.payload.quote, citation: e.payload.citation, page: (e.payload.locator || {}).page };
@@ -570,6 +596,7 @@
     } else if (e.kind === "confirm_request") {
       if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
       st.confirmed = true; st.awaiting = true;
+      if (L === "B") { st.done = true; gradeB(); renderMatch(); }
       if (st.finish) st.finish();
       st.ms = performance.now() - st.t0; st.done = true; st.active = false;
     } else if (e.kind === "confirm") {
@@ -585,6 +612,7 @@
       if (st.finish) st.finish();
       if (e.kind === "error") st.note = "Error: " + e.message;
       if (L === "B") {
+        gradeB(); renderMatch();
         loadLog();
         const ok = $("ok");   // the agent finished without asking for approval (nothing to record): no buttons
         if (ok && !st.awaiting && !st.confirmed) ok.closest(".approve").remove();
@@ -617,10 +645,12 @@
       const v = f[k], meta = fn[k] && fn[k].name !== k ? fn[k] : { name: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, " "), unit: "" };
       return [meta.name.replace(/ \(date of most recent result\)/, " date").replace(/^Diagnosis: .*/, "Diagnoses"), Array.isArray(v) ? v.join(", ") : `${v}${meta.unit && meta.unit !== "%" ? " " + meta.unit : meta.unit}`];
     };
-    const rows = [["Patient", o.display_name.split(",")[0]], ["Order", o.order_id], ["Coverage", o.plan_name], ["State", o.state_name], ["Service date", o.date_of_service]]
+    const exp = scenarioFor(o.patient);
+    const rows = [["Case", `${S.orders.indexOf(o) + 1} · ${o.patient}`], ["Patient", o.display_name.split(",")[0]], ["Order", o.order_id], ["Coverage", o.plan_name], ["State", o.state_name], ["Service date", o.date_of_service]]
       .concat(["diagnosis_codes", "hgb_g_dl", "hct_pct", "egfr", "creatinine_date", "dialysis_status"].filter((k) => f[k] != null).map(val));
     if (f.hgb_g_dl == null && f.hct_pct == null) rows.push(["Hemoglobin", "not on file"]);
-    $("q-facts").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+    if (exp && exp.reference_outcome) rows.push(["Expected answer", OUTCOME[exp.reference_outcome]?.[0] || exp.reference_outcome]);
+    $("q-facts").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd${k === "Expected answer" ? ' class="exp"' : ""}>${esc(v)}</dd>`).join("");
     clearAnswer();
     Object.values(lanes).forEach((l) => { l.st = blank(); l.parts.length = 0; });
     setBusy(); laneNumbers();
@@ -841,6 +871,7 @@
   }
   function fitRect(x0, y0, x1, y1, ms = 700) {
     const [w, h] = size();
+    if (w < 10 || h < 10) return;
     x0 -= 30; y0 -= 30; x1 += 30; y1 += 30;
     const k = Math.min(1.6, 0.96 / Math.max((x1 - x0) / w, (y1 - y0) / h));
     const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
@@ -925,17 +956,205 @@
       + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.</p>`;
   }
 
+
+  /* ---------------------------------------------------------------- pages
+     Four sections of this one page, switched without a reload, so a run in progress, the chosen case and the trace
+     survive a look at another page. The graph is one drawing: it sits on the Ask page and moves to the Knowledge page
+     while that page shows it. */
+  const PAGES = ["sources", "knowledge", "ask", "testing"];
+  function placeGraph(where) {
+    const box = $("graphbox"), host = where === "knowledge" ? $("kn-graph") : $("ask-graph");
+    if (box.parentElement !== host) host.insertBefore(box, host.firstChild);
+  }
+  async function showPage(name) {
+    if (!PAGES.includes(name)) return;
+    S.page = name;
+    PAGES.forEach((n) => $("page-" + n).classList.toggle("hidden", n !== name));
+    document.querySelectorAll("#pages button").forEach((b) => b.setAttribute("aria-current", b.dataset.page === name ? "page" : "false"));
+    if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name);
+    if (name === "ask") {
+      placeGraph("ask");
+      if (S.view !== "inst") await setView("inst"); else if (S.eval) { focus(); }
+      setTimeout(() => fitTo(S.eval ? nodes.filter((n) => n.on || n.prog || n.unscr) : nodes, 400), 50);
+    } else if (name === "knowledge") {
+      await knTab(S.kTab);
+    } else if (name === "sources") {
+      await renderSources();
+    } else if (name === "testing") {
+      renderTesting(); renderLimits();
+    }
+  }
+
+  /* ---------------------------------------------------------------- Ask: the view beside the card */
+  function setOverlay(o) {
+    S.overlay = o;
+    document.querySelectorAll("#ask-tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.o === o)));
+    $("why").classList.toggle("hidden", o !== "why");
+    $("match").classList.toggle("hidden", o !== "match");
+  }
+  async function loadWhy(open) {
+    const o = S.order;
+    if (!o) return;
+    try {
+      const r = await fetch("/api/explain?patient=" + encodeURIComponent(o.patient));
+      if (S.order !== o) return;
+      S.trace = r.ok ? await r.json() : { error: (await r.json().catch(() => ({}))).detail || "The trace is not available." };
+    } catch (_) { S.trace = { error: "The trace is not available." }; }
+    renderWhy();
+    if (open) setOverlay("why");
+  }
+  const STATUS = { met: ["met", "ok"], not_met: ["not met", "bad"], unknown: ["unknown", "warn"], not_applicable: ["not applicable", "mute"] };
+  const pill = (st) => { const [t, c] = STATUS[st] || [words(st || ""), "mute"]; return `<span class="st ${c}">${esc(t)}</span>`; };
+  const KIND = { coverage_criteria: "coverage criteria", approval_required: "prior authorization", documentation_requirement: "evidence needed",
+    exemption: "exemption", decision_timeframe: "decision deadline" };
+  function renderWhy() {
+    const box = $("why"), t = S.trace;
+    if (!t) { box.innerHTML = '<p class="empty">Run C (or B) to see why the answer is right, step by step.</p>'; return; }
+    if (t.error) { box.innerHTML = `<p class="empty">${esc(t.error)}</p>`; return; }
+    const a = t.answer || {}, cov = t.coverage || {}, ctr = cov.contractor;
+    const src = (cit) => (a.sources || []).find((s) => s.citation === cit) || {};
+    // 2. policies in force: one line per document, with the kinds of rule it gives
+    const pol = new Map();
+    (t.policies || []).forEach((r) => { const k = r.citation; const e = pol.get(k) || { edition: r.edition, kinds: new Set(), screen: r.basis === "stated_by_exhaustion" }; e.kinds.add(r.basis === "stated_by_exhaustion" ? "program list" : KIND[r.rule_kind] || words(r.rule_kind)); pol.set(k, e); });
+    const policies = [...pol.entries()].filter(([, e]) => !e.screen);
+    // 3. the rules checked against the facts
+    const cc = ((a.coverage_criteria || {}).policies || []).map((p) => {
+      const s = src(p.citation);
+      const groups = (p.groups || []).map((g) => `<div class="grp"><span class="gl">${g.logic === "any" ? "Any one of" : "All of"}</span>${pill(g.status)}<ul>`
+        + (g.items || []).map((it) => `<li>${pill(it.status)} ${esc(it.detail || it.element || it.fact)}</li>`).join("") + "</ul></div>").join("");
+      return `<div class="rule"><div class="rh"><b>${esc(p.citation)}</b> coverage criteria ${pill(p.status)}</div>${groups}`
+        + (s.quote ? `<blockquote>${esc(s.quote)}<cite>${esc(p.citation)}${s.page ? ", page " + esc(s.page) : ""}</cite></blockquote>` : "") + "</div>";
+    }).join("");
+    const pa = a.prior_authorization || {};
+    const paLine = pa.outcome || pa.status ? `<div class="rule"><div class="rh"><b>Prior authorization</b> ${esc(OUTCOME[pa.outcome]?.[0] || words(pa.outcome || pa.status))}</div>`
+      + (pa.reason ? `<div class="note">${esc(words(pa.reason))}</div>` : "") + ((pa.notes || []).length ? `<div class="note">${pa.notes.map(esc).join("<br>")}</div>` : "") + "</div>" : "";
+    // 4. the Medicare programs
+    const progs = t.programs || [];
+    const progRows = progs.map((g) => `<tr><td>${esc(g.program)}</td><td>${g.screened ? '<span class="st ok">checked</span>' : '<span class="st warn">not checked</span>'}</td>`
+      + `<td>${esc(g.screened ? g.finding : "This program's list is not saved in this copy of the pack.")}${g.page ? ` <i>page ${esc(g.page)}</i>` : ""}</td><td>${g.used ? "used" : ""}</td></tr>`).join("");
+    const [label, color] = OUTCOME[a.outcome] || ["Not known", "#F04F4F"];
+    const prim = a.primary_rule || {};
+    box.innerHTML = `<p class="lede-s">Why this answer is right: the same database function C calls, step by step. Nothing here is written by AI.</p><ol class="why">
+      <li><h4>Coverage found</h4><p>${esc(cov.plan_name || cov.plan || "none")} in ${esc(cov.state_name || cov.state || "–")}`
+        + (ctr ? `. Medicare contractor: ${esc(ctr.contractor)}, ${esc(ctr.name)} (${esc(ctr.code)}).` : ".") + `</p></li>
+      <li><h4>Policies in force on ${esc(a.as_of || "")}</h4>${policies.length ? `<ul class="pol">${policies.map(([c, e]) => `<li><b>${esc(c)}</b> <i>edition ${esc(e.edition)}</i> ${[...e.kinds].map(esc).join(", ")}</li>`).join("")}</ul>` : "<p>No reviewed policy covers this case.</p>"}</li>
+      <li><h4>Rules checked against the facts</h4>${cc || paLine ? cc + paLine : "<p>No rule needed the patient's facts.</p>"}</li>
+      <li><h4>Medicare prior authorization programs</h4>${progs.length ? `<table class="mini"><thead><tr><th>Program</th><th>List</th><th>Finding</th><th>In the answer</th></tr></thead><tbody>${progRows}</tbody></table>` : "<p>None apply to this plan.</p>"}</li>
+      <li><h4>Outcome</h4><p><b class="oc" style="--oc:${color}">${esc(label)}</b> · ${a.safe_to_act ? "safe to act" : "not safe to act"}${(a.not_safe_because || []).length ? ": " + esc(a.not_safe_because.map(why).join("; ")) : ""}.`
+        + (prim.citation ? ` Deciding rule: ${esc(prim.citation)} <span class="code">${esc(prim.rule_ref || "")}</span>.` : "") + `</p></li></ol>
+      <details class="sql"><summary>Show the query</summary><pre>${esc(t.sql.answer)}\n\n-- the trace above\n${esc(t.sql.trace)}\n\n-- rows returned (the answer)\n${esc(JSON.stringify(a, null, 2))}</pre></details>`;
+  }
+  function renderMatch() {
+    const box = $("match"), c = S.cEval, b = lanes.B ? lanes.B.st : null;
+    if (!c && !(b && b.eval)) { box.innerHTML = '<p class="empty">Run C and B to compare them field by field.</p>'; return; }
+    const srcOf = (p) => { if (!p) return null; const pr = p.primary_rule || {}; const s = (p.sources || []).find((x) => x.citation === pr.citation) || {}; return pr.citation ? `${pr.citation}${s.page ? ", page " + s.page : ""}` : "none"; };
+    const yes = (v) => (v == null ? null : v ? "yes" : "no");
+    const w = b && b.wrote;
+    const F = [
+      ["Outcome", (p) => p && (OUTCOME[p.outcome]?.[0] || p.outcome), w && (OUTCOME[w.outcome]?.[0] || w.outcome)],
+      ["Safe to act", (p) => p && yes(p.safe_to_act), w && w.safe_to_act != null ? yes(w.safe_to_act === true || w.safe_to_act === "true") : null],
+      ["Deciding rule", (p) => p && (ruleOf(p) || "none"), w && w.rule_ref],
+      ["Citation and page", srcOf, w && w.source],
+      ["Next step", (p) => p && words(p.next_step || ""), w && words(w.next_step || "")],
+      ["Pack release", (p) => p && p.pack_release, w && w.pack_release]];
+    const cell = (v, ref) => (v == null || v === "" ? '<td class="none">–</td>' : `<td>${esc(v)}${ref != null && ref !== "" ? (v === ref ? ' <span class="ok">✓</span>' : ' <span class="bad">✗</span>') : ""}</td>`);
+    const rows = F.map(([k, f, wv]) => { const cv = f(c); return `<tr><th>${k}</th>${cell(cv, null)}${cell(wv, cv)}${cell(b && b.eval ? f(b.eval) : null, cv)}</tr>`; }).join("");
+    const verdict = !b || !b.eval ? "" : !c ? "" : sameAnswer(b.eval, c) ? '<p class="verdict ok">B matches C on outcome, safe to act and deciding rule.</p>' : '<p class="verdict bad">B does not match C. C\'s answer stays on screen.</p>';
+    box.innerHTML = `<p class="lede-s">Structured fields only, never prose. The middle column is what B's model wrote itself in its record call; the last is B's decision after the guardrail.</p>${verdict}
+      <table class="mini match"><thead><tr><th></th><th>C · rules only</th><th>B · what the model wrote</th><th>B · final decision</th></tr></thead><tbody>${rows}</tbody></table>`
+      + (b && b.cardFixed ? '<p class="note">The model wrote a different outcome on its card; the guardrail set it from the rules.</p>' : "")
+      + (b && b.done && !w ? '<p class="note">B\'s model made no record call this run, so there is nothing of its own to show in the middle column.</p>' : "");
+  }
+
+  /* ---------------------------------------------------------------- Sources page */
+  const ago = (iso) => { if (!iso) return "–"; const d = new Date(iso); return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); };
+  const FRESH = { current: "ok", aging: "warn", stale: "bad", "never checked": "warn", "not saved": "mute" };
+  async function renderSources() {
+    if (!S.src) {
+      const r = await fetch("/api/sources");
+      S.src = r.ok ? await r.json() : { error: (await r.json().catch(() => ({}))).detail || "Not available." };
+    }
+    const d = S.src;
+    if (d.error) { $("src-table").innerHTML = `<p class="empty pad">${esc(d.error)}</p>`; return; }
+    $("src-sql").textContent = d.sql.sources;
+    $("src-table").innerHTML = `<table class="tbl docs"><thead><tr><th>Document</th><th>Kind</th><th>Edition</th><th>Saved</th><th>Fingerprint</th><th>Last checked</th><th>Freshness</th><th>Used for</th></tr></thead><tbody>`
+      + d.sources.map((s, i) => `<tr class="doc${s.rule_list.length ? " has" : ""}" data-i="${i}"><td><b>${esc(s.title)}</b><span>${esc(s.publisher || "")}${s.url ? ` · <a href="${esc(s.url)}" target="_blank" rel="noopener">original</a>` : ""}</span></td>`
+        + `<td>${esc(s.kind)}</td><td>${esc(s.edition || "–")}</td><td>${ago(s.saved_at)}</td><td><span class="code">${esc(s.fingerprint || "–")}</span></td><td>${ago(s.last_checked)}</td>`
+        + `<td><span class="st ${FRESH[s.freshness] || "mute"}">${esc(s.freshness)}</span></td><td>${esc(s.used_for)}</td></tr>`
+        + `<tr class="sub hidden" id="doc-${i}"><td colspan="8">${s.rule_list.map((r) => `<div class="r"><span class="k">${esc(r.kind)}</span>${r.kind === "Program list checked" ? ` <b class="pg">${esc(r.source)}</b>` : ""} ${esc(r.says)}${r.page ? ` <i>page ${esc(r.page)}</i>` : ""}</div>`).join("")}</td></tr>`).join("")
+      + "</tbody></table>";
+    $("src-table").querySelectorAll("tr.doc.has").forEach((tr) => (tr.onclick = (ev) => { if (ev.target.closest("a")) return; $("doc-" + tr.dataset.i).classList.toggle("hidden"); tr.classList.toggle("open"); }));
+    $("src-cover").innerHTML = `<p>Plans: ${d.plans.map((p) => `<b>${esc(p.name.split(" (")[0])}</b>`).join(" and ")}.</p>`
+      + `<p>Original Medicare policies are set by contractor region. Regions loaded:</p><ul class="plain">${d.regions.map((r) => `<li><b>${esc(r.code)}</b> ${esc(r.contractor)}: ${esc(r.states)}</li>`).join("")}</ul>`
+      + `<p>Any other state answers "route to staff", because each state has its own policies. The demo cases are in Tennessee and Ohio.</p>`;
+    $("src-flow").innerHTML = FLOW;
+  }
+  const FLOW = (() => {   // the ingestion agent, with what exists today marked; a pipeline, so the steps are numbered
+    const T = { built: ["Built", "ok"], building: ["Being built", "warn"], hand: ["By hand today", "mute"], later: ["Later", "mute"] };
+    const steps = [
+      ["Run on a schedule per source", "nightly, weekly, Saturdays: set per source", "building"],
+      ["Look for a new edition", "Medicare policies: the current version number. eCFR: its \"up to date as of\" date. Payer PDFs: the payer's index page (a new edition is a new file name). CMS program pages: the page's last-modified date.", "building"],
+      ["Download and fingerprint", "SHA-256 of the file, or of the page text for web pages", "built"],
+      ["Same fingerprint", "record \"checked, unchanged\"; the freshness clock resets", "built"],
+      ["New fingerprint", "save the new copy and raise a change flag: answers resting on it become \"pending review\" and go to staff", "built"],
+      ["Compare old and new by section", "a quote that only moved gets its page updated; a changed section goes to drafting", "later"],
+      ["AI drafts the changed rules", "", "hand"],
+      ["Automated checks", "quote on the cited page, numbers, negations, codes", "built"],
+      ["Review by two people", "today one engineer, recorded as an exception", "building"],
+      ["Release a new pack edition", "client copies sync and the change flag clears", "built"]];
+    return `<ol class="flow">${steps.map(([h, d, st]) => `<li><div><b>${h}</b>${d ? `<span>${d}</span>` : ""}</div><span class="st ${T[st][1]}">${T[st][0]}</span></li>`).join("")}</ol>`
+      + `<p class="note">The decision to treat a document as changed rests on its SHA-256, never on a date: a date can change without the content, and the content without the date. The edition signal is only the cheap first look that says whether to download.</p>`;
+  })();
+
+  /* ---------------------------------------------------------------- Knowledge page */
+  const KN_COLS = {
+    rules: [["kind", "Kind"], ["about", "About"], ["says", "What it says"], ["applies_in", "Where"], ["in_force_from", "In force from"], ["source", "Source"], ["page", "Page"], ["approved_by", "Approved by"]],
+    bindings: [["policy", "Policy"], ["kind", "Kind"], ["program", "Program"], ["place", "Where"], ["items", "Items"], ["from_date", "From"], ["until_date", "Until"]],
+    screens: [["program", "Program"], ["binds", "Applies in"], ["closed_list", "Complete list"], ["screened", "Checked"], ["finding", "Finding"], ["page", "Page"]],
+    codes: [["concept", "Concept or code list"], ["system", "System"], ["code", "Code"], ["display", "Description"], ["relation", "Relation"], ["from_date", "From"]]
+  };
+  async function knTab(k) {
+    S.kTab = k;
+    document.querySelectorAll("#kn-tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.k === k)));
+    const graph = k === "graph" || k === "schema";
+    $("kn-table").classList.toggle("hidden", graph);
+    $("kn-graph").classList.toggle("hidden", !graph);
+    $("kn-sqlbox").classList.toggle("hidden", graph);
+    if (graph) {
+      placeGraph("knowledge");
+      await setView(k === "schema" ? "onto" : "inst");
+      if (k === "graph") setTimeout(() => fitTo(nodes, 400), 60);
+      return;
+    }
+    if (!S.kn) {
+      const r = await fetch("/api/knowledge");
+      S.kn = r.ok ? await r.json() : { error: (await r.json().catch(() => ({}))).detail || "Not available." };
+    }
+    if (S.kn.error) { $("kn-table").innerHTML = `<p class="empty pad">${esc(S.kn.error)}</p>`; return; }
+    const cols = KN_COLS[k], rows = S.kn[k] || [];
+    const v = (r, c) => { const x = r[c]; if (x === true) return "yes"; if (x === false) return "no"; if (x == null || x === "") return "–"; return String(x); };
+    $("kn-table").innerHTML = `<p class="count">${rows.length} row${rows.length === 1 ? "" : "s"}</p><table class="tbl"><thead><tr>${cols.map(([, h]) => `<th>${h}</th>`).join("")}</tr></thead><tbody>`
+      + rows.map((r) => `<tr>${cols.map(([c]) => `<td class="c-${c}">${esc(v(r, c))}</td>`).join("")}</tr>`).join("") + "</tbody></table>";
+    $("kn-sql").textContent = S.kn.sql[k];
+  }
+
+  /* ---------------------------------------------------------------- Testing page: what is still to run, and the limits */
+  function renderLimits() {
+    $("t-e1").innerHTML = "<p>Search split by section and by rule-sized chunks, scored the same way, counting answers that invented a rule apart from answers that applied a real rule to the wrong case.</p><p class=\"note\">Not run yet.</p>";
+    $("t-e2").innerHTML = "<p>Cases built to make the agent fail: a value only in a note, two dated results, other units, an injected instruction, a drug name without a code, conflicting diagnoses, an unknown state or drug.</p><p class=\"note\">Not run yet.</p>";
+    $("t-limits").innerHTML = [
+      "It covers only what has been curated: two plans, the regions above, two drugs. Every new state or payer is curation work.",
+      "Curation needs people: rules are drafted with AI but checked and approved by hand. In the prototype one engineer approved them.",
+      "An answer is only as current as the last check. Old sources or a lapsed client copy make answers \"not safe to act\": safe, but less automation.",
+      "\"No PA\" under Original Medicare rests on the CMS program lists being complete; a new program has to be added before such answers are trusted again.",
+      "The agent still has to read the patient record correctly. Wrong facts in give a wrong answer out.",
+      "B's score depends on its guardrail: the model often skips writing its own card, and a card it writes can be wrong until the guardrail sets it from the rules.",
+      "B costs model calls and time that C does not. Use C wherever no judgement is needed.",
+      "It is not a payer's determination: the final decision stays with staff and the payer."].map((t) => `<li>${esc(t)}</li>`).join("");
+  }
+
   async function setView(v) {
     S.view = v;
-    $("view-inst").setAttribute("aria-selected", String(v === "inst"));
-    $("view-onto").setAttribute("aria-selected", String(v === "onto"));
-    $("view-test").setAttribute("aria-selected", String(v === "test"));
-    const testing = v === "test";
-    $("testing").classList.toggle("hidden", !testing);
-    $("graph").style.visibility = testing ? "hidden" : "";
-    $("legend").style.visibility = testing ? "hidden" : "";
-    document.querySelector(".graph-panel .eyebrow").textContent = testing ? "Testing" : "Knowledge graph";
-    if (testing) { renderTesting(); return; }
     if (v === "onto" && !S.onto) S.onto = await (await fetch("/api/ontology")).json();
     $("detail").classList.add("hidden");
     if (v === "onto") { renderSchema(S.onto); return; }
@@ -943,24 +1162,28 @@
     setGraph(S.inst, v);
     if (S.eval) lightAnswer(S.eval);
   }
-  $("view-inst").onclick = () => setView("inst");
-  $("view-onto").onclick = () => setView("onto");
-  $("view-test").onclick = () => setView("test");
   $("run-agent").onclick = () => race(["B"]);
   $("run-flow").onclick = () => race(["C"]);
-  $("run-race").onclick = () => race(["A", "B", "C"]);
+  $("run-race").onclick = () => race(["C", "B", "A"]);
+  document.querySelectorAll("#ask-tabs button").forEach((b) => (b.onclick = () => setOverlay(b.dataset.o)));
+  document.querySelectorAll("#kn-tabs button").forEach((b) => (b.onclick = () => knTab(b.dataset.k)));
+  document.querySelectorAll("#pages button").forEach((b) => (b.onclick = () => showPage(b.dataset.page)));
+  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (PAGES.includes(h) && h !== S.page) showPage(h); });
 
   (async function init() {
     const get = (u, fb) => fetch(u).then((r) => (r.ok ? r.json() : fb)).catch(() => fb);
     const [st, orders, g, cmp] = await Promise.all([get("/api/status", {}), get("/api/orders", []), get("/api/graph", { nodes: [], edges: [] }), get("/api/compare", {})]);
     S.scripted = !!st.scripted;
-    $("status").innerHTML = `Release <span class="code">${esc(st.release)}</span> · ${st.rules} rules · ${st.sources} sources<br>Model <span class="code">${esc(st.model)}</span>`;
+    $("status").innerHTML = `Release <span class="code">${esc(st.release)}</span> · ${st.rules} rules<br>Model <span class="code">${esc(st.model)}</span>`;
     S.orders = orders; S.inst = g; S.compare = cmp || {};
-    $("orders").innerHTML = orders.map((o) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.payer)} · ${esc(o.state)}</span></button>`).join("");
+    $("orders").innerHTML = orders.map((o, i) => `<button type="button" class="chip" data-p="${esc(o.patient)}" aria-pressed="false"><b><i>Case ${i + 1}</i> ${esc(o.patient)}</b><span>${esc(o.code)} · ${esc(o.payer)} · ${esc(o.state)}</span></button>`).join("");
     document.querySelectorAll(".chip").forEach((c) => (c.onclick = () => pick(orders.find((o) => o.patient === c.dataset.p))));
     buildLanes();
     setGraph(g, "inst");
     pick(orders[0]);
     loadLog();
+    renderLimits();
+    const h = location.hash.slice(1);
+    if (PAGES.includes(h) && h !== "ask") showPage(h);
   })();
 })();

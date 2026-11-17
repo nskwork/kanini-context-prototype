@@ -246,6 +246,82 @@ def source(source_id: str):
     return {k: m.get(k) for k in ("source_id", "title", "publisher", "edition", "url", "sha256", "retrieved_at", "checks")}
 
 
+# --- The Sources, Knowledge and Ask pages: read-only views (kanini_context/db/views.sql) ------------------------------
+# Each answer carries the exact SQL it ran, so anyone can rerun it in psql. A release built before views.sql existed
+# has none of these views: the routes then say how to rebuild, and the rest of the page works as before.
+
+VIEW_SQL = {
+    "sources": "SELECT * FROM kc_api.v_sources ORDER BY rules DESC, title",
+    "rules": "SELECT * FROM kc_api.v_rules ORDER BY kind, about, source",
+    "bindings": "SELECT * FROM kc_api.v_bindings ORDER BY policy, program, place",
+    "screens": "SELECT * FROM kc_api.v_program_screens ORDER BY program",
+    "codes": "SELECT * FROM kc_api.v_codes ORDER BY concept, code",
+    "regions": """SELECT m.code, m.name, m.contractor, string_agg(s.code, ', ' ORDER BY s.code) AS states
+  FROM kc_core.edge e JOIN kc_core.jurisdiction s ON s.entity_id = e.from_id
+  JOIN kc_core.jurisdiction m ON m.entity_id = e.to_id
+ WHERE e.relation_type = 'within' AND m.kind = 'mac_ab' AND upper_inf(e.recorded)
+ GROUP BY m.code, m.name, m.contractor ORDER BY m.code""",
+    "plans": """SELECT e.natural_key AS plan, p.plan_type AS name FROM kc_core.plan p
+  JOIN kc_core.entity e ON e.entity_id = p.entity_id ORDER BY 1""",
+}
+REBUILD = "This release was built before the read-only views existed. Rebuild it: python -m kanini_context.release.build"
+
+
+def _rows(c, sql: str, args: tuple = ()) -> list[dict]:
+    cur = c.execute(sql, args)
+    cols = [d.name for d in cur.description]
+    return [{k: (v.isoformat() if hasattr(v, "isoformat") else str(v) if hasattr(v, "total_seconds") else v)
+             for k, v in zip(cols, r)} for r in cur.fetchall()]
+
+
+def _views(*names: str) -> dict:
+    try:
+        with db() as c:
+            return {n: _rows(c, VIEW_SQL[n]) for n in names} | {"sql": {n: VIEW_SQL[n] for n in names}}
+    except psycopg.errors.UndefinedTable:
+        raise HTTPException(503, REBUILD)
+
+
+@app.get("/api/sources")
+def sources():
+    """The documents, with the rules each one gives, and what the pack covers (plans and contractor regions)."""
+    out = _views("sources", "regions", "plans")
+    with db() as c:
+        rules = _rows(c, "SELECT source_id, rule_ref, kind, about, says, source, page FROM kc_api.v_rules ORDER BY kind, about")
+    for s in out["sources"]:
+        s["rule_list"] = [r for r in rules if r["source_id"] == s["source_id"]]
+    return out
+
+
+@app.get("/api/knowledge")
+def knowledge():
+    """What is stored, as plain tables: rules, where each policy applies, the Medicare PA programs, the codes."""
+    return _views("rules", "bindings", "screens", "codes")
+
+
+def _order_args(pid: str) -> tuple:
+    p, o = _order(pid)
+    f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
+    return p["coverage"]["plan"], p["coverage"]["state"], "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f)
+
+
+@app.get("/api/explain")
+def explain(patient: str):
+    """Why the rules' answer is right, step by step, from kc_api.explain_order: it calls kc_api.evaluate_order (the
+    same function lane C calls), so the trace and the answer cannot disagree."""
+    if patient not in PATIENTS:
+        raise HTTPException(404, "no such patient")
+    args = _order_args(patient)
+    lit = lambda v: "'" + str(v).replace("'", "''") + "'"  # noqa: E731  (shown to the reader, never executed)
+    shown = f"{lit(args[0])}, {lit(args[1])}, {lit(args[2])}, {lit(args[3])}::date, {lit(args[4])}::jsonb"
+    try:
+        with db() as c:
+            r = c.execute("SELECT kc_api.explain_order(%s, %s, %s, %s::date, %s::jsonb)", args).fetchone()[0]
+    except psycopg.errors.UndefinedFunction:
+        raise HTTPException(503, REBUILD)
+    return {**r, "sql": {"answer": f"SELECT kc_api.evaluate_order({shown});", "trace": f"SELECT kc_api.explain_order({shown});"}}
+
+
 # --- Runs: the agent (B) or the workflow (C), streamed as events ----------------------------------------------------
 
 class Run:

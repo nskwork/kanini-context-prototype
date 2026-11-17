@@ -100,3 +100,28 @@ def test_lane_a_is_the_same_agent_without_kanini_context(client, monkeypatch):
     assert next(e for e in events if e["kind"] == "answer")["answer"] == "unknown"
     ref = next(e for e in events if e["kind"] == "reference")
     assert ref["matches"] is (ref["outcome"] == "unknown") and events[-1]["kind"] == "done"
+
+
+def test_pages_read_the_views(client, db):
+    """The Sources, Knowledge and Ask pages read the release's read-only views; each answer carries its SQL."""
+    s = client.get("/api/sources").json()
+    n_src = db.execute("SELECT count(*) FROM kc_core.source").fetchone()[0]
+    assert len(s["sources"]) == n_src and s["sql"]["sources"].startswith("SELECT")
+    assert {r["code"] for r in s["regions"]} >= {"J15", "JJ"}
+    lcd = next(x for x in s["sources"] if x["source_id"] == "mcd-lcd-l39237")
+    assert [r["kind"] for r in lcd["rule_list"]] == ["Coverage criteria"]
+    k = client.get("/api/knowledge").json()
+    assert {"rules", "bindings", "screens", "codes", "sql"} <= set(k) and k["rules"]
+
+
+def test_explain_matches_the_workflow_answer(client, db):
+    """The Ask page's "Why is this right?" trace gives the same answer lane C streams for the order."""
+    e = client.get("/api/explain", params={"patient": "maria-oh"}).json()
+    rid = client.post("/api/run", json={"patient": "maria-oh", "mode": "workflow"}).json()["run"]
+    with client.stream("GET", f"/api/run/{rid}/events") as st:
+        ans = next(json.loads(line[5:])["payload"] for line in st.iter_lines()
+                   if line.startswith("data:") and '"tool_result"' in line)
+    assert (e["answer"]["outcome"], e["answer"]["safe_to_act"], e["answer"].get("primary_rule")) == \
+           (ans["outcome"], ans["safe_to_act"], ans.get("primary_rule"))
+    assert e["coverage"]["contractor"]["code"] == "J15" and e["sql"]["trace"].startswith("SELECT kc_api.explain_order(")
+    assert client.get("/api/explain", params={"patient": "nobody"}).status_code == 404

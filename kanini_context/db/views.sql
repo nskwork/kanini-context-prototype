@@ -217,7 +217,8 @@ SELECT r.rule_key,
        array_to_string(r.reviewed_by, ', ')              AS approved_by,
        r.reviewed_at                                     AS approved_at,
        r.review_exception                                AS approval_note,
-       r.release_id                                      AS first_release
+       r.release_id                                      AS first_release,
+       sn.source_id
   FROM kc_core.rule r
   JOIN kc_core.authority a ON a.entity_id = r.authority_id
   JOIN kc_core.snapshot sn ON sn.snapshot_id = r.snapshot_id

@@ -13,64 +13,124 @@
     <div class="brand">
       <span class="logo" aria-hidden="true"></span>
       <span class="name">Kanini Context</span>
-      <span class="sub">Dashboard</span>
+      <span class="proto">Prototype</span>
     </div>
-    <nav class="orders" id="orders" aria-label="Orders"></nav>
+    <nav class="pages" id="pages" aria-label="Pages">
+      <button type="button" data-page="sources" aria-current="false"><span>1</span>Sources</button>
+      <button type="button" data-page="knowledge" aria-current="false"><span>2</span>Knowledge</button>
+      <button type="button" data-page="ask" aria-current="page"><span>3</span>Ask</button>
+      <button type="button" data-page="testing" aria-current="false"><span>4</span>Testing and limits</button>
+    </nav>
     <div class="status" id="status">loading…</div>
   </header>
+  <p class="banner">Reviewed prior authorization rules, each with its source, so an AI agent stops re-reading policy documents for every order.
+    <span>Patient data stays on the patient-record server; Kanini Context never receives a name or identifier.</span></p>
 
-  <main class="stage">
-    <section class="panel question" aria-labelledby="q-title">
-      <div class="panel-head"><span class="eyebrow">The question</span></div>
-      <div class="panel-body">
-        <p class="ask">Does this order need prior authorization?</p>
-        <h1 id="q-title">Pick an order above</h1>
-        <dl class="facts" id="q-facts"></dl>
-        <div class="actions">
-          <button type="button" class="btn btn-agent" id="run-agent">Ask the AI agent</button>
-          <button type="button" class="btn btn-flow" id="run-flow">Look up without AI</button>
-        </div>
-        <div class="outcome hidden" id="outcome">
-          <span class="o-label" id="o-label"></span>
-          <span class="o-sub" id="o-sub"></span>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel graph-panel" aria-label="Knowledge graph">
-      <div class="panel-head">
-        <span class="eyebrow">Knowledge graph</span>
-        <div class="seg" role="tablist" aria-label="Graph view">
-          <button type="button" role="tab" aria-selected="true" id="view-inst">Knowledge</button>
-          <button type="button" role="tab" aria-selected="false" id="view-onto">Schema</button>
-          <button type="button" role="tab" aria-selected="false" id="view-test">Testing</button>
-        </div>
-      </div>
-      <div class="graph-wrap">
-        <svg id="graph" role="img" aria-label="Knowledge graph of the release"></svg>
-        <div class="tip hidden" id="tip"></div>
-        <div class="testing hidden" id="testing" aria-label="Testing results without Kanini Context"></div>
-      </div>
-      <div class="panel-foot legend" id="legend"></div>
-    </section>
-
-    <aside class="side">
-      <section class="panel card" id="card" aria-label="Decision card">
-        <div class="panel-head"><span class="eyebrow">Decision card</span></div>
-        <div class="panel-body card-empty">The decision card appears here when the agent or the workflow answers.</div>
-      </section>
-      <section class="panel detail hidden" id="detail" aria-label="Selected node"></section>
-    </aside>
-  </main>
-
-  <section class="panel band" aria-labelledby="band-title">
-    <div class="panel-head">
-      <h2 id="band-title">Same order, without and with Kanini Context</h2>
-      <button type="button" class="btn btn-race" id="run-race">Run A, B, C in turn</button>
-      <div class="trace" id="trace" aria-label="Agent trace"></div>
+  <!-- 1. Sources and ingestion -->
+  <section class="page scroll hidden" id="page-sources" aria-label="Sources and ingestion">
+    <p class="lede">Where the knowledge comes from: the documents saved in this release, what each one gives, and how a new edition gets in.</p>
+    <div class="panel"><div class="panel-head"><h2>Documents</h2><span class="hint">Click a row to see its rules</span></div>
+      <div class="panel-body flush" id="src-table"></div>
+      <details class="sql"><summary>Show the query</summary><pre id="src-sql"></pre></details></div>
+    <div class="cols">
+      <div class="panel"><div class="panel-head"><h2>What the pack covers</h2></div><div class="panel-body" id="src-cover"></div></div>
+      <div class="panel grow"><div class="panel-head"><h2>How a new edition gets in</h2>
+        <span class="hint">A separate ingestion agent; only its drafting step uses a model</span></div>
+        <div class="panel-body" id="src-flow"></div></div>
     </div>
-    <div class="lanes" id="lanes"></div>
-    <div class="panel-foot log" id="log"></div>
+  </section>
+
+  <!-- 2. Knowledge -->
+  <section class="page hidden" id="page-knowledge" aria-label="Knowledge">
+    <p class="lede">What is stored: every approved rule in plain words, where each policy applies, the Medicare programs checked, and the codes.</p>
+    <div class="panel kn">
+      <div class="panel-head">
+        <div class="seg" role="tablist" aria-label="Knowledge view" id="kn-tabs">
+          <button type="button" role="tab" aria-selected="true" data-k="rules">Rules</button>
+          <button type="button" role="tab" aria-selected="false" data-k="bindings">Where each policy applies</button>
+          <button type="button" role="tab" aria-selected="false" data-k="screens">Medicare programs checked</button>
+          <button type="button" role="tab" aria-selected="false" data-k="codes">Codes</button>
+          <button type="button" role="tab" aria-selected="false" data-k="graph">See it as a graph</button>
+          <button type="button" role="tab" aria-selected="false" data-k="schema">Schema</button>
+        </div>
+      </div>
+      <div class="kn-body" id="kn-body">
+        <div class="kn-table" id="kn-table"></div>
+        <div class="kn-graph hidden" id="kn-graph"></div>
+      </div>
+      <details class="sql" id="kn-sqlbox"><summary>Show the query</summary><pre id="kn-sql"></pre></details>
+    </div>
+  </section>
+
+  <!-- 3. Ask -->
+  <section class="page" id="page-ask" aria-label="Ask">
+    <nav class="orders" id="orders" aria-label="Cases"></nav>
+    <main class="stage">
+      <section class="panel question" aria-labelledby="q-title">
+        <div class="panel-head"><span class="eyebrow">The question</span></div>
+        <div class="panel-body">
+          <p class="ask">Does this order need prior authorization?</p>
+          <h1 id="q-title">Pick a case above</h1>
+          <dl class="facts" id="q-facts"></dl>
+          <div class="actions">
+            <button type="button" class="btn btn-flow" id="run-flow">C · Rules only</button>
+            <button type="button" class="btn btn-agent" id="run-agent">B · AI agent</button>
+          </div>
+          <div class="outcome hidden" id="outcome">
+            <span class="o-label" id="o-label"></span>
+            <span class="o-sub" id="o-sub"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel graph-panel" aria-label="The answer">
+        <div class="panel-head">
+          <div class="seg" role="tablist" aria-label="View" id="ask-tabs">
+            <button type="button" role="tab" aria-selected="true" data-o="graph">Knowledge graph</button>
+            <button type="button" role="tab" aria-selected="false" data-o="why">Why is this right?</button>
+            <button type="button" role="tab" aria-selected="false" data-o="match">B matches C</button>
+          </div>
+        </div>
+        <div class="graph-wrap" id="ask-graph">
+          <div class="graphbox" id="graphbox">
+            <svg id="graph" role="img" aria-label="Knowledge graph of the release"></svg>
+            <div class="tip hidden" id="tip"></div>
+            <div class="legend" id="legend"></div>
+          </div>
+          <div class="overlay hidden" id="why" aria-label="Why the answer is right"></div>
+          <div class="overlay hidden" id="match" aria-label="B against C, field by field"></div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel card" id="card" aria-label="Decision card">
+          <div class="panel-head"><span class="eyebrow">Decision card</span></div>
+          <div class="panel-body card-empty">The decision card appears here when the agent or the workflow answers.</div>
+        </section>
+        <section class="panel detail hidden" id="detail" aria-label="Selected node"></section>
+      </aside>
+    </main>
+
+    <section class="panel band" aria-labelledby="band-title">
+      <div class="panel-head">
+        <h2 id="band-title">Same case: rules only, agent with Kanini Context, agent without</h2>
+        <button type="button" class="btn btn-race" id="run-race">Run C, B, A in turn</button>
+        <ol class="trace" id="trace" aria-label="Agent steps"></ol>
+      </div>
+      <div class="lanes" id="lanes"></div>
+      <div class="panel-foot log" id="log"></div>
+    </section>
+  </section>
+
+  <!-- 4. Testing and limits -->
+  <section class="page scroll hidden" id="page-testing" aria-label="Testing and limits">
+    <p class="lede">How far to trust it: the same cases run many times with and without Kanini Context, and the limits stated plainly.</p>
+    <div class="panel"><div class="testing" id="testing" aria-label="Testing results"></div></div>
+    <div class="cols">
+      <div class="panel"><div class="panel-head"><h2>Search with other chunking</h2></div><div class="panel-body" id="t-e1"></div></div>
+      <div class="panel"><div class="panel-head"><h2>Negative tests for the agent</h2></div><div class="panel-body" id="t-e2"></div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><h2>Limits</h2></div><div class="panel-body"><ul class="limits" id="t-limits"></ul></div></div>
   </section>
 </div>
 <script src="/static/vendor/d3.min.js"></script>
