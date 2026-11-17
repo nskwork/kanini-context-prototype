@@ -898,6 +898,7 @@
         + (r.deciding ? `, resting on ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it, so it goes to staff" : "") + `</div>`
         + part(r.agent, "A · agent without Kanini Context", r, "agent") + part(r.search, "Single LLM call with search (RAG)", r, "search") + part(r.whole, "Single LLM call with every document", r, "whole") + `</div>`).join("");
   }
+  const PROVIDER = (m) => (String(m).startsWith("azure/") ? `${m.slice(6)} on Azure OpenAI` : `${String(m).replace(/^openai\//, "")} on OpenAI`);
   function renderTesting() {
     const box = $("testing"), cmp = S.compare || {}, scs = Object.values(cmp.scenarios || {});
     if (!scs.length) { box.innerHTML = '<p class="t-empty">No comparison report yet. Run <code>python -m propel.baseline.compare --runs 5</code>.</p>'; return; }
@@ -910,10 +911,12 @@
       const ok = sum(k, (s) => s.matches_rules), n = sum(k, (s) => s.runs);
       const head = k === "C" ? "same answer every run" : k === "B" ? `${ok} of ${n} from the rules` : `${ok} of ${n} right`;
       const vary = k.startsWith("A") ? `<div class="t-vary">answer changed between runs on ${varied(k)} of ${cnt(k)} orders</div>` : "";
-      const older = ((cmp.history || {})[k] || []).slice(1);   // earlier tests of the same way, newest first
+      // earlier tests of the same way, newest first, on the same model and provider only (never added across providers)
+      const older = ((cmp.history || {})[k] || []).slice(1).filter((h) => !h.model || h.model === ((cmp.history || {})[k] || [])[0].model);
       const hist = older.length ? `<div class="t-hist">earlier test${older.length > 1 ? "s" : ""}: ${older.map((h) => `${h.right} of ${h.runs}`).join(", ")}; all: ${[...older, (cmp.history[k] || [])[0]].reduce((t, h) => t + h.right, 0)} of ${[...older, (cmp.history[k] || [])[0]].reduce((t, h) => t + h.runs, 0)}</div>` : "";
+      const mdl = (cmp.models || {})[k];
       return `<div class="t-tile ${cls}"><div class="t-name">${name}</div><div class="t-sub">${sub}</div><div class="t-big">${head}</div>`
-        + vary + hist + `<div class="t-meta">${fmt(avg(k, (s) => s.tokens_in))} tokens · ${k === "C" ? "0 AI calls" : avg(k, (s) => s.llm_calls).toFixed(1) + " AI calls"} · ${rng(k, (s) => s.seconds, k === "C" ? 2 : 1)} s</div></div>`;
+        + vary + hist + (mdl ? `<div class="t-meta">${esc(PROVIDER(mdl))}</div>` : "") + `<div class="t-meta">${fmt(avg(k, (s) => s.tokens_in))} tokens · ${k === "C" ? "0 AI calls" : avg(k, (s) => s.llm_calls).toFixed(1) + " AI calls"} · ${rng(k, (s) => s.seconds, k === "C" ? 2 : 1)} s</div></div>`;
     };
     const hasA = cnt("A") > 0;
     const ord = (pid) => S.orders.find((o) => o.patient === pid) || {};
@@ -943,7 +946,7 @@
     const when = (cmp.at && (cmp.at.A || cmp.at.A_rag)) ? new Date(cmp.at.A || cmp.at.A_rag).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
     const whole = scs.find((e) => e.A_whole_tokens)?.A_whole_tokens;
     box.innerHTML = `<div class="t-head"><h3>Testing: the same orders with and without the context layer</h3>`
-      + `<p>Each of the ${scs.length} demo orders answered ${scs[0].C ? scs[0].C.runs : 5} times by each method${when ? ", " + esc(when) : ""}, GPT-5 mini. Without Kanini Context, the AI answers from the same ${whole ? fmt(whole) + "-token" : ""} policy library: as the same agent reading it itself (lane A)${hasA ? "" : ", not yet tested"}, by search (RAG), or given every document. These are repeated runs, not a live demo: one answer can land either way by chance.</p></div>`
+      + `<p>Each of the ${scs.length} demo orders answered ${scs[0].C ? scs[0].C.runs : 5} times by each method${when ? ", " + esc(when) : ""}: ${esc([...new Set(Object.values(cmp.models || {}).filter(Boolean).map(PROVIDER))].join(", ") || "GPT-5 mini")}; each tile names its own. Without Kanini Context, the AI answers from the same ${whole ? fmt(whole) + "-token" : ""} policy library: as the same agent reading it itself (lane A)${hasA ? "" : ", not yet tested"}, by search (RAG), or given every document. These are repeated runs, not a live demo: one answer can land either way by chance.</p></div>`
       + `<div class="t-tiles">${tile("A", "A · same agent, no Kanini Context", "finds and reads the documents itself", "a")}`
       + `${tile("B", "B · agent with Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}`
       + `${tile("A_rag", "Single LLM call with search (RAG)", "no Kanini Context, earlier test", "a old")}${tile("A_whole", "Single LLM call with every document", "no Kanini Context, earlier test", "a old")}</div>`
@@ -1333,7 +1336,7 @@
     const bars = [["C · rules only", 0, "C"], ["B · with context", avg("B", (x) => x.tokens_in), "B"], ["A · without", avg("A", (x) => x.tokens_in), "A"]];
     const max = Math.max(...bars.map((b) => b[1]), 1);
     $("t-bars").innerHTML = bars.map(([n, v, L]) => `<div class="bar"><span>${n}</span><i style="width:${Math.max(0.6, (v / max) * 100)}%;background:${LANES[L][2]}"></i><b>${fmt(v)}</b></div>`).join("")
-      + `<p class="note">Average over ${scs.length} cases, ${scs[0].C ? scs[0].C.runs : 5} runs each.</p>`;
+      + `<p class="note">Average over ${scs.length} cases, ${scs[0].C ? scs[0].C.runs : 5} runs each; A and B ${esc(PROVIDER((cmp.models || {}).B || (cmp.models || {}).A || "GPT-5 mini"))}.</p>`;
     $("t-fails").innerHTML = [["Wrong region.", "Applied Tennessee's policy to an Ohio patient."],
       ["Silence read as a rule.", "Gave an answer the documents do not give."],
       ["Different answers.", "The same question got a different answer between runs."]].map(([h, d]) => `<p class="fail"><b>${h}</b> ${d}</p>`).join("");
@@ -1355,20 +1358,20 @@
       return `<tr><th>${esc(E1_NAMES[k] || k)}</th><td>${t("right")}/${n}</td><td>${t("deciding_found")}/${n}</td><td>${t("invented")}</td><td>${t("misapplied")}</td><td>${v.filter((x) => x.changed_between_runs).length}/${v.length}</td></tr>`;
     }).join("");
     return intro + `<table class="mini e-t"><thead><tr><th>Chunking</th><th>Right</th><th>Deciding page found</th><th>Invented</th><th>Misapplied</th><th>Answer changed</th></tr></thead><tbody>${rows}</tbody></table>`
-      + `<p class="note">${esc(r.model)}, embeddings ${esc(r.embeddings)}, ${r.runs} runs per order, ${ago(r.at)}. <code>${esc(r.file)}</code></p>`;
+      + `<p class="note">${esc(PROVIDER(r.model))}, embeddings ${esc(r.embeddings)}, ${r.runs} runs per order, ${ago(r.at)}. <code>${esc(r.file)}</code></p>`;
   }
   function renderE2(r) {
     const intro = "<p>Agent B reading the raw chart, on cases built to make it fail. <b>Own card</b> is the outcome B wrote before the guardrail set it from the rules; <b>final</b> is the rules' answer for the facts B passed. Failures are shown, not hidden.</p>";
     if (!r) return intro + '<p class="note">Not run yet: <code>python -m propel.baseline.negatives --runs 3</code></p>';
     const rows = Object.values(r.cases).map((c) => {
-      const f = c.facts || {};
+      const f = c.facts || {}, n = c.runs;
+      const facts = `${f.right || 0}/${n} right` + (f.wrong ? `, ${f.wrong} wrong` : "") + (f.asked ? `, ${f.asked} asked` : "");
+      const note = [c.planted_followed != null ? `asked to record the planted answer in ${c.planted_followed} of ${n}` : "", c.note || ""].filter(Boolean).join("; ");
       return `<tr><th>${esc(c.case)}</th><td>${esc(c.tests)}</td><td>${esc(OUTCOME[c.reference.outcome]?.[0] || c.reference.outcome)}</td>`
-        + `<td>${f.right || 0} right, ${f.wrong || 0} wrong, ${f.asked || 0} asked</td><td>${c.own_card_written ? `${c.own_right} of ${c.own_card_written}` : "none written"}</td>`
-        + `<td>${c.final_right}/${c.runs}${c.no_answer ? `, ${c.no_answer} no answer` : ""}</td>`
-        + `<td>${c.planted_followed != null ? `asked to record the planted answer in ${c.planted_followed} of ${c.runs}` : c.changed_between_runs ? "answer changed between runs" : ""}</td></tr>`;
+        + `<td>${facts}</td><td>${c.final_right}/${n}</td><td>${c.final_safe ?? c.final_right}/${n}</td><td class="e-note">${esc(note)}</td></tr>`;
     }).join("");
-    return intro + `<table class="mini e-t"><thead><tr><th>Case</th><th>What it tests</th><th>Safe answer</th><th>Facts B passed</th><th>Own card right</th><th>Final right</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-      + `<p class="note">${esc(r.model)}, ${r.runs} runs per case, ${ago(r.at)}. Kanini Context unavailable and a source past its limit are covered by the test suite: both go to staff. <code>${esc(r.file)}</code></p>`;
+    return intro + `<table class="mini e-t"><thead><tr><th>Case</th><th>What it tests</th><th>Rules say</th><th>Facts B passed</th><th>Final right</th><th>Safe</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`
+      + `<p class="note">${esc(PROVIDER(r.model))}, ${r.runs} runs per case, ${ago(r.at)}. Safe: the rules' answer, or the order went to staff. Kanini Context unavailable and a source past its limit are covered by the test suite: both go to staff. <code>${esc(r.file)}</code></p>`;
   }
   async function renderLimits() {
     if (!S.exp) S.exp = await (await fetch("/api/experiments")).json().catch(() => ({}));

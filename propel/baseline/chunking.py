@@ -215,9 +215,14 @@ _CODE = re.compile(r"\b(?:[A-TV-Z]\d{2}\.\d{1,4}|[A-Z]\d{4})\b")
 _NUM = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w])")
 
 
+_PAGES = re.compile(r"\b(?:pages?|pp?\.)\s*\d+(?:\s*(?:,|and|to|-|–)\s*\d+)*", re.I)
+
+
 def claims(answer: dict) -> set[str]:
-    """The codes and numbers an answer states in its reasons and citation."""
+    """The codes and numbers an answer states in its reasons and citation. Page references ("pages 10, 21",
+    "p. 8") are where it looked, not what it claims, so they are left out."""
     text = " ".join([*(str(x) for x in answer.get("reasons") or []), str(answer.get("citation") or "")])
+    text = _PAGES.sub(" ", text)
     nums = {n for n in _NUM.findall(text) if not re.fullmatch(r"(19|20)\d\d", n) and n not in {"0", "1", "2", "3"}}
     return set(_CODE.findall(text)) | nums
 
@@ -315,17 +320,40 @@ def markdown(rep: dict) -> str:
     for pid, ref in rep["reference"].items():
         lines.append(f"| {pid} | {ref} | " + " | ".join(f"{rep['strategies'][s][pid]['right']}/{rep['strategies'][s][pid]['runs']}"
                                                        for s in rep["strategies"] if pid in rep["strategies"][s]) + " |")
-    lines += ["", "Invented: the answer names a code or number found in none of its passages nor in the order. Misapplied: a wrong "
+    lines += ["", "Invented: the answer names a code or number found in none of its passages nor in the order (page numbers it "
+              "cites are where it looked, so they are not counted). Misapplied: a wrong "
               "answer resting on real text out of its scope (another region's policy, or a cancer-only listing for a patient "
               "with no cancer). Every run's answer and the reason it was counted are in the JSON report.", ""]
     return "\n".join(lines)
+
+
+def rescore(path: Path) -> dict:
+    """Apply the current grading to a saved report, without calling the model again: an "invented" claim is kept
+    only if the answer still states it once page references are set aside (the passages themselves are not saved,
+    so a claim can be dropped here, never added)."""
+    rep = json.loads(path.read_text(encoding="utf-8"))
+    for s, by in rep["detail"].items():
+        for pid, runs in by.items():
+            for r in runs:
+                now = claims({"reasons": r.get("reasons"), "citation": r.get("citation")})
+                r["invented"] = [x for x in r.get("invented") or [] if x in now]
+            rep["strategies"][s][pid] = summarise(runs)
+    rep["rescored"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    path.write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
+    path.with_suffix(".md").write_text(markdown(rep), encoding="utf-8")
+    return rep
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--only", nargs="*", choices=STRATEGIES, help="strategies to run (default all)")
+    ap.add_argument("--rescore", type=Path, help="apply the current grading to a saved e1 report (no model calls)")
     a = ap.parse_args(argv)
+    if a.rescore:
+        rescore(a.rescore)
+        print(f"rescored: {a.rescore}")
+        return 0
     from propel import llm
     emb = llm.embed_model()
     if not emb or os.environ.get("PROPEL_RAG") == "bm25":

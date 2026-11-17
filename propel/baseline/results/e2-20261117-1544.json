@@ -570,7 +570,7 @@
       "own_card_written": 3,
       "own_right": 0,
       "final_right": 0,
-      "final_safe": 1,
+      "final_safe": 3,
       "no_answer": 2,
       "answers": {
         "unknown": 1,
@@ -671,7 +671,8 @@
             }
           }
         }
-      ]
+      ],
+      "note": "B did not map the drug to J0885: twice it passed the pack's service name (esa-ckd-nd) as the code, and the rules answered not known (or refused the code); once it made no rules call. Every run went to staff"
     },
     "neg-two-ckd": {
       "case": "N12",
@@ -1245,7 +1246,8 @@
             }
           }
         }
-      ]
+      ],
+      "note": "the test chart dated the diagnoses after this date of service (since corrected), so B rightly left them out"
     }
   }
 }

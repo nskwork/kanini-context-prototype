@@ -203,6 +203,7 @@ def compare():
                 if v and lane not in tgt:
                     tgt[lane] = v
                     out["files"].setdefault(lane, f.name)
+                    out.setdefault("models", {}).setdefault(lane, rep.get("model"))
                     if lane in ("A", "A_rag", "A_whole"):
                         out.setdefault("at", {})[lane] = rep.get("at")
     if not out["scenarios"]:

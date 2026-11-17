@@ -701,3 +701,5 @@ details.sql pre,pre.q{background:#0b0d10}
 .e-t tbody th{color:#eceff4;font-weight:600;white-space:nowrap}
 .kn-case{flex:none}
 .dock .btn{white-space:nowrap}
+.e-t .e-note{font-size:12px;color:#9aa4b1;min-width:160px}
+#page-testing .scores{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}

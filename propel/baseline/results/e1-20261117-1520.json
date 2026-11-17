@@ -108,7 +108,7 @@
         "tokens_in": 9732,
         "seconds": 5.552956579986494,
         "deciding_found": 0,
-        "invented": 5,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-tn-egfr52": {
@@ -121,7 +121,7 @@
         "tokens_in": 9732,
         "seconds": 10.050861439993605,
         "deciding_found": 0,
-        "invented": 2,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-oh": {
@@ -134,7 +134,7 @@
         "tokens_in": 9720,
         "seconds": 9.46862445998704,
         "deciding_found": 0,
-        "invented": 4,
+        "invented": 0,
         "misapplied": 5
       },
       "maria-uhc": {
@@ -160,7 +160,7 @@
         "tokens_in": 9742,
         "seconds": 6.850336259999312,
         "deciding_found": 0,
-        "invented": 5,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-nohgb": {
@@ -173,7 +173,7 @@
         "tokens_in": 9721,
         "seconds": 9.979055139992852,
         "deciding_found": 0,
-        "invented": 4,
+        "invented": 0,
         "misapplied": 0
       }
     },
@@ -201,7 +201,7 @@
         "tokens_in": 9725,
         "seconds": 9.856404979992657,
         "deciding_found": 0,
-        "invented": 1,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-oh": {
@@ -214,7 +214,7 @@
         "tokens_in": 9706,
         "seconds": 9.119741239992436,
         "deciding_found": 0,
-        "invented": 2,
+        "invented": 0,
         "misapplied": 5
       },
       "maria-uhc": {
@@ -253,7 +253,7 @@
         "tokens_in": 9714,
         "seconds": 9.478172940004152,
         "deciding_found": 0,
-        "invented": 1,
+        "invented": 0,
         "misapplied": 1
       }
     },
@@ -268,7 +268,7 @@
         "tokens_in": 9725,
         "seconds": 5.94847777999239,
         "deciding_found": 5,
-        "invented": 1,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-tn-egfr52": {
@@ -308,7 +308,7 @@
         "tokens_in": 9732,
         "seconds": 9.357810020016041,
         "deciding_found": 5,
-        "invented": 5,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-uhc-esa": {
@@ -321,7 +321,7 @@
         "tokens_in": 9713,
         "seconds": 5.9523983599967325,
         "deciding_found": 5,
-        "invented": 2,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-nohgb": {
@@ -335,7 +335,7 @@
         "tokens_in": 9702,
         "seconds": 9.532819500006735,
         "deciding_found": 5,
-        "invented": 2,
+        "invented": 0,
         "misapplied": 1
       }
     },
@@ -350,7 +350,7 @@
         "tokens_in": 9736,
         "seconds": 9.992421280010603,
         "deciding_found": 5,
-        "invented": 2,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-tn-egfr52": {
@@ -363,7 +363,7 @@
         "tokens_in": 9732,
         "seconds": 5.77906498000957,
         "deciding_found": 5,
-        "invented": 1,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-oh": {
@@ -389,7 +389,7 @@
         "tokens_in": 9747,
         "seconds": 10.015859080012888,
         "deciding_found": 5,
-        "invented": 4,
+        "invented": 0,
         "misapplied": 0
       },
       "maria-uhc-esa": {
@@ -970,9 +970,7 @@
           "ms": 6278.602099977434,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -991,9 +989,7 @@
           "ms": 6394.860400003381,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1010,10 +1006,7 @@
           "ms": 5544.2159999511205,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "16",
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1031,9 +1024,7 @@
           "ms": 4820.152800006326,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1051,9 +1042,7 @@
           "ms": 4726.951599994209,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         }
       ],
@@ -1089,9 +1078,7 @@
           "ms": 5370.694999990519,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1125,9 +1112,7 @@
           "ms": 5836.787200008985,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1163,9 +1148,7 @@
           "ms": 5214.83630000148,
           "passages": 32,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": "cites Tennessee's policy"
         },
         {
@@ -1182,9 +1165,7 @@
           "ms": 4710.555699944962,
           "passages": 32,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": "cites Tennessee's policy"
         },
         {
@@ -1201,9 +1182,7 @@
           "ms": 20252.140500000678,
           "passages": 32,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": "cites Tennessee's policy"
         },
         {
@@ -1237,9 +1216,7 @@
           "ms": 13164.45310000563,
           "passages": 32,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": "cites Tennessee's policy"
         }
       ],
@@ -1346,9 +1323,7 @@
           "ms": 4290.501500014216,
           "passages": 35,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1366,9 +1341,7 @@
           "ms": 11904.366999980994,
           "passages": 35,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1386,9 +1359,7 @@
           "ms": 5501.980600005481,
           "passages": 35,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1406,9 +1377,7 @@
           "ms": 8019.390899979044,
           "passages": 35,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1425,9 +1394,7 @@
           "ms": 4535.441300016828,
           "passages": 35,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         }
       ],
@@ -1463,9 +1430,7 @@
           "ms": 20126.25349999871,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1482,9 +1447,7 @@
           "ms": 4902.216399961617,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1501,9 +1464,7 @@
           "ms": 12329.539600003045,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1521,9 +1482,7 @@
           "ms": 7050.845100020524,
           "passages": 33,
           "deciding_found": false,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         }
       ]
@@ -1683,9 +1642,7 @@
           "ms": 6084.980399988126,
           "passages": 23,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -1738,9 +1695,7 @@
           "ms": 5170.110700011719,
           "passages": 25,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": "cites Tennessee's policy"
         },
         {
@@ -1774,9 +1729,7 @@
           "ms": 5516.515899973456,
           "passages": 25,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": "cites Tennessee's policy"
         },
         {
@@ -2007,9 +1960,7 @@
           "ms": 5150.956099969335,
           "passages": 23,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": "cites Ohio's policy"
         },
         {
@@ -2121,9 +2072,7 @@
           "ms": 5007.925099984277,
           "passages": 32,
           "deciding_found": true,
-          "invented": [
-            "16"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2354,9 +2303,7 @@
           "ms": 5024.739700020291,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2372,9 +2319,7 @@
           "ms": 5664.399500004947,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2391,9 +2336,7 @@
           "ms": 5331.2604000093415,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2409,9 +2352,7 @@
           "ms": 4909.68000004068,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2428,9 +2369,7 @@
           "ms": 25858.970500004943,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         }
       ],
@@ -2449,9 +2388,7 @@
           "ms": 6543.366500001866,
           "passages": 33,
           "deciding_found": true,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2502,9 +2439,7 @@
           "ms": 7001.047600002494,
           "passages": 33,
           "deciding_found": true,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2578,10 +2513,7 @@
           "ms": 7326.159999996889,
           "passages": 32,
           "deciding_found": true,
-          "invented": [
-            "21",
-            "22"
-          ],
+          "invented": [],
           "misapplied": "applies a cancer-only listing to a patient with no cancer diagnosis"
         },
         {
@@ -2617,10 +2549,7 @@
           "ms": 6524.249100009911,
           "passages": 32,
           "deciding_found": true,
-          "invented": [
-            "21",
-            "22"
-          ],
+          "invented": [],
           "misapplied": null
         }
       ]
@@ -2644,9 +2573,7 @@
           "ms": 6651.2593000079505,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2682,10 +2609,7 @@
           "ms": 3742.409200000111,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "21",
-            "22"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2774,9 +2698,7 @@
           "ms": 6700.7238999940455,
           "passages": 34,
           "deciding_found": true,
-          "invented": [
-            "21"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2918,9 +2840,7 @@
           "ms": 7345.51700000884,
           "passages": 35,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2937,9 +2857,7 @@
           "ms": 5618.335000006482,
           "passages": 35,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2973,9 +2891,7 @@
           "ms": 9425.04070000723,
           "passages": 35,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         },
         {
@@ -2992,9 +2908,7 @@
           "ms": 5800.276099995244,
           "passages": 35,
           "deciding_found": true,
-          "invented": [
-            "18"
-          ],
+          "invented": [],
           "misapplied": null
         }
       ],
@@ -3178,5 +3092,6 @@
         }
       ]
     }
-  }
+  },
+  "rescored": "2026-11-17T22:00:09+00:00"
 }
