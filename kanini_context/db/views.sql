@@ -88,6 +88,8 @@ CREATE FUNCTION kc_views.condition_text(p_cond jsonb) RETURNS text LANGUAGE sql 
     WHEN p_cond ->> 'fact' = 'encounter_type' THEN 'the encounter is ' || kc_views.list_text(p_cond -> 'value', ' or ')
     WHEN p_cond ->> 'fact' = 'diagnosis_codes' AND p_cond ->> 'op' = 'prefix_overlaps'
       THEN 'a diagnosis code starts with ' || kc_views.list_text(p_cond -> 'value', ' or ')
+           -- ICD-10-CM: C is a malignant neoplasm, D0 a neoplasm in situ; said in words for a non-clinical reader
+           || CASE WHEN (SELECT bool_and(v IN ('C','D0')) FROM jsonb_array_elements_text(p_cond -> 'value') v) THEN ' (a cancer diagnosis)' ELSE '' END
     WHEN p_cond ->> 'op' = 'in' THEN replace(p_cond ->> 'fact', '_', ' ') || ' is ' || kc_views.list_text(p_cond -> 'value', ' or ')
     ELSE replace(p_cond ->> 'fact', '_', ' ') || ' ' || (p_cond ->> 'op') || ' ' || kc_views.list_text(p_cond -> 'value') END $$;
 
