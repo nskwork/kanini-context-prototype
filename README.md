@@ -4,7 +4,7 @@
 
 <br>
 
-![tests](https://img.shields.io/badge/tests-78%20of%2078%20passing-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-167%20passing%20%2B%205%20live-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)
@@ -132,16 +132,16 @@ To rule out "search failed because of the chunking", the single call with search
 
 | Chunking | Right | Deciding page retrieved | Invented | Misapplied | Orders whose answer changed |
 | :-- | :--: | :--: | :--: | :--: | :--: |
-| Fixed 450-word passages (as tested) | 14 of 30 | 5 of 30 | 0 | 6 | 3 of 6 |
-| Paragraphs and headings | 15 of 30 | 5 of 30 | 0 | 5 | 0 of 6 |
-| Cut where the meaning shifts | 15 of 30 | 0 of 30 | 1 | 6 | 0 of 6 |
-| Paragraphs, embeddings and keyword ranking together | 16 of 30 | 30 of 30 | 1 | 6 | 2 of 6 |
-| Hybrid, the state's documents only (reference) | 21 of 30 | 30 of 30 | 0 | 0 | 1 of 6 |
+| Fixed 450-word passages (as tested) | 14 of 30 | 5 of 30 | 0 | 11 | 3 of 6 |
+| Paragraphs and headings | 15 of 30 | 5 of 30 | 0 | 10 | 0 of 6 |
+| Cut where the meaning shifts | 15 of 30 | 0 of 30 | 0 | 11 | 0 of 6 |
+| Paragraphs, embeddings and keyword ranking together | 16 of 30 | 30 of 30 | 1 | 10 | 2 of 6 |
+| Hybrid, the state's documents only (reference) | 21 of 30 | 30 of 30 | 0 | 5 | 1 of 6 |
 | **B, agent with Kanini Context** | **30 of 30** | (the deciding rule, quoted) | 0 | 0 | 0 of 6 |
 
 - Better chunking moved the score by one or two answers. Even when the hybrid ranking retrieved the deciding page every time, the Ohio order was wrong 5 of 5, every time citing Tennessee's policy.
 - Filtering to the order's state (the reference row) fixed Ohio. That filter is half of what Kanini Context does: it picks the region's policy. The other half is still missing. The UnitedHealthcare anemia-drug order stayed wrong 5 of 5 in every row, because the documents do not settle it and only a reviewed rule says so.
-- Invented: a code or number in none of the passages (cited page numbers are not counted). Misapplied: real text used where it does not govern: another region's policy in 22 of the 23 counted, a cancer-only listing in 1. The wrong answers came from real text out of scope, not from invented text.
+- Invented: a code or number in none of the passages (cited page numbers are not counted). Misapplied: real text used where it does not govern. Of the 69 wrong answers, 47 were counted this way: 22 cited another region's policy, and 25 (the UnitedHealthcare anemia-drug case, every way) applied the payer's prior authorization entry that is only for a cancer diagnosis to a patient with none. Only 1 named a number found in none of its passages. The wrong answers came from real text out of scope, not from invented text. (The counts were worked out again from the saved answers after two grading fixes: a page reference written as "page 6/16" was counted as an invented number, and "non-cancer" was read as "cancer". No model was called again.)
 
 ### Tests built to make the agent fail (E2)
 
@@ -219,80 +219,46 @@ The pack did the finding here, so this is not a fair no-context baseline and it 
 
 ## Wrong answers, in the AI's own words
 
-For each order: how each approach without Kanini Context answered in its latest test, where each wrong answer departs from the approved rules, and the AI's own words with the source it cited.
+For each order: how each approach without Kanini Context answered in the Azure run, where each wrong answer departs from the approved rules, and the AI's own words with the source it cited.
 
-<sub>Five answers per order from each approach, GPT-5 mini at low reasoning effort. A ran on 13 Nov 2026 at 10:48 Central (`compare-20261113-1056.json`); the single calls with search and with every document ran at 10:23 (`compare-20261113-1031.json`). The dashboard's Testing tab shows the same text; <code>python -m propel.baseline.failures &lt;reports&gt; --collapsible</code> rebuilds it.</sub>
+<sub>Five answers per order from each approach, GPT-5 mini on Azure OpenAI at low reasoning effort, 17 Nov 2026 at 15:03 Central (`compare-20261117-1503.json`); built from the release on the presentation laptop by <code>python -m propel.baseline.failures</code> (`compare-20261117-1503-what-broke.md`). The single call with every document was not re-run on Azure (it does not fit the deployment's limit of 100,000 tokens a minute); its wrong answers from the OpenAI runs of 13 Nov are under <a href="#why-each-single-call-setup-failed">Why each single-call setup failed</a>.</sub>
 
-<details><summary><code>maria-tn</code> · rules say <b>No PA</b> · A without context ⚠️ 3/5 · search call ✅ 5/5 · every-document call ⚠️ 4/5</summary>
-
-The rules' answer rests on LCD L39237, page 7.
-- A · agent without Kanini Context: right 3 of 5. 2 runs answered Not yet known: every fact the rule tests is on the order.
-  - In its own words (Not yet known, what it said was missing): “Staff should obtain and add to the chart the required pre-initiation iron studies (TSAT and ferritin) and documentation that other causes of anemia were evaluated/treated; confirm required claim modifiers (EC and JA/JB as appropriate) will be billed. Re-check…” Source it cited: Billing and Coding Article A58982 (for LCD L39237), pages 10–11 — required documentation elements for CKD not on dialysis (serum creatinine/GFR, diagnosis codes,…
-- Single LLM call with search (RAG): right 5 of 5.
-- Single LLM call with every document: right 4 of 5. 1 run answered Not yet known: every fact the rule tests is on the order.
-  - In its own words (Not yet known, what it said was missing): “Missing required iron‑store data (transferrin saturation and ferritin) and documentation of iron repletion if low — required prior to ESA initiation/continuation”
-
-</details>
-
-<details><summary><code>maria-tn-egfr52</code> · rules say <b>Other gate</b> · A without context ✅ 5/5 · search call ✅ 5/5 · every-document call ✅ 5/5</summary>
-
-The rules' answer rests on LCD L39237, page 7.
+**`maria-tn`**: the rules say **No PA**, resting on LCD L39237, page 7.
 - A · agent without Kanini Context: right 5 of 5.
 - Single LLM call with search (RAG): right 5 of 5.
-- Single LLM call with every document: right 5 of 5.
 
-</details>
+**`maria-tn-egfr52`**: the rules say **Other gate**, resting on LCD L39237, page 7.
+- A · agent without Kanini Context: right 4 of 5. 1 run answered No PA: the order does not meet the coverage criteria.
+  - In its own words (No PA): “Medicare Part B coverage article A58982 lists J0885 (epoetin alfa, non-ESRD use) as a covered code for CKD patients not on dialysis and specifies clinical documentation required (serum creatinine/GFR, diagnosis of symptomatic anemia of CKD such as D63.1 plus…” Source it cited: Billing and Coding Article A58982, “Erythropoiesis Stimulating Agents (for L39237)”, pages 9-10 and 17.
+- Single LLM call with search (RAG): right 5 of 5.
 
-<details><summary><code>maria-oh</code> · rules say <b>No PA</b> · A without context ❌ 2/5 · search call ❌ 0/5 · every-document call ⚠️ 3/5</summary>
-
-The rules' answer rests on LCD L34356, page 8.
-- A · agent without Kanini Context: right 2 of 5. 3 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60) (2 of 3 runs used it); the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (2 of 3 runs used it). 3 of them cited Tennessee's policy.
-  - In its own words (Other gate): “Patient has CKD not on dialysis and diagnosis D63.1 (documented) but current eGFR 52 mL/min/1.73 m2 which is above the LCD’s reasonable GFR threshold (<45 mL/min/1.73 m2) to support ESA initiation for CKD-not-on-dialysis; hemoglobin 9.4 g/dL alone does not…” Source it cited: Billing & Coding Article A58982 (supports LCD L39237) — “For CKD NOT on Dialysis… a GFR < 45 mL/min/1.73m2 is a reasonable threshold to support ESA administration” and…
-- Single LLM call with search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60) (5 of 5 runs used it); the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (5 of 5 runs used it).
-  - In its own words (Other gate): “Patient has D63.1 (anemia in CKD) but CKD diagnosis is N18.31 (CKD stage 3a) which is not among the covered CKD stage codes required for non-dialysis ESA (N18.32, N18.4, N18.5, etc.); Guidance indicates a GFR <45 mL/min/1.73 m2 is a reasonable threshold to…”
+**`maria-oh`**: the rules say **No PA**, resting on LCD L34356, page 8.
+- A · agent without Kanini Context: right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60) (4 of 5 runs used it); the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (3 of 5 runs used it). 5 of them cited Tennessee's policy.
+  - In its own words (Other gate): “CMS billing/coding guidance for ESA (A58982 / L39237) requires CKD not on dialysis patients to have supporting GFR/creatinine consistent with coverage (guidance cites a GFR < 45 mL/min/1.73 m2 as a reasonable threshold), and Maria’s eGFR is 52 (does not meet…” Source it cited: Billing and Coding Article A58982 (for LCD L39237), pages 10–11 — required documentation and GFR threshold language; dosing and Hb pre-initiation requirement (page…
+- Single LLM call with search (RAG): right 0 of 5. 5 runs answered Other gate: the order meets the coverage criteria that govern it; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60) (5 of 5 runs used it); the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (4 of 5 runs used it).
+  - In its own words (Other gate): “Original Medicare (Part B) does not require a prior authorization for J0885 per the provided CMS/ LCD documents, but coverage criteria are not met; Patient has CKD stage code N18.31 (CKD stage 3a) which is not among the CKD stage diagnoses listed as…”
   The deciding page was **not** among the 16 passages retrieved; 12 came from Tennessee's policy and 2 from Ohio's.
-- Single LLM call with every document: right 3 of 5. 1 run answered PA required: no approval is needed for this order. 1 run answered Other gate: the order meets the coverage criteria that govern it; the stage 3a (N18.31) exclusion is in Tennessee's article A58982, while Ohio's article A56462 lists N18.31 (1 of 1 runs used it).
-  - In its own words (PA required): “Patient has CKD not on dialysis with Hgb 9.4 (<10 g/dL) — meets the hemoglobin criterion for non‑ESRD ESA therapy under the CGS (Ohio) LCD; Patient’s eGFR 52 mL/min/1.73m2 meets the CGS LCD cutoff for CKD non‑dialysis coverage (GFR <60 mL/min/1.73m2) and…”
-  - In its own words (Other gate): “HCPCS J0885 is for non-ESRD (CKD non-dialysis) ESA use under the CGS (Ohio) LCD (L34356).; Coverage for CKD non-dialysis requires anemia (Hgb <10) AND the required CKD stage documentation per CGS: L34356 requires GFR/Cr thresholds but the related…”
 
-</details>
-
-<details><summary><code>maria-uhc</code> · rules say <b>PA required</b> · A without context ⚠️ 4/5 · search call ⚠️ 4/5 · every-document call ✅ 5/5</summary>
-
-The rules' answer rests on UHC MA prior authorization requirements, page 17.
+**`maria-uhc`**: the rules say **PA required**, resting on UHC MA prior authorization requirements, page 17.
 - A · agent without Kanini Context: right 4 of 5. 1 run answered Not yet known: the plan's list requires PA for this code whatever the facts.
-  - In its own words (Not yet known, what it said was missing): “Staff should submit a prior authorization request (or document medical necessity) that includes either: clinical documentation showing trials (dates, agents, doses, and response) of at least two preferred IV iron therapies (e.g., iron sucrose J1756, sodium…” Source it cited: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, "Intravenous Iron Replacement Therapy" (pages 8, 17–18); UnitedHealthcare Medicare Advantage/Peoples Health…
-- Single LLM call with search (RAG): right 4 of 5. 1 run answered Not yet known: the plan's list requires PA for this code whatever the facts.
-  - In its own words (Not yet known, what it said was missing): “No documentation provided of prior trials, contraindications, or intolerance to preferred IV iron therapies for this member”
+  - In its own words (Not yet known, what it said was missing): “Obtain documentation of prior IV iron therapy (dates, agents, duration and response) or documentation of contraindication/intolerance to at least two preferred IV iron products — or evidence of Injectafer use within past 365 days — then re-evaluate…” Source it cited: UnitedHealthcare Medicare Advantage Drug Policy IAP.001.30, "Medicare Part B Step Therapy Programs", pages 8 and 18 (Intravenous Iron Replacement Therapy: preferred vs…
+- Single LLM call with search (RAG): right 3 of 5. 2 runs answered Not yet known: the plan's list requires PA for this code whatever the facts.
+  - In its own words (Not yet known, what it said was missing): “Member has iron deficiency anemia with CKD (D50.9, D63.1, N18.32) and Hgb 9.4, eGFR 38, but documentation is missing regarding prior trials of preferred IV irons, documented contraindications/intolerance to preferred agents, or prior Injectafer use within 365…”
   The deciding page was among the 16 passages retrieved.
-- Single LLM call with every document: right 5 of 5.
 
-</details>
-
-<details><summary><code>maria-uhc-esa</code> · rules say <b>Not known</b> · A without context ❌ 0/5 · search call ❌ 0/5 · every-document call ❌ 0/5</summary>
-
-The documents do not settle it, so the order goes to staff.
+**`maria-uhc-esa`**: the rules say **Not known**: the documents do not settle it, so the order goes to staff.
 - A · agent without Kanini Context: right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
-  - In its own words (PA required): “UnitedHealthcare Medicare Advantage prior authorization list (Effective Oct 1, 2026) explicitly lists Erythropoiesis Stimulating Agents (J0885) as requiring prior authorization.” Source it cited: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements, Effective October 1, 2026 — Erythropoiesis Stimulating Agents (J0885) (page…
+  - In its own words (PA required): “UnitedHealthcare Medicare Advantage prior authorization list explicitly lists HCPCS J0885 (Epoetin alfa non‑ESRD) as requiring prior authorization for all plans (instructions to submit via the UHC Provider Portal or call 888-397-8129).” Source it cited: UnitedHealthcare Medicare Advantage/Peoples Health Plans prior authorization requirements (uhc-ma-pa-list), page 7; CMS Billing & Coding Article A56462 (ESA), page 3.
 - Single LLM call with search (RAG): right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
-  - In its own words (PA required): “HCPCS J0885 is listed in UnitedHealthcare Medicare Advantage prior authorization requirements for erythropoiesis stimulating agents; Member has CKD non-dialysis diagnosis (D63.1 and N18.32) which aligns with indications in the ESA billing guidance, but UHC…”
-- Single LLM call with every document: right 0 of 5. 5 runs answered PA required: the plan's list names this drug only under cancer supportive care, with PA "for a cancer diagnosis" (page 7), and this patient has none, so the documents do not settle this order.
-  - In its own words (PA required): “UnitedHealthcare Medicare Advantage lists erythropoiesis stimulating agents (HCPCS J0885) as a drug requiring prior authorization (see UnitedHealthcare prior authorization requirements).; Medicare/local coverage criteria (LCD L39237 / Billing & Coding A58982)…”
+  - In its own words (PA required): “UnitedHealthcare Medicare Advantage requires prior authorization for J0885 (Epoetin alfa); Patient meets LCD coverage criteria for CKD not on dialysis: diagnosis D63.1 and N18.32 present; Clinical values support ESA use per LCD: Hgb 9.4 g/dL and eGFR 38…”
 
-</details>
-
-<details><summary><code>maria-nohgb</code> · rules say <b>Not yet known</b> · A without context ⚠️ 4/5 · search call ❌ 2/5 · every-document call ⚠️ 3/5</summary>
-
-The rules' answer rests on LCD L39237, page 7.
-- A · agent without Kanini Context: right 4 of 5. 1 run answered Other gate: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
-  - In its own words (Other gate): “Patient and order meet some CMS coverage prerequisites (J0885 for CKD non‑dialysis; diagnosis D63.1 and N18.32; eGFR 38 <45) — but required pre‑treatment iron studies and related documentation are not on file.” Source it cited: LCD L39237 (Palmetto, jurisdiction J covers Tennessee) — page 1; Billing & Coding Article A58982, “Erythropoiesis Stimulating Agents” — pages 10, 15, 17.
-- Single LLM call with search (RAG): right 2 of 5. 3 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
-  - In its own words (No PA): “Original Medicare Part B coverage policies (LCD L34356 / A58982) do not state a prior authorization requirement for non‑ESRD ESA (J0885).; Order is for non‑dialysis CKD anemia (HCPCS J0885) and the claim includes D63.1 and N18.32, which are the dual diagnoses…”
+**`maria-nohgb`**: the rules say **Not yet known**, resting on LCD L39237, page 7.
+- A · agent without Kanini Context: right 4 of 5. 1 run answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
+  - In its own words (No PA): “Original Medicare LCD L39237 lists epoetin alfa (J0885) as a covered ESA indication for anemia related to CKD stages IIIb–V (non-dialysis) (coverage criteria) — patient has diagnosis N18.32 (CKD stage 3b) and anemia (D63.1) with eGFR 38, which matches the…” Source it cited: LCD L39237 “Erythropoiesis Stimulating Agents” (Palmetto GBA), Coverage Indications, Limitations, and/or Medical Necessity (pages 5–6); Billing/Coding Article A58982…
+- Single LLM call with search (RAG): right 1 of 5. 3 runs answered Other gate: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet. 1 run answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
+  - In its own words (Other gate): “Original Medicare Part B/ LCD does not impose a prior authorization requirement for ESA J0885 (coverage criteria are documented in the LCD/article rather than a PA program); Claim has appropriate diagnosis codes for CKD non-dialysis (D63.1 and N18.32) and…”
+  - In its own words (No PA): “Original Medicare Part B does not require prior authorization for ESAs per the CMS LCD/article guidance; HCPCS J0885 is a non-ESRD ESA and the claim for CKD non-dialysis requires D63.1 plus a CKD stage code; the order includes D63.1 and N18.32 which align…”
   The deciding page was **not** among the 16 passages retrieved; 2 came from Ohio's policy and 12 from Tennessee's.
-- Single LLM call with every document: right 3 of 5. 2 runs answered No PA: the order lacks a hematocrit or hemoglobin result, so it cannot be decided yet.
-  - In its own words (No PA): “This is Original Medicare Part B (not a Medicare Advantage plan) and none of the CMS prior-authorization/pre-claim review initiatives or demonstrations in the provided documents require prior authorization for ESA J0885.; Coverage and billing requirements for…”
-
-</details>
 
 <br>
 

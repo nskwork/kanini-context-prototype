@@ -682,7 +682,8 @@
             }
           }
         }
-      ]
+      ],
+      "history": "In the first run (e2-20261117-1544) it was right 0 of 3: B passed the pack's service name instead of a drug code, and all 3 runs went to staff (safe, not automated). Kanini Context then gained a code lookup from the drug name, and a service name is refused as a code; this rerun is right 3 of 3."
     },
     "neg-two-ckd": {
       "case": "N12",

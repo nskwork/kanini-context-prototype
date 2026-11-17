@@ -50,7 +50,13 @@ def approvers_after(review: dict, current_sha: str, by: list[str]) -> tuple[list
         raise ReviewError("the same name is given twice; two approvers must be two different people")
     earlier = [x for x in review.get("reviewed_by", []) if x]
     note = ""
-    if earlier and review.get("reviewed_sha") != current_sha:
+    if earlier and not review.get("reviewed_sha"):
+        # approved before fingerprints were kept: nothing shows the file is what they approved, so it does not count
+        # towards two approvers; they approve again (one command) and the fingerprint is kept from then on
+        note = (f"{', '.join(earlier)} approved this file before approvals kept a fingerprint of it, so that approval "
+                f"cannot be counted with a second one; ask {', '.join(earlier)} to approve again first")
+        earlier = []
+    elif earlier and review.get("reviewed_sha") != current_sha:
         note = f"the file changed since {', '.join(earlier)} approved it, so that approval no longer counts"
         earlier = []
     again = [n for n in names if n.casefold() in {e.casefold() for e in earlier}]

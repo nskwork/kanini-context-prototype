@@ -79,7 +79,7 @@
         "seconds": 9.616227839991916,
         "deciding_found": 0,
         "invented": 0,
-        "misapplied": 0
+        "misapplied": 5
       },
       "maria-nohgb": {
         "runs": 5,
@@ -161,7 +161,7 @@
         "seconds": 6.850336259999312,
         "deciding_found": 0,
         "invented": 0,
-        "misapplied": 0
+        "misapplied": 5
       },
       "maria-nohgb": {
         "runs": 5,
@@ -240,8 +240,8 @@
         "tokens_in": 9699,
         "seconds": 9.702073939982801,
         "deciding_found": 0,
-        "invented": 1,
-        "misapplied": 0
+        "invented": 0,
+        "misapplied": 5
       },
       "maria-nohgb": {
         "runs": 5,
@@ -322,7 +322,7 @@
         "seconds": 5.9523983599967325,
         "deciding_found": 5,
         "invented": 0,
-        "misapplied": 0
+        "misapplied": 5
       },
       "maria-nohgb": {
         "runs": 5,
@@ -336,7 +336,7 @@
         "seconds": 9.532819500006735,
         "deciding_found": 5,
         "invented": 0,
-        "misapplied": 1
+        "misapplied": 0
       }
     },
     "hybrid_state": {
@@ -403,7 +403,7 @@
         "seconds": 9.197359339997638,
         "deciding_found": 5,
         "invented": 0,
-        "misapplied": 0
+        "misapplied": 5
       },
       "maria-nohgb": {
         "runs": 5,
@@ -795,7 +795,7 @@
           "passages": 20,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -811,7 +811,7 @@
           "passages": 20,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -827,7 +827,7 @@
           "passages": 20,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -844,7 +844,7 @@
           "passages": 20,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -862,7 +862,7 @@
           "passages": 20,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         }
       ],
       "maria-nohgb": [
@@ -1324,7 +1324,7 @@
           "passages": 35,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1342,7 +1342,7 @@
           "passages": 35,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1360,7 +1360,7 @@
           "passages": 35,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1378,7 +1378,7 @@
           "passages": 35,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1395,7 +1395,7 @@
           "passages": 35,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         }
       ],
       "maria-nohgb": [
@@ -1852,7 +1852,7 @@
           "passages": 24,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1868,10 +1868,8 @@
           "ms": 23623.356199997943,
           "passages": 24,
           "deciding_found": false,
-          "invented": [
-            "16"
-          ],
-          "misapplied": null
+          "invented": [],
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1888,7 +1886,7 @@
           "passages": 24,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1905,7 +1903,7 @@
           "passages": 24,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -1922,7 +1920,7 @@
           "passages": 24,
           "deciding_found": false,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         }
       ],
       "maria-nohgb": [
@@ -2389,7 +2387,7 @@
           "passages": 33,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2405,7 +2403,7 @@
           "passages": 33,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2422,7 +2420,7 @@
           "passages": 33,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2440,7 +2438,7 @@
           "passages": 33,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2457,7 +2455,7 @@
           "passages": 33,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         }
       ],
       "maria-nohgb": [
@@ -2514,7 +2512,7 @@
           "passages": 32,
           "deciding_found": true,
           "invented": [],
-          "misapplied": "applies a cancer-only listing to a patient with no cancer diagnosis"
+          "misapplied": null
         },
         {
           "outcome": "no_pa",
@@ -2930,7 +2928,7 @@
           "passages": 35,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2949,7 +2947,7 @@
           "passages": 35,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2966,7 +2964,7 @@
           "passages": 35,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2982,7 +2980,7 @@
           "passages": 35,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         },
         {
           "outcome": "pa_required",
@@ -2999,7 +2997,7 @@
           "passages": 35,
           "deciding_found": true,
           "invented": [],
-          "misapplied": null
+          "misapplied": "applies a prior authorization entry that is only for diagnoses starting with C or D0 (a cancer diagnosis); the patient has none"
         }
       ],
       "maria-nohgb": [
@@ -3093,5 +3091,5 @@
       ]
     }
   },
-  "rescored": "2026-11-17T22:00:09+00:00"
+  "rescored": "2026-11-17T23:28:46+00:00"
 }

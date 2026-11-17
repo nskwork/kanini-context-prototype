@@ -43,7 +43,7 @@ CREATE FUNCTION kc_views.document_type_label(p_kind text) RETURNS text LANGUAGE 
 
 CREATE FUNCTION kc_views.rule_type_label(p_kind text, p_basis text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE
-    WHEN p_kind = 'approval_required' AND p_basis = 'stated_by_exhaustion' THEN 'Program list checked'
+    WHEN p_kind = 'approval_required' AND p_basis = 'stated_by_exhaustion' THEN 'Medicare program list checked'
     WHEN p_kind = 'approval_required' THEN 'Prior authorization'
     WHEN p_kind = 'coverage_criteria' THEN 'Coverage criteria'
     WHEN p_kind = 'documentation_requirement' THEN 'Evidence needed'
@@ -300,7 +300,7 @@ SELECT kc_api.rule_ref(r.rule_key, r.valid::text)         AS rule_ref,
 COMMENT ON VIEW kc_views.rules IS 'One row per approved rule in force or scheduled, with what it says in one plain sentence and the exact quote it rests on.';
 COMMENT ON COLUMN kc_views.rules.rule_ref IS 'The rule and its edition (rule_key@date), as the tools and the decision log cite it.';
 COMMENT ON COLUMN kc_views.rules.rule_key IS 'Stable identifier of the rule across editions.';
-COMMENT ON COLUMN kc_views.rules.rule_type IS 'Coverage criteria, Prior authorization, Program list checked, Exemption, Evidence needed, Decision deadline, Appeal window or Obligation.';
+COMMENT ON COLUMN kc_views.rules.rule_type IS 'Coverage criteria, Prior authorization, Medicare program list checked, Exemption, Evidence needed, Decision deadline, Appeal window or Obligation.';
 COMMENT ON COLUMN kc_views.rules.subject IS 'The drug, service or code group the rule is about.';
 COMMENT ON COLUMN kc_views.rules.summary IS 'What the rule says, in one plain sentence generated from its stored conditions.';
 COMMENT ON COLUMN kc_views.rules.applies_in IS 'Where the rule applies: nationwide, a state, a contractor region with its states, or a plan by name.';

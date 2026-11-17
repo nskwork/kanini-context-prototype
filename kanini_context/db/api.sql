@@ -599,7 +599,12 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
   hit AS (
     SELECT *, CASE WHEN drug IS NOT NULL AND lower(p_text) ~ ('(^|[^a-z-])' || drug || '($|[^a-z-])') THEN 'drug name'
                    WHEN brand IS NOT NULL AND lower(p_text) ~ ('(^|[^a-z])' || brand || '($|[^a-z])') THEN 'brand name' END AS matched_by
-      FROM c)
+      FROM c),
+  -- a code for non-ESRD use is never offered for an order that says the patient has ESRD or is on dialysis
+  fit AS (
+    SELECT * FROM hit WHERE matched_by IS NOT NULL
+       AND NOT (display ~* 'non[- ]?ESRD' AND lower(p_text) ~ '(esrd|dialysis)'
+                AND lower(p_text) !~ '(non[- ]?esrd|not on dialysis|no dialysis|not dialy)'))
   SELECT jsonb_build_object(
     'status', CASE count(*) WHEN 0 THEN 'no_match' WHEN 1 THEN 'one_match' ELSE 'several_matches' END,
     'query', p_text,
@@ -607,4 +612,4 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
                                                         'source', title) ORDER BY code), '[]'),
     'next_step', CASE count(*) WHEN 1 THEN 'use this code if its description fits the order (for example, non-ESRD use), and say on the card that it was looked up from the drug name'
                  ELSE 'ask staff for the order''s HCPCS code; do not choose one' END)
-    FROM hit WHERE matched_by IS NOT NULL $$;
+    FROM fit $$;

@@ -124,7 +124,7 @@ def review_of(d: dict, test_review: bool) -> tuple[list[str], str | None, str | 
     """(approvers, exception, approval date). Two different approvers are the rule; one approver needs a recorded
     exception (curation/approve.py records the prototype scope's one-engineer check)."""
     rv = d["review"]
-    approvers = [x for x in rv.get("reviewed_by", []) if x]
+    approvers = list({x.strip().casefold(): x.strip() for x in rv.get("reviewed_by", []) if x and x.strip()}.values())   # one person counts once
     exception = rv.get("review_exception")
     if not approvers:
         if not test_review:

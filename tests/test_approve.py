@@ -74,3 +74,17 @@ def test_cli_refuses_a_repeated_name(tmp_path, capsys):
     A.main(["--by", "Reviewer One", "--by", "Reviewer One", "--yes", str(p)])
     assert "two different people" in capsys.readouterr().out
     assert "reviewed_by" not in json.loads(p.read_text(encoding="utf-8"))["review"]
+
+
+def test_an_approval_from_before_fingerprints_is_not_counted_with_a_second():
+    d = fresh()
+    d["review"].update({"reviewed_by": ["NANDHU S K"], "review_exception": A.SCOPE_EXCEPTION})   # as the committed files are
+    note = A.record(d, ["Second Reviewer"])
+    assert "approve again first" in note and d["review"]["reviewed_by"] == ["Second Reviewer"]
+
+
+def test_the_loader_counts_one_person_once_whatever_the_case():
+    d = fresh()
+    d["review"].update({"reviewed_by": ["NANDHU S K", "nandhu s k"]})
+    with pytest.raises(LoadError):
+        review_of(d, False)

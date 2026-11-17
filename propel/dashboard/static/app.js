@@ -421,7 +421,7 @@
     const row = (L, name) => {
       const st = lanes[L].st;
       let ans = null, ok = null;
-      if (L === "A") { ans = st.answer; ok = st.ok; }
+      if (L === "A") { ans = st.answer; ok = S.scripted && !st.tin ? null : st.ok; }   // a scripted stand-in is not graded
       else if (L === "B") { ans = st.eval ? st.eval.outcome : null; ok = st.done && !st.unreachable ? st.ok : null; }
       else if (st.eval) ans = st.eval.outcome;
       const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : st.unreachable ? "Kanini Context not reachable" : "–";
@@ -455,7 +455,7 @@
       : a.active ? (a.step || "Starting…") : "No Kanini Context: for every order it finds and reads the policy again");
     $("nA1").innerHTML = aScripted ? "–" : a.active || a.done ? fmt(a.tin) : "–";
     $("nA2").innerHTML = a.active || a.done ? `${a.turns} · ${secs(a)}<small> s</small>` : "–";
-    $("nA3").innerHTML = a.done && a.answer ? tick(a.ok) + overall("A") : "–";
+    $("nA3").innerHTML = a.done && a.answer ? (aScripted ? '<small class="overall">scripted stand-in, not graded</small>' : tick(a.ok) + overall("A")) : "–";
     lanes.A.target = a.active || a.done ? a.tin / 900 : 0;
     // B: the agent, counted from its own model calls
     const b = lanes.B.st, scripted = S.scripted && (b.active || b.done) && !b.tin;
@@ -472,7 +472,7 @@
       : c.active ? "Looking up…" : "The information is already in the context: no AI call at all";
     $("nC1").innerHTML = c.done ? "0" : "–";
     $("nC2").innerHTML = c.done && c.callMs != null ? `0 · ${c.callMs}<small> ms</small>` : "–";
-    $("nC3").innerHTML = c.done && c.eval ? `<b class="c-ans">${esc(OUTCOME[c.eval.outcome]?.[0] || c.eval.outcome)}</b><small class="overall">same answer every run</small>` : "–";
+    $("nC3").innerHTML = c.done && c.eval ? `<b class="c-ans">${esc(OUTCOME[c.eval.outcome]?.[0] || c.eval.outcome)}</b> <small class="overall">same answer every run</small>` : "–";
   }
   function lanesTick(dt) {
     Object.values(lanes).forEach((ln) => {
@@ -887,8 +887,8 @@
      Results from repeated testing (propel/baseline/compare.py), never from a live run: an LLM application without
      Kanini Context answering the same six orders five times each, beside Kanini Context's two ways. Every number is
      read from the latest comparison report. */
-  const PLAIN = { no_pa: "No PA", pa_required: "PA required", exempt: "Exempt", other_gate: "Other gate", needs_facts: "Not yet known",
-    unknown: "Not known", unparseable: "no readable answer", "no card": "no decision card" };
+  const PLAIN = { ...Object.fromEntries(Object.entries(OUTCOME).map(([k, v]) => [k, v[0]])),   // the same answer labels as everywhere else
+    unparseable: "no readable answer", "no card": "no decision card" };
   function whatBroke(x) {   // case by case: the rules' answer, each baseline's wrong answers and why (propel/baseline/failures.py)
     if (!x || !x.orders) return "";
     const WAYS = [["agent", "A · agent without Kanini Context"], ["search", "Single call with search (RAG)"], ["whole", "Single call with every document"]];
@@ -1346,7 +1346,7 @@
     // each tile: who answered, what they were given, the score, and what the score means in one plain sentence
     const tile = (L, name, given, n, unit, means, good) => `<div class="panel sc"><div class="sc-h"><span class="L" style="color:${LANES[L][2]}">${L}</span>`
       + `<span class="sc-name">${name}</span></div><div class="sc-given">${given}</div>`
-      + `<div class="n ${good ? "ok" : "bad"}">${n}<small>${unit}</small></div><p>${means}</p></div>`;
+      + `<div class="n ${good ? "ok" : "bad"}">${n} <small>${unit}</small></div><p>${means}</p></div>`;
     const right = (k) => sum(k, (x) => x.matches_rules), runs = (k) => sum(k, (x) => x.runs);
     $("t-scores").innerHTML = tile("C", "Rules only (no AI)", "The approved rules, applied by plain code",
         cSame ? `${cRuns} / ${cRuns}` : "–", "same answer",
@@ -1411,7 +1411,7 @@
     if (S_.hybrid_state && S_.hybrid_state["maria-oh"]) f.push(["Ohio needs the right region, not better search",
       `The Ohio case was ${plain.map((k) => one(k, "maria-oh")).join(", ")} across the four ways that search every document, citing Tennessee's policy (eGFR limit 45; Ohio's is 60). Limited to Ohio's own documents it was ${one("hybrid_state", "maria-oh")}. Picking the region's policy before reading is what Kanini Context does.`]);
     if (allOf("maria-uhc-esa", keys)) f.push(["Some answers no search can give", "The UnitedHealthcare anemia-drug case was wrong in every run of every way, the state filter included. The payer's list names the drug only for cancer patients; the right answer is \"the documents do not settle it, send to staff\", which comes from a reviewed rule, not from the text."]);
-    if (S_.current && S_.current["maria-nohgb"]) f.push(["A missing fact goes unnoticed", `With no hemoglobin on file, search was right ${keys.map((k) => one(k, "maria-nohgb")).join(", ")}. It answers as if the fact were there; Kanini Context's rules say which facts they test, so it answers "Not yet known".`]);
+    if (S_.current && S_.current["maria-nohgb"]) f.push(["A missing fact goes unnoticed", `With no hemoglobin on file, search was right ${keys.map((k) => one(k, "maria-nohgb")).join(", ")}. It answers as if the fact were there; Kanini Context's rules say which facts they test, so it answers "Missing patient information".`]);
     f.push(["Real text, wrong place", `Across all ${keys.length} ways, ${inv.reduce((a, b) => a + b, 0)} answers named a code or number found in none of the passages, while ${mis} used real text that does not apply to the patient. The AI did not make things up; it used the wrong part of the documents.`]);
     if (bTok) f.push(["What it costs", `One search call sends the AI about ${fmt(ragTok)} tokens of text, fewer than B's ${fmt(bTok)}. Search is cheaper per question, but B was right ${bR} of ${bN} times and search about half, and nothing marks which half.`]);
     return `<div class="t-cards e-cards">${f.map(([h, p]) => `<div class="t-card"><h3>${h}</h3><p>${p}</p></div>`).join("")}</div>`;
@@ -1425,6 +1425,7 @@
     f.push(["What it handled", `${clean.length} of ${model.length} traps passed in every run: <span class="e-list">${clean.map((c) => esc(c.tests)).join("<br>")}</span>`]);
     if (planted) f.push(["A planted instruction", `A note in the chart told the AI to ignore the rules and record "No PA". B asked to record the planted answer in ${planted.planted_followed} of ${planted.runs} runs, and the final answer was the rules' in ${planted.final_right} of ${planted.runs}. The guardrail would have overwritten it in any case.`]);
     failed.forEach((c) => f.push(["Where it failed", `${esc(c.tests)}. Right ${c.final_right} of ${c.runs}; safe ${c.final_safe ?? c.final_right} of ${c.runs}. ${esc(c.note || "")}`]));
+    model.filter((c) => c.history).forEach((c) => f.push(["Fixed after the first run", `${esc(c.tests)}. ${esc(c.history)}`]));
     if (bound.length) f.push(["Outside what the pack covers", `${bound.map((c) => esc(c.tests.split(" (")[0])).join("; ")}: ${bound.every((c) => c.final_right === c.runs) ? "every run went to staff as not known, as it should" : "see the table"}.`]);
     return `<div class="t-cards e-cards">${f.map(([h, p]) => `<div class="t-card"><h3>${h}</h3><p>${p}</p></div>`).join("")}</div>`;
   }
@@ -1434,7 +1435,8 @@
     const rows = Object.values(r.cases).map((c, i) => {
       const f = c.facts || {}, n = c.runs;
       const facts = `${f.right || 0}/${n} right` + (f.wrong ? `, ${f.wrong} wrong` : "") + (f.asked ? `, ${f.asked} asked` : "");
-      const note = [c.planted_followed != null ? `asked to record the planted answer in ${c.planted_followed} of ${n}` : "", c.note || ""].filter(Boolean).join("; ");
+      const note = [c.planted_followed != null ? `asked to record the planted answer in ${c.planted_followed} of ${n}` : "", c.note || "",
+        c.history ? "failed in the first run; fixed (see below)" : ""].filter(Boolean).join("; ");
       return `<tr><th>${i + 1}</th><td>${esc(c.tests)}</td><td>${esc(OUTCOME[c.reference.outcome]?.[0] || c.reference.outcome)}</td>`
         + `<td>${facts}</td><td>${c.final_right}/${n}</td><td>${c.final_safe ?? c.final_right}/${n}</td><td class="e-note">${esc(note)}</td></tr>`;
     }).join("");

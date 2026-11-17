@@ -215,7 +215,7 @@ _CODE = re.compile(r"\b(?:[A-TV-Z]\d{2}\.\d{1,4}|[A-Z]\d{4})\b")
 _NUM = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w])")
 
 
-_PAGES = re.compile(r"\b(?:pages?|pp?\.)\s*\d+(?:\s*(?:,|and|to|-|–)\s*\d+)*", re.I)
+_PAGES = re.compile(r"\b(?:pages?|pp?\.)\s*\d+(?:\s*(?:,|and|to|-|–|/)\s*\d+)*", re.I)
 
 
 def claims(answer: dict) -> set[str]:
@@ -238,10 +238,35 @@ def invented(answer: dict, passages: list[dict], order_text: str) -> list[str]:
     return sorted(c for c in claims(answer) if (_norm_num(c) if _NUM.fullmatch(c) else c) not in have)
 
 
-def misapplied(answer: dict, right: bool, passages: list[dict], state: str, diagnoses: list[str]) -> str | None:
-    """Why a wrong answer rests on real text out of its scope, or None."""
+_CANCER = re.compile(r"(?<!non-)(?<!non )\b(cancer|chemotherap|oncolog|malignan)", re.I)
+
+
+def conditional_pa(plan: str, state: str, code: str, dos: str) -> list[str]:
+    """The diagnosis prefixes on the pack's prior-authorization rules for this order that apply only with a diagnosis
+    (for example UnitedHealthcare's entry for J0885: only with a C or D0 code, a cancer diagnosis)."""
+    import json as _json
+    import psycopg
+    with psycopg.connect(f"dbname={env.CLIENT_DB}") as c:
+        r = c.execute("SELECT kc_api.applicable_rules(%s,%s,%s,%s::date)", (plan, state, "HCPCS|" + code, dos)).fetchone()[0]
+    out = []
+    for rule in _json.loads(_json.dumps(r)).get("rules") or []:
+        if rule.get("rule_kind") == "approval_required":
+            for cond in rule.get("applies_when") or rule.get("conditions") or []:
+                if cond.get("fact") == "diagnosis_codes" and cond.get("op") == "prefix_overlaps":
+                    out += list(cond.get("value") or [])
+    return out
+
+
+def misapplied(answer: dict, right: bool, passages: list[dict], state: str, diagnoses: list[str],
+               pa_only_for: list[str] | None = None) -> str | None:
+    """Why a wrong answer rests on real text out of its scope, or None. pa_only_for: the diagnosis prefixes a
+    prior-authorization entry for this order is limited to (conditional_pa)."""
     if right:
         return None
+    if (answer.get("outcome") == "pa_required" and pa_only_for
+            and not any(d.startswith(tuple(pa_only_for)) for d in diagnoses)):
+        return (f"applies a prior authorization entry that is only for diagnoses starting with {' or '.join(pa_only_for)}"
+                " (a cancer diagnosis); the patient has none")
     from propel.baseline.failures import REGION_DOCS, STATE_NAME
     text = " ".join([*(str(x) for x in answer.get("reasons") or []), str(answer.get("citation") or "")])
     mine = STATE_NAME.get(state)
@@ -256,7 +281,7 @@ def misapplied(answer: dict, right: bool, passages: list[dict], state: str, diag
         only = [c for c in claims(answer) if c in theirs and c not in ours and len(c) > 1]
         if only:
             return f"uses {', '.join(sorted(only))} from {name}'s policy only"
-    if re.search(r"cancer|chemotherap|oncolog|malignan", text, re.I) and not any(d.startswith("C") for d in diagnoses):
+    if _CANCER.search(text) and not any(d.startswith("C") for d in diagnoses):
         return "applies a cancer-only listing to a patient with no cancer diagnosis"
     return None
 
@@ -288,7 +313,8 @@ def run_one(strategy: str, pid: str, ref: dict, model: str) -> dict:
     dp = deciding_page(ref["eval"])
     order_text = prompt.split("DOCUMENTS", 1)[0]
     inv = invented(ans, found, order_text)
-    mis = misapplied(ans, right, found, p["coverage"]["state"], p["facts"].get("diagnosis_codes", []))
+    mis = misapplied(ans, right, found, p["coverage"]["state"], p["facts"].get("diagnosis_codes", []),
+                     conditional_pa(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"]))
     return {"outcome": ans.get("outcome"), "right": right, "reasons": ans.get("reasons"), "citation": ans.get("citation"),
             "tokens_in": resp.usage.prompt_tokens, "tokens_out": resp.usage.completion_tokens, "ms": ms,
             "passages": len(found), "deciding_found": (any(c["source_id"] == dp["source_id"] and dp["page"] in c["pages"] for c in found)
@@ -331,12 +357,19 @@ def rescore(path: Path) -> dict:
     """Apply the current grading to a saved report, without calling the model again: an "invented" claim is kept
     only if the answer still states it once page references are set aside (the passages themselves are not saved,
     so a claim can be dropped here, never added)."""
+    from propel.baseline import compare as C
     rep = json.loads(path.read_text(encoding="utf-8"))
     for s, by in rep["detail"].items():
         for pid, runs in by.items():
+            p, o, _ = C.order(pid)
+            only = conditional_pa(p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"])
             for r in runs:
                 now = claims({"reasons": r.get("reasons"), "citation": r.get("citation")})
                 r["invented"] = [x for x in r.get("invented") or [] if x in now]
+                # a region finding needs the passages, which are not saved: kept as found; the rest is worked out again
+                if not str(r.get("misapplied") or "").startswith(("cites ", "uses ")):
+                    r["misapplied"] = misapplied({"outcome": r.get("outcome"), "reasons": r.get("reasons"), "citation": r.get("citation")},
+                                                 r.get("right"), [], p["coverage"]["state"], p["facts"].get("diagnosis_codes", []), only)
             rep["strategies"][s][pid] = summarise(runs)
     rep["rescored"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     path.write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")

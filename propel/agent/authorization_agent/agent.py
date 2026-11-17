@@ -217,8 +217,11 @@ def eval_for(state, order_id: str) -> dict | None:
     if not order:
         return None
     ev = evals.get(_order_key(*order))
-    if ev is None and not str(order[2]).strip() and evals:
-        ev = list(evals.values())[-1]
+    if ev is None and not str(order[2]).strip():
+        # the latest evaluation for this order's plan, state and date (the code is the part the model supplied)
+        head, tail = _order_key(order[0], order[1], "X", order[3]).split("|HCPCS|")[0] + "|", "|" + order[3].strip()
+        same = [v for k, v in evals.items() if k.startswith(head) and k.endswith(tail)]
+        ev = same[-1] if same else None
     return ev
 
 

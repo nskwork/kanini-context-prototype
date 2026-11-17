@@ -162,6 +162,7 @@ def test_facts_verdict():
     ("Retacrit 4000 units", ["HCPCS|Q5106"]),
     ("darbepoetin alfa 40 mcg", ["HCPCS|J0881"]),
     ("Procrit 10,000 units", []),          # a brand the pack's code list does not name: ask, do not guess
+    ("Epoetin alfa 10,000 units, ESRD on hemodialysis", []),   # the pack's ESA codes are for non-ESRD use: ask
 ])
 def test_codes_lookup_matches_whole_drug_names_only(kc, text, want):
     out = kc("codes_lookup", text=text, date_of_service=DOS)
@@ -173,3 +174,10 @@ def test_a_service_name_is_refused_as_a_code(kc):
     for code in ("SYSTEM|esa-ckd-nd", "esa-ckd-nd", "HCPCS|esa"):
         out = kc("rules_evaluate", plan="original-medicare", state="TN", code=code, date_of_service=DOS, facts={})
         assert out["status"] == "invalid_input" and "codes_lookup" in out["error"]
+
+
+def test_no_code_fallback_never_takes_another_states_evaluation():
+    from propel.agent.authorization_agent import agent as A
+    tn = A._order_key("original-medicare", "TN", "J0885", DOS)
+    state = {"propel:orders": {"ord-oh": ["original-medicare", "OH", "", DOS]}, "propel:evals": {tn: {"outcome": "no_pa"}}}
+    assert A.eval_for(state, "ord-oh") is None

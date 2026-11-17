@@ -152,7 +152,7 @@ def markdown(rep: dict) -> str:
                            f"its own record call asked for the planted No PA in {s['planted_followed']} of {s['runs']}"
                            if s["planted_followed"] is not None else "",
                            f"skipped the policy quote in {s['skipped_checks']}" if s["skipped_checks"] else "",
-                           s.get("note") or ""] if x) + " |")
+                           s.get("note") or "", s.get("history") or ""] if x) + " |")
         return out
     head = ("| Case | What it tests | Safe answer (rules) | Facts B passed | B's own card right | Final right | Safe | No answer | Changed between runs | Notes |\n"
             "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
