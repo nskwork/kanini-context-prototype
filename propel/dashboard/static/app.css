@@ -711,3 +711,47 @@ details.sql pre,pre.q{background:#0b0d10}
 .sc .sc-given{font-size:12.5px;color:#9aa4b1;line-height:1.4;min-height:2.8em}
 .sc .n small{font-size:15px;font-weight:500;margin-left:8px;color:#c9d0da}
 .sc p{line-height:1.45}
+
+/* Testing page, organised: a key to the terms, then tabs; cases collapse */
+.t-key{padding:18px 24px}
+.t-key h2{margin:0 0 10px}
+.t-key dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 28px;margin:0}
+.t-key dt{font-size:13.5px;font-weight:600;color:#eceff4;margin-bottom:2px}
+.t-key dd{margin:0;font-size:13px;line-height:1.45;color:#c9d0da}
+.t-bars .sub{margin:-6px 0 12px;font-size:13px;color:#9aa4b1}
+.t-tabs{align-self:flex-start;display:flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:10px;background:#0b0d10;box-shadow:inset 0 0 0 1px #353e4b}
+.t-tabs button{font:inherit;font-size:13.5px;color:#9aa4b1;background:none;border:0;border-radius:8px;padding:7px 14px;cursor:pointer}
+.t-tabs button[aria-selected="true"]{background:#1d2530;color:#eceff4}
+.t-tabs button:focus-visible{outline:2px solid #2f86ff;outline-offset:1px}
+.t-pane.hidden{display:none}
+.t-pane h2{margin:0 0 12px}
+.t-h2{margin-top:22px!important}
+.t-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.t-card{padding:14px 16px;border-radius:12px;background:#0f1318;box-shadow:inset 0 0 0 1px #2c3440}
+.t-card h3{margin:0 0 6px;font-size:14.5px;color:#eceff4}
+.t-card p{margin:0;font-size:13.5px;line-height:1.5;color:#c9d0da}
+.t-card b{color:#eceff4}
+details.t-order{padding:0;border-top:1px solid #2c3440}
+details.t-order summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 4px;cursor:pointer;list-style:none;font-size:14px;color:#c9d0da}
+details.t-order summary::-webkit-details-marker{display:none}
+details.t-order summary::before{content:"▸";color:#9aa4b1;width:10px}
+details.t-order[open] summary::before{content:"▾"}
+details.t-order summary code{font-family:var(--code);font-size:13px;color:#b9a6ff;min-width:130px}
+details.t-order .t-rule{flex:1;min-width:260px}
+details.t-order .t-rule b{color:#eceff4}
+details.t-order .t-chips{display:flex;gap:12px;font-size:12.5px;color:#9aa4b1}
+details.t-order .t-chips span{display:inline-flex;align-items:center;gap:5px}
+.t-way{margin:0 0 12px 26px;padding:10px 14px;border-radius:10px;background:#0f1318}
+.t-way .t-who{min-width:0;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:#eceff4;margin-bottom:6px}
+.t-way ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.5;color:#c9d0da}
+.t-way li{margin-bottom:6px}
+.t-way li b{color:#eceff4}
+.t-way .t-ok{margin:0;font-size:13px;color:#9aa4b1}
+.t-way blockquote.t-q{margin:6px 0 2px;padding:7px 11px;border-left:2px solid rgba(242,106,106,.6);background:rgba(242,106,106,.06);font-size:12.5px;color:#c9d0da;border-radius:0 6px 6px 0}
+.t-way blockquote.t-q cite{display:block;margin-top:4px;font-style:normal;color:#9aa4b1}
+.t-way .t-ret{color:#ffb547;list-style:none;margin-left:-18px}
+@media (max-width:1100px){.t-key dl{grid-template-columns:1fr}}
+.t-intro{margin:0 0 14px;font-size:13.5px;line-height:1.5;color:#c9d0da;max-width:1000px}
+.t-cases th small{display:block;font-size:10.5px;font-weight:400;letter-spacing:0;text-transform:none;color:#7d8794;margin-top:2px}
+.t-cases tfoot th,.t-cases tfoot td{border-top:1px solid #353e4b;padding-top:10px;font-size:13px;color:#c9d0da}
+.t-cases tfoot b{color:#eceff4}

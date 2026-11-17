@@ -881,26 +881,31 @@
      read from the latest comparison report. */
   const PLAIN = { no_pa: "No PA", pa_required: "PA required", exempt: "Exempt", other_gate: "Other gate", needs_facts: "Not yet known",
     unknown: "Not known", unparseable: "no readable answer", "no card": "no decision card" };
-  function whatBroke(x) {   // order by order: the rules' answer, each baseline's wrong answers and why (propel/baseline/failures.py)
+  function whatBroke(x) {   // case by case: the rules' answer, each baseline's wrong answers and why (propel/baseline/failures.py)
     if (!x || !x.orders) return "";
+    const WAYS = [["agent", "A · agent without Kanini Context"], ["search", "Single call with search (RAG)"], ["whole", "Single call with every document"]];
+    const chip = (it) => (it ? `<span class="t-c ${it.right === it.runs ? "good" : it.right === 0 ? "bad" : "mid"}">${it.right}/${it.runs}</span>` : "");
     const part = (it, name, r, key) => {
       if (!it) return "";
-      const broke = it.broke.map((b) => `${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(b.why)}.`
+      const broke = it.broke.map((b) => `<li>${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(b.why)}.`
         + (b.cited_other_region ? ` ${b.cited_other_region} of them cited ${esc(b.other_region_name)}'s policy.` : "")
-        + (b.quote && b.quote.why ? `<span class="t-q">In its own words: “${esc(b.quote.why)}”${b.quote.source ? ` <i>Source it cited: ${esc(b.quote.source)}</i>` : ""}</span>` : "")).join(" ");
-      const ret = key === "search" && "deciding_page_found" in it && r.deciding
-        ? ` <span class="t-ret">The deciding page was ${it.deciding_page_found ? "among" : "<b>not</b> among"} the ${it.passages} passages retrieved`
-          + ("other_region" in it ? `; ${it.other_region} came from ${esc(it.other_region_name)}'s policy, ${it.own_region} from ${esc(r.state)}'s` : "") + ".</span>" : "";
-      return `<div class="t-line"><span class="t-who">${name}</span> right ${it.right} of ${it.runs}.${broke ? " " + broke : ""}${it.broke.length ? ret : ""}</div>`;
+        + (b.quote && b.quote.why ? `<blockquote class="t-q">“${esc(b.quote.why)}”${b.quote.source ? `<cite>Source it cited: ${esc(b.quote.source)}</cite>` : ""}</blockquote>` : "") + "</li>").join("");
+      const ret = key === "search" && "deciding_page_found" in it && r.deciding && it.broke.length
+        ? `<li class="t-ret">The deciding page was ${it.deciding_page_found ? "among" : "<b>not</b> among"} the ${it.passages} passages retrieved`
+          + ("other_region" in it ? `; ${it.other_region} came from ${esc(it.other_region_name)}'s policy, ${it.own_region} from ${esc(r.state)}'s` : "") + ".</li>" : "";
+      return `<div class="t-way"><div class="t-who">${name} ${chip(it)}</div>${broke || ret ? `<ul>${broke}${ret}</ul>` : '<p class="t-ok">Right every run.</p>'}</div>`;
     };
-    return `<h4 class="t-h4">What broke, order by order</h4><p class="t-when">Tests started: ${esc(x.when || "")}. Each order answered 5 times by each way.</p>`
-      + x.orders.map((r) => `<div class="t-order"><div class="t-o"><code>${esc(r.order)}</code> the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
-        + (r.deciding ? `, resting on ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it, so it goes to staff" : "") + `</div>`
-        + part(r.agent, "A · agent without Kanini Context", r, "agent") + part(r.search, "Single LLM call with search (RAG)", r, "search") + part(r.whole, "Single LLM call with every document", r, "whole") + `</div>`).join("");
+    return `<p class="t-when">${esc(x.when || "")}. Each case answered 5 times by each way. Open a case to see each wrong answer, why it was wrong, and the AI's own words.</p>`
+      + x.orders.map((r) => `<details class="t-order"><summary><code>${esc(r.order)}</code><span class="t-rule">the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
+        + (r.deciding ? `, from ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it" : "") + `</span>`
+        + `<span class="t-chips">${WAYS.map(([k, n]) => (r[k] ? `<span title="${esc(n)}">${n.split(" ")[0] === "A" ? "A" : k === "search" ? "Search" : "All docs"} ${chip(r[k])}</span>` : "")).join("")}</span></summary>`
+        + WAYS.map(([k, n]) => part(r[k], n, r, k)).join("") + `</details>`).join("");
   }
   const PROVIDER = (m) => (String(m).startsWith("azure/") ? `${m.slice(6)} on Azure OpenAI` : `${String(m).replace(/^openai\//, "")} on OpenAI`);
   function renderTesting() {
     const box = $("testing"), cmp = S.compare || {}, scs = Object.values(cmp.scenarios || {});
+    const cards = (list) => `<div class="t-cards">${list.map((f) => { const m = f.match(/^<b>(.*?)<\/b>\s*([\s\S]*)$/);
+      return `<div class="t-card"><h3>${m ? m[1].replace(/\.$/, "") : ""}</h3><p>${m ? m[2] : f}</p></div>`; }).join("")}</div>`;
     if (!scs.length) { box.innerHTML = '<p class="t-empty">No comparison report yet. Run <code>python -m propel.baseline.compare --runs 5</code>.</p>'; return; }
     const sum = (k, f) => scs.filter((e) => e[k]).reduce((t, e) => t + f(e[k]), 0);
     const cnt = (k) => scs.filter((e) => e[k]).length;
@@ -923,7 +928,8 @@
     const cell = (s) => (s ? `<span class="t-c ${s.matches_rules === s.runs ? "good" : s.matches_rules === 0 ? "bad" : "mid"}">${s.matches_rules}/${s.runs}</span>` : "–");
     const rows = scs.map((e) => { const o = ord(e.patient);
       return `<tr><td><b>${esc(e.patient)}</b><span>${esc([o.code, o.plan_name, o.state_name].filter(Boolean).join(" · "))}</span></td>`
-        + `<td>${esc(OUTCOME[e.reference_outcome]?.[0] || e.reference_outcome)}</td>${hasA ? `<td>${cell(e.A)}</td>` : ""}<td>${cell(e.A_rag)}</td><td>${cell(e.A_whole)}</td><td>${cell(e.B)}</td><td>${e.C ? `<span class="t-c good" title="The same answer on every run">${Math.max(...Object.values(e.C.outcomes))}/${e.C.runs} same</span>` : "–"}</td></tr>`; }).join("");
+        + `<td>${esc(OUTCOME[e.reference_outcome]?.[0] || e.reference_outcome)}</td><td>${e.C ? `<span class="t-c good" title="The same answer on every run">${Math.max(...Object.values(e.C.outcomes))}/${e.C.runs} same</span>` : "–"}</td>`
+        + `<td>${cell(e.B)}</td><td>${cell(e.B_raw)}</td>${hasA ? `<td>${cell(e.A)}</td>` : ""}<td>${cell(e.A_rag)}</td><td>${cell(e.A_whole)}</td></tr>`; }).join("");
     // findings, worked out from the report
     const oh = scs.find((e) => e.patient === "maria-oh"), esa = scs.find((e) => e.patient === "maria-uhc-esa");
     const tn = (oh && oh.A_sent ? oh.A_sent.passages : []).filter((p) => /A58982|L39237/.test(p.title)).length;
@@ -945,14 +951,14 @@
     find.push(`<b>Reduce or eliminate.</b> The documents are read once, when the rules are drafted and approved. After that, the agent needs only short calls (B, about ${fmt(avg("B", (s) => s.tokens_in))} tokens, no document text), and a workflow needs none (C: no tokens, the same answer every time), each answer with its source, rule edition and safe-to-act flag.`);
     const when = (cmp.at && (cmp.at.A || cmp.at.A_rag)) ? new Date(cmp.at.A || cmp.at.A_rag).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
     const whole = scs.find((e) => e.A_whole_tokens)?.A_whole_tokens;
-    box.innerHTML = `<div class="t-head"><h3>Testing: the same orders with and without the context layer</h3>`
-      + `<p>Each of the ${scs.length} demo orders answered ${scs[0].C ? scs[0].C.runs : 5} times by each method${when ? ", " + esc(when) : ""}: ${esc([...new Set(Object.values(cmp.models || {}).filter(Boolean).map(PROVIDER))].join(", ") || "GPT-5 mini")}; each tile names its own. Without Kanini Context, the AI answers from the same ${whole ? fmt(whole) + "-token" : ""} policy library: as the same agent reading it itself (lane A)${hasA ? "" : ", not yet tested"}, by search (RAG), or given every document. These are repeated runs, not a live demo: one answer can land either way by chance.</p></div>`
-      + `<div class="t-tiles">${tile("A", "A · same agent, no Kanini Context", "finds and reads the documents itself", "a")}`
-      + `${tile("B", "B · agent with Kanini Context", "the checked rules, through tools", "b")}${tile("C", "C · Kanini Context, no AI", "the approved rules, applied by code", "c")}`
-      + `${tile("A_rag", "Single LLM call with search (RAG)", "no Kanini Context, earlier test", "a old")}${tile("A_whole", "Single LLM call with every document", "no Kanini Context, earlier test", "a old")}</div>`
-      + `<table class="t-table"><thead><tr><th>Order</th><th>The rules say</th>${hasA ? "<th>A · same agent, no context</th>" : ""}<th>Search (RAG)</th><th>Read all</th><th>B · agent</th><th>C · no AI</th></tr></thead><tbody>${rows}</tbody></table>`
-      + `<ul class="t-find">${find.map((f) => `<li>${f}</li>`).join("")}</ul>`
-      + whatBroke(cmp.explain)
+    $("t-wrong").innerHTML = `<h2>What went wrong, and why</h2>` + cards(find) + `<h2 class="t-h2">Case by case</h2>` + whatBroke(cmp.explain);
+    const M = cmp.models || {}, by = (k) => (M[k] ? `<small>${esc(PROVIDER(M[k]))}</small>` : "");
+    const total = (k) => (cnt(k) ? `<b>${sum(k, (x) => x.matches_rules)}/${sum(k, (x) => x.runs)}</b>` : "–");
+    box.innerHTML = `<p class="t-intro">Every case, and how many of its 5 runs each method got right. Green: right every run; amber: right some runs; red: never right. `
+      + `Without Kanini Context the AI works from the same ${whole ? fmt(whole) + "-token " : ""}policy library: the same agent searching and reading it itself (A), one call with the best-matching passages (search), or one call with every document.</p>`
+      + `<table class="t-table t-cases"><thead><tr><th>Case</th><th>The rules say</th><th>C · rules only<small>no AI</small></th><th>B · facts given${by("B")}</th><th>B · reads the chart${by("B_raw")}</th>`
+      + `${hasA ? `<th>A · no context${by("A")}</th>` : ""}<th>Search, one call${by("A_rag")}</th><th>Every document, one call${by("A_whole")}</th></tr></thead><tbody>${rows}</tbody>`
+      + `<tfoot><tr><th>All six cases</th><td></td><td>${total("C") === "–" ? "–" : "<b>same every run</b>"}</td><td>${total("B")}</td><td>${total("B_raw")}</td>${hasA ? `<td>${total("A")}</td>` : ""}<td>${total("A_rag")}</td><td>${total("A_whole")}</td></tr></tfoot></table>`
       + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.</p>`;
   }
 
@@ -1352,6 +1358,10 @@
       ["Silence read as a rule.", "Gave an answer the documents do not give."],
       ["Different answers.", "The same question got a different answer between runs."]].map(([h, d]) => `<p class="fail"><b>${h}</b> ${d}</p>`).join("");
   }
+  document.querySelectorAll("#t-tabs button").forEach((b) => (b.onclick = () => {
+    document.querySelectorAll("#t-tabs button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    document.querySelectorAll(".t-pane").forEach((p) => p.classList.toggle("hidden", p.id !== "tp-" + b.dataset.t));
+  }));
   $("t-more").onclick = () => {
     const box = $("t-all"), open = box.classList.contains("hidden");
     box.classList.toggle("hidden", !open); $("t-more").setAttribute("aria-expanded", String(open));
@@ -1372,7 +1382,7 @@
       + `<p class="note">${esc(PROVIDER(r.model))}, embeddings ${esc(r.embeddings)}, ${r.runs} runs per order, ${ago(r.at)}. <code>${esc(r.file)}</code></p>`;
   }
   function renderE2(r) {
-    const intro = "<p>Agent B reading the raw chart, on cases built to make it fail. <b>Own card</b> is the outcome B wrote before the guardrail set it from the rules; <b>final</b> is the rules' answer for the facts B passed. Failures are shown, not hidden.</p>";
+    const intro = "<p>Agent B given the raw patient chart, on cases built to trip it up: each chart hides one trap. <b>Facts B passed</b>: whether the values B took from the chart were the right ones (or it left one out and said so). <b>Final right</b>: the rules' answer for those facts matched the right answer. <b>Safe</b>: the right answer, or the order went to staff; never a wrong decision. Failures are shown, not hidden.</p>";
     if (!r) return intro + '<p class="note">Not run yet: <code>python -m propel.baseline.negatives --runs 3</code></p>';
     const rows = Object.values(r.cases).map((c) => {
       const f = c.facts || {}, n = c.runs;

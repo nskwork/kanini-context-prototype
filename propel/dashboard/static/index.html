@@ -116,18 +116,35 @@
   <!-- Testing -->
   <section class="page scroll hidden" id="page-testing" aria-label="Testing">
     <div class="scores" id="t-scores"></div>
+    <div class="panel t-key" aria-label="How to read this page">
+      <h2>How to read this page</h2>
+      <dl>
+        <div><dt>Case</dt><dd>One synthetic patient and one drug order, for example an Ohio patient on epoetin alfa under Original Medicare. There are six.</dd></div>
+        <div><dt>Run</dt><dd>One attempt at a case. Each case was answered 5 times by each method, so a score of 30 means 6 cases × 5 runs.</dd></div>
+        <div><dt>Right</dt><dd>The same answer the approved rules give for that case (No PA, PA required, Not yet known…).</dd></div>
+        <div><dt>Facts given</dt><dd>The patient's values already pulled out and labelled, ready for the rules: hemoglobin 9.4, eGFR 52, diagnosis codes, not on dialysis.</dd></div>
+        <div><dt>Patient chart</dt><dd>The patient's record as a clinic keeps it: lab results with their dates and units, the diagnosis list, and doctors' notes. To use it, the agent has to find the values itself, such as the latest hemoglobin, in the right units.</dd></div>
+        <div><dt>Tokens</dt><dd>How much text the AI reads and writes to answer one case. Fewer tokens means cheaper and faster.</dd></div>
+      </dl>
+    </div>
     <div class="t-row">
-      <div class="panel t-bars"><h2>AI tokens per question</h2><div id="t-bars"></div></div>
+      <div class="panel t-bars"><h2>AI tokens per question</h2><p class="sub">Average text the AI had to read and write to answer one case.</p><div id="t-bars"></div></div>
       <div class="panel t-fails"><h2>What went wrong without context</h2><div id="t-fails"></div>
         <button type="button" class="more" id="t-more" aria-expanded="false">See every run and the limits</button></div>
     </div>
     <div class="t-all hidden" id="t-all">
-      <div class="panel"><div class="testing" id="testing" aria-label="Every run"></div></div>
-      <div class="t-row">
-        <div class="panel"><h2>Search with other chunking</h2><div id="t-e1"></div></div>
-        <div class="panel"><h2>Tests built to make the agent fail</h2><div id="t-e2"></div></div>
+      <div class="seg t-tabs" role="tablist" id="t-tabs" aria-label="Details">
+        <button type="button" role="tab" aria-selected="true" data-t="cases">Every case</button>
+        <button type="button" role="tab" aria-selected="false" data-t="wrong">What went wrong</button>
+        <button type="button" role="tab" aria-selected="false" data-t="e1">Search with other chunking</button>
+        <button type="button" role="tab" aria-selected="false" data-t="e2">Tests built to make the agent fail</button>
+        <button type="button" role="tab" aria-selected="false" data-t="limits">Limits</button>
       </div>
-      <div class="panel"><h2>Limits</h2><ul class="limits" id="t-limits"></ul></div>
+      <div class="panel t-pane" id="tp-cases"><div class="testing" id="testing" aria-label="Every case"></div></div>
+      <div class="panel t-pane hidden" id="tp-wrong"><div id="t-wrong"></div></div>
+      <div class="panel t-pane hidden" id="tp-e1"><h2>Search with other chunking</h2><div id="t-e1"></div></div>
+      <div class="panel t-pane hidden" id="tp-e2"><h2>Tests built to make the agent fail</h2><div id="t-e2"></div></div>
+      <div class="panel t-pane hidden" id="tp-limits"><h2>Limits</h2><ul class="limits" id="t-limits"></ul></div>
     </div>
   </section>
 </div>
