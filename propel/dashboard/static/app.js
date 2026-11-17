@@ -1326,13 +1326,24 @@
     const avg = (k, f) => (cnt(k) ? sum(k, f) / cnt(k) : 0);
     const varied = (k) => scs.filter((e) => e[k] && Object.keys(e[k].outcomes || {}).length > 1).length;
     const cRuns = sum("C", (x) => x.runs), cSame = scs.filter((e) => e.C).every((e) => Object.keys(e.C.outcomes || {}).length === 1);
-    const tile = (L, n, d, good) => `<div class="panel sc"><span class="L" style="color:${LANES[L][2]}">${L}</span><div class="n ${good ? "ok" : "bad"}">${n}</div><p>${d}</p></div>`;
-    $("t-scores").innerHTML = tile("C", cSame ? `${cRuns} / ${cRuns}` : "–", "Rules only: the same answer every run, no AI", cSame)
-      + tile("B", `${sum("B", (x) => x.matches_rules)} / ${sum("B", (x) => x.runs)}`, "Agent with Kanini Context matched the rules", sum("B", (x) => x.matches_rules) === sum("B", (x) => x.runs))
-      + (cnt("B_raw") ? tile("B", `${sum("B_raw", (x) => x.matches_rules)} / ${sum("B_raw", (x) => x.runs)}`,
-        `Agent reading the raw chart itself; facts read right in ${sum("B_raw", (x) => x.facts_right || 0)} of ${sum("B_raw", (x) => x.runs)} runs`,
-        sum("B_raw", (x) => x.matches_rules) === sum("B_raw", (x) => x.runs)) : "")
-      + (cnt("A") ? tile("A", `${sum("A", (x) => x.matches_rules)} / ${sum("A", (x) => x.runs)}`, `Agent without it; its answer changed between runs on ${varied("A")} of ${cnt("A")} cases`, false) : "");
+    // each tile: who answered, what they were given, the score, and what the score means in one plain sentence
+    const tile = (L, name, given, n, unit, means, good) => `<div class="panel sc"><div class="sc-h"><span class="L" style="color:${LANES[L][2]}">${L}</span>`
+      + `<span class="sc-name">${name}</span></div><div class="sc-given">${given}</div>`
+      + `<div class="n ${good ? "ok" : "bad"}">${n}<small>${unit}</small></div><p>${means}</p></div>`;
+    const right = (k) => sum(k, (x) => x.matches_rules), runs = (k) => sum(k, (x) => x.runs);
+    $("t-scores").innerHTML = tile("C", "Rules only, no AI", "The approved rules, applied by plain code",
+        cSame ? `${cRuns} / ${cRuns}` : "–", "same answer",
+        "It gives the same answer every time, with no AI. This is the answer key the others are checked against.", cSame)
+      + tile("B", "AI agent with Kanini Context, facts given", "Given the patient's facts (lab values, diagnoses) ready to use",
+        `${right("B")} / ${runs("B")}`, "right",
+        `The agent asked Kanini Context and gave the rules' answer in ${right("B")} of ${runs("B")} runs (6 cases, 5 runs each).`, right("B") === runs("B"))
+      + (cnt("B_raw") ? tile("B", "AI agent with Kanini Context, reads the chart", "Given the raw patient chart: labs with dates and units, diagnoses, notes",
+        `${right("B_raw")} / ${runs("B_raw")}`, "right",
+        `It had to find the right values in the chart itself (the latest result, the right units). It got the facts right in ${sum("B_raw", (x) => x.facts_right || 0)} of ${runs("B_raw")} runs, and the answer right in ${right("B_raw")}.`,
+        right("B_raw") === runs("B_raw")) : "")
+      + (cnt("A") ? tile("A", "AI agent without Kanini Context", "Given the policy documents to search and read itself",
+        `${right("A")} / ${runs("A")}`, "right",
+        `It was wrong in ${runs("A") - right("A")} of ${runs("A")} runs, and gave a different answer to the same question between runs on ${varied("A")} of ${cnt("A")} cases.`, false) : "");
     const bars = [["C · rules only", 0, "C"], ["B · with context", avg("B", (x) => x.tokens_in), "B"], ["A · without", avg("A", (x) => x.tokens_in), "A"]];
     const max = Math.max(...bars.map((b) => b[1]), 1);
     $("t-bars").innerHTML = bars.map(([n, v, L]) => `<div class="bar"><span>${n}</span><i style="width:${Math.max(0.6, (v / max) * 100)}%;background:${LANES[L][2]}"></i><b>${fmt(v)}</b></div>`).join("")

@@ -703,3 +703,11 @@ details.sql pre,pre.q{background:#0b0d10}
 .dock .btn{white-space:nowrap}
 .e-t .e-note{font-size:12px;color:#9aa4b1;min-width:160px}
 #page-testing .scores{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+
+/* Testing page score tiles: who, what they were given, the score, what it means */
+.sc{display:flex;flex-direction:column;gap:2px}
+.sc .sc-h{display:flex;align-items:baseline;gap:10px}
+.sc .sc-name{font-size:15px;font-weight:600;color:#eceff4}
+.sc .sc-given{font-size:12.5px;color:#9aa4b1;line-height:1.4;min-height:2.8em}
+.sc .n small{font-size:15px;font-weight:500;margin-left:8px;color:#c9d0da}
+.sc p{line-height:1.45}
