@@ -25,3 +25,6 @@ propel/baseline/results/*
 # adk web session store (chat history)
 .adk/
 propel/baseline/cache/
+
+# the source check's run log (kanini_context/sources/check_sources.py)
+kanini_context/sources/check_log.txt

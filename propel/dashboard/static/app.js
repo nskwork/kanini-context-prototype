@@ -1139,7 +1139,61 @@
     $("src-groups").querySelectorAll(".grp").forEach((b) => (b.onclick = () => openGroup(+b.dataset.g)));
     const regions = d.regions.map((r) => `${r.code} (${r.states})`);
     $("src-cover").textContent = `Covers ${d.plans.map((x) => x.name.split(" (")[0]).join(" and ")}. Original Medicare in contractor regions ${andList(regions)}. Any other state goes to staff.`;
-    $("src-flow").innerHTML = FLOW5;
+    $("src-flow").innerHTML = archSvg(d.schedule);
+    $("src-qa").innerHTML = archQA(d.schedule);
+  }
+  const DAY = (c) => (c.every === "daily" ? "daily" : `weekly, ${c.day.charAt(0).toUpperCase() + c.day.slice(1)}s`);
+  function scheduleLines(sch) {   // one line per kind of source: "Medicare policies: weekly, Saturdays"
+    const KN = { mcd: "Medicare policies", ecfr: "Federal regulations", payer_pdf: "Payer files", pdf: "CMS PDFs", cms_page: "CMS pages" };
+    const by = {};
+    Object.values((sch && sch.sources) || {}).forEach((c) => { const k = KN[c.kind] || c.kind; (by[k] = by[k] || new Set()).add(DAY(c)); });
+    return Object.entries(by).map(([k, v]) => `${k}: ${[...v].join(" or ")}`);
+  }
+  function archSvg(sch) {
+    // two rows: detect (top), update (bottom). Status: built (green), new this week (blue), by hand / one person (amber)
+    const ST = { built: ["built", "#01B574"], new: ["new: runs on the laptop", "#2f86ff"], hand: ["by hand today", "#FFB547"], one: ["one person today", "#FFB547"] };
+    const W = 202, H = 128, G = 52, X = (i) => i * (W + G), Y1 = 30, Y2 = 262;
+    const box = (x, y, n, title, lines, st) => {
+      const [label, col] = ST[st] || ["", "#8a94a3"];
+      return `<g><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="12" fill="#161b22" stroke="${st ? "#3d4757" : "#4f5b6c"}" stroke-width="1.5"/>`
+        + (n ? `<text x="${x + 16}" y="${y + 28}" class="an">${n}</text>` : "")
+        + `<text x="${x + (n ? 36 : 16)}" y="${y + 28}" class="at">${esc(title)}</text>`
+        + lines.map((l, i) => `<text x="${x + 16}" y="${y + 54 + i * 19}" class="al">${esc(l)}</text>`).join("")
+        + (label ? `<rect x="${x + 16}" y="${y + H - 30}" width="${label.length * 6.6 + 16}" height="20" rx="6" fill="${col}" fill-opacity=".16"/><text x="${x + 24}" y="${y + H - 16}" class="as" fill="${col}">${label}</text>` : "")
+        + "</g>";
+    };
+    const arrow = (d, label, lx, ly) => `<path d="${d}" class="aa" marker-end="url(#ah)"/>` + (label ? `<text x="${lx}" y="${ly}" class="ak">${label}</text>` : "");
+    const sl = scheduleLines(sch);
+    const svg = [
+      `<svg viewBox="0 0 1244 430" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a94a3"/></marker></defs>`,
+      `<text x="0" y="16" class="ar">Detect a change</text><text x="0" y="${Y2 - 14}" class="ar">Update the rules</text>`,
+      box(X(0), Y1, "", "16 sources", ["Medicare Coverage Database", "eCFR", "Payer sites (UHC)", "CMS program pages"], ""),
+      box(X(1), Y1, "", "Scheduler", [`nightly at ${(sch && sch.run_at) || "02:00"}`, "each source on its own", "schedule (schedule.json)"], "new"),
+      box(X(2), Y1, "1", "Edition check", ["policy version, amendment", "date, new file name,", "page date: a cheap look"], "new"),
+      box(X(3), Y1, "2", "Fingerprint", ["SHA-256 of the file or", "the page text, against", "the saved copy"], "built"),
+      box(X(4), Y1, "", "Unchanged", ["record the check;", "the freshness clock", "resets. Nothing else."], "built"),
+      box(X(0), Y2, "3", "Change flag", ["answers resting on it", "go to staff: pending", "review. New copy saved"], "built"),
+      box(X(1), Y2, "4", "Draft", ["AI drafts the changed", "rules from the new", "edition"], "hand"),
+      box(X(2), Y2, "5", "Automated checks", ["quote on the cited page,", "numbers, negations,", "codes"], "built"),
+      box(X(3), Y2, "6", "Review", ["two people approve", "each rule"], "one"),
+      box(X(4), Y2, "7", "Release and sync", ["new pack edition; client", "copies sync; the flag", "clears"], "built"),
+      arrow(`M${X(0) + W} ${Y1 + H / 2} H${X(1) - 4}`), arrow(`M${X(1) + W} ${Y1 + H / 2} H${X(2) - 4}`),
+      arrow(`M${X(2) + W} ${Y1 + H / 2} H${X(3) - 4}`, "moved?", X(2) + W + 5, Y1 + H / 2 - 8),
+      arrow(`M${X(3) + W} ${Y1 + H / 2} H${X(4) - 4}`, "same", X(3) + W + 11, Y1 + H / 2 - 8),
+      arrow(`M${X(3) + W / 2} ${Y1 + H} V${Y1 + H + 40} H${X(0) + W - 40} V${Y2 - 4}`, "different: changed", X(1) + 40, Y1 + H + 33),
+      arrow(`M${X(0) + W} ${Y2 + H / 2} H${X(1) - 4}`), arrow(`M${X(1) + W} ${Y2 + H / 2} H${X(2) - 4}`),
+      arrow(`M${X(2) + W} ${Y2 + H / 2} H${X(3) - 4}`), arrow(`M${X(3) + W} ${Y2 + H / 2} H${X(4) - 4}`),
+      `<text x="0" y="422" class="al">Schedule: ${esc(sl.join(" · "))}. Configurable per source.</text>`,
+      "</svg>"];
+    return svg.join("");
+  }
+  function archQA(sch) {
+    const qa = [
+      ["One-time or scheduled?", "Both. A source is loaded once when it is added. After that a scheduled check runs, and it acts only when the source has changed."],
+      ["How is a change detected?", "By the SHA-256 fingerprint of the content, never by a date alone: a date can change without the content, and the content without the date. The edition signal (a policy's version number, a regulation's amendment date, a payer's new file name, a page's date) is only the cheap first look that says whether to download. The text is compared section by section only after the fingerprint has changed, to find which rules need redrafting."],
+      ["What happens on a change?", "A change flag sends every answer resting on that source to staff as \"pending review\" from the date the change applies, until the new rules are drafted, checked, approved and released."],
+      ["When does it run?", `Nightly at ${(sch && sch.run_at) || "02:00"}; each source is due on its own schedule, which is a setting per source. ${scheduleLines(sch).join("; ")}.`]];
+    return qa.map(([q, a]) => `<div><b>${esc(q)}</b><p>${esc(a)}</p></div>`).join("");
   }
   function openGroup(i) {
     const box = $("src-docs"), btns = $("src-groups").querySelectorAll(".grp"), was = btns[i].getAttribute("aria-expanded") === "true";
@@ -1149,19 +1203,12 @@
     const docs = S.src.documents.filter((x) => x.document_group === GROUPS[i][0]);
     box.innerHTML = `<h2>${esc(GROUPS[i][0])}</h2>` + docs.map((x, k) => `<div class="doc"><div class="dh" data-k="${k}">`
       + `<div class="t"><b>${esc(x.title)}</b><span>${esc(x.document_type)}${x.edition ? " · " + esc(x.edition) : ""}</span></div>`
-      + `<div class="m">${x.is_change_pending ? `<span class="st warn" title="A new edition was detected and is waiting for review">change pending${x.change_applies_from ? " from " + ago(x.change_applies_from) : ""}</span>` : ""}<span class="st ${FRESH[x.freshness] || "mute"}">${esc(x.freshness)}</span><span>checked ${ago(x.last_checked_at)}</span>`
+      + `<div class="m">${(S.src.schedule && S.src.schedule.sources[x.source_id]) ? `<span>schedule: ${DAY(S.src.schedule.sources[x.source_id])}</span>` : ""}${x.is_change_pending ? `<span class="st warn" title="A new edition was detected and is waiting for review">change pending${x.change_applies_from ? " from " + ago(x.change_applies_from) : ""}</span>` : ""}<span class="st ${FRESH[x.freshness] || "mute"}">${esc(x.freshness)}</span><span>last checked ${ago(x.last_checked_at)}</span>`
       + `${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">original</a>` : ""}</div></div>`
       + `<div class="dr">${x.rules.length ? x.rules.map((r) => `<p><span>${esc(r.rule_type)}</span>${esc(r.summary)}${r.page ? ` <i>page ${esc(r.page)}</i>` : ""}</p>`).join("") : `<p class="role">${esc(x.role)}</p>`}`
       + `${x.fingerprint ? `<p class="fp">Fingerprint <code>${esc(x.fingerprint)}</code> · saved ${ago(x.saved_at)}</p>` : ""}</div></div>`).join("");
     box.classList.remove("hidden");
   }
-  const FLOW5 = [["Check", "Look for a new edition on a schedule", "being built", "warn"],
-    ["Fingerprint", "Download it and compare its SHA-256", "built", "ok"],
-    ["Flag", "Answers resting on it go to staff", "built", "ok"],
-    ["Draft and check", "AI drafts the rule, code checks the quote", "built", "ok"],
-    ["Approve and release", "People approve; client copies sync", "built", "ok"]]
-    .map(([h, d, t, c]) => `<li><b>${h}</b><span>${d}</span><em class="st ${c}">${t}</em></li>`).join("");
-
   /* ---------------------------------------------------------------- Knowledge page */
   const WHERE = [["Tennessee", (r) => /\bTN\b|Tennessee/.test(r.applies_in || "")], ["Ohio", (r) => /\bOH\b|Ohio/.test(r.applies_in || "")],
     ["UHC Advantage", (r) => /UHC Medicare Advantage/.test(r.applies_in || "")], ["Nationwide", (r) => /nationwide/.test(r.applies_in || "")]];

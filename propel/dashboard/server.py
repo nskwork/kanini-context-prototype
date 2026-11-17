@@ -292,6 +292,12 @@ def sources():
     out["sql"].pop("source_rules")
     for d in out["documents"]:
         d["rules"] = [r for r in rules if r["source_id"] == d["source_id"]]
+    # when each source is checked (kanini_context/sources/schedule.json), and its last automatic check
+    sched = json.loads((ROOT / "kanini_context/sources/schedule.json").read_text(encoding="utf-8"))
+    manifest = {m["source_id"]: m for m in json.loads((ROOT / "kanini_context/sources/manifest.json").read_text(encoding="utf-8"))}
+    out["schedule"] = {"run_at": sched.get("run_at"), "sources": {
+        sid: {**cfg, "last_auto_check": max((c["at"] for c in manifest.get(sid, {}).get("checks", []) if c.get("by") == "check_sources"), default=None)}
+        for sid, cfg in sched["sources"].items()}}
     return out
 
 

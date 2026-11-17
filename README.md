@@ -400,7 +400,7 @@ python -m kanini_context.sources.place ~/Downloads          # put the saved sour
 python -m kanini_context.curation.checks                    # every quote on its cited page
 python -m kanini_context.curation.approve --by "NANDHU S K" # engineer approval, once per edition
 python -m kanini_context.release.build                      # release 2026.11.0
-pytest                                                      # 78 tests; strict: fails if a CMS program is unscreened or a source is past its limit
+pytest                                                      # 121 tests; strict: fails if a CMS program is unscreened or a source is past its limit
 
 python -m kanini_context.server.mcp_server --http 8765      # terminal 1: Kanini Context tools
 python -m propel.dashboard.server                      # terminal 2: the dashboard, http://127.0.0.1:8090
@@ -415,7 +415,11 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 
 | Command | What it does |
 | :-- | :-- |
-| `python -m kanini_context.sources.place --checked SOURCE_ID "note"` | Records today's recheck of a source on its URL (answers are held after 14 days) |
+| `python -m kanini_context.sources.check_sources --dry-run` | Reads every source's edition signal and fingerprint and prints what it would record; writes nothing |
+| `python -m kanini_context.sources.check_sources` | Checks every source and records the result: a dated check (the freshness clock resets) or, on a change, a change flag that sends the answers resting on it to staff |
+| `python -m kanini_context.sources.check_sources --due --then-build` | What the scheduler runs each night: only the sources due by `kanini_context/sources/schedule.json`, then a rebuild |
+| `powershell -ExecutionPolicy Bypass -File kanini_context\sources\schedule_windows.ps1` | Registers that nightly run in Windows Task Scheduler (02:00; `-At 23:30` for another time). On Linux or macOS, a cron line: `0 2 * * * cd /path/to/repo && .venv/bin/python -m kanini_context.sources.check_sources --due --then-build` |
+| `python -m kanini_context.sources.place --checked SOURCE_ID "note"` | Records a recheck made by hand (answers are held after 14 days without one) |
 | `python -m kanini_context.sources.place --record FOLDER` | Records a newly saved source copy (hash, size, date) |
 | `python -m kanini_context.release.sync` | Records a client sync on the demo day |
 | `python -m propel.baseline.compare --offline` | Mode C and A's prompt sizes, with no model calls |
@@ -428,7 +432,7 @@ python -m propel.baseline.compare --runs 5 --only A --a-docs rag,whole   # the o
 
 | Path | What it holds |
 | :-- | :-- |
-| `kanini_context/sources/` | Source manifest, `place.py`, `raw/` for the PDFs (not in git) |
+| `kanini_context/sources/` | Source manifest, `schedule.json` (when each source is checked), `check_sources.py` (the edition and fingerprint check), `place.py`, `raw/` for the PDFs (not in git) |
 | `kanini_context/rules/` | One rule file per source |
 | `kanini_context/curation/` | `checks.py`, `approve.py`, `load.py`, `pdftext.py` |
 | `kanini_context/db/` | `schema.sql`, `registry.sql`, `resolver.sql`, `api.sql`, `spec_regression/` |

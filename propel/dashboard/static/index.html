@@ -26,9 +26,10 @@
     <div class="groups" id="src-groups"></div>
     <div class="panel hidden" id="src-docs"></div>
     <div class="panel pipe">
-      <h2>How a new edition gets in</h2>
-      <p class="sub">Checked on a schedule. A document counts as changed only when its fingerprint changes.</p>
-      <ol class="flow5" id="src-flow"></ol>
+      <h2>How a new edition gets in: the ingestion agent</h2>
+      <p class="sub">A separate agent from the one that answers. It runs on a schedule and acts only when a source has changed.</p>
+      <div class="arch" id="src-flow" role="img" aria-label="The ingestion agent, step by step"></div>
+      <div class="qa" id="src-qa"></div>
     </div>
     <p class="cover" id="src-cover"></p>
     <details class="sql"><summary>Show the query</summary><pre id="src-sql"></pre></details>
