@@ -984,6 +984,47 @@
     $("page-ask").classList.toggle("with-drawer", !$("why-drawer").classList.contains("hidden"));
     if (show && which === "cmp") lanesTick(0);
   }
+  /* the drawer and the sheet resize from their inner edge: drag the handle, or focus it and use the arrow keys;
+     a double click goes back to the default size. Sizes are remembered in this browser only. */
+  const SIZE_KEY = "kc.panel.sizes";
+  const sizes = (() => { try { return JSON.parse(localStorage.getItem(SIZE_KEY) || "{}"); } catch (_) { return {}; } })();
+  const saveSizes = () => { try { localStorage.setItem(SIZE_KEY, JSON.stringify(sizes)); } catch (_) { /* private window: not kept */ } };
+  function applySize(which) {
+    const stage = document.querySelector(".stage2"), r = stage.getBoundingClientRect();
+    if (which === "why") {
+      const w = sizes.why ? Math.max(320, Math.min(r.width - 160, sizes.why)) : null;
+      stage.style.setProperty("--drawer-w", w ? w + "px" : "min(520px, 46%)");
+      // the answer card and the score box need about 740px beside the drawer; with less, the score box steps aside
+      // (the same three answers are in the Compare sheet)
+      stage.classList.toggle("tight", r.width - (w || Math.min(520, r.width * 0.46)) < 740);
+    } else {
+      const h = sizes.cmp ? Math.max(160, Math.min(r.height - 80, sizes.cmp)) : null;
+      $("cmp-sheet").style.height = h ? h + "px" : "";
+      $("cmp-sheet").style.maxHeight = h ? "none" : "";
+    }
+  }
+  function grip(el, which) {
+    const stage = () => document.querySelector(".stage2").getBoundingClientRect();
+    const set = (v) => { sizes[which] = Math.round(v); applySize(which); };
+    el.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add("on");
+      const move = (ev) => { const r = stage(); set(which === "why" ? r.right - ev.clientX : r.bottom - ev.clientY); };
+      const up = () => { el.classList.remove("on"); el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); saveSizes(); };
+      el.addEventListener("pointermove", move); el.addEventListener("pointerup", up);
+    });
+    el.addEventListener("dblclick", () => { delete sizes[which]; applySize(which); saveSizes(); });
+    el.addEventListener("keydown", (e) => {
+      const keys = which === "why" ? { ArrowLeft: 40, ArrowRight: -40 } : { ArrowUp: 40, ArrowDown: -40 };
+      if (!(e.key in keys)) return;
+      e.preventDefault();
+      const cur = which === "why" ? $("why-drawer").getBoundingClientRect().width : $("cmp-sheet").getBoundingClientRect().height;
+      set(cur + keys[e.key]); saveSizes();
+    });
+  }
+  grip($("why-grip"), "why"); grip($("cmp-grip"), "cmp");
+  applySize("why"); applySize("cmp");
+  window.addEventListener("resize", () => { applySize("why"); applySize("cmp"); });
+
   function setOverlay(o) { if (o === "why") openPanel("why", true); }   // kept for older callers
   async function loadWhy() {
     const o = S.order;

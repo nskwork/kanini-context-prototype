@@ -631,3 +631,22 @@ details.sql pre,pre.q{background:#0b0d10}
 .three .nm small,.answer .k,.three .k,.rc .m,.count,.note,.grp .d,.dh .t span,.dh .m,.dr .fp,.filters h3,.cover,.legend{color:var(--mute)}
 .trace li.ai{color:#97a1ae}
 .with-drawer .dock{left:calc((100% - min(520px,46%)) / 2)}
+
+/* resizable drawer and sheet: a handle on the inner edge */
+.stage2{--drawer-w:min(520px,46%)}
+.drawer{width:var(--drawer-w)}
+.with-drawer .three{right:calc(var(--drawer-w) + 18px)}
+.with-drawer .dock{left:calc((100% - var(--drawer-w)) / 2)}
+.grip{position:absolute;z-index:2;touch-action:none}
+.grip::after{content:"";position:absolute;border-radius:3px;background:#4f5b6c;transition:background .15s}
+.grip:hover::after,.grip:focus-visible::after,.grip.on::after{background:var(--blue)}
+.grip:focus-visible{outline:none}
+.grip-v{left:-6px;top:0;bottom:0;width:12px;cursor:ew-resize}
+.grip-v::after{left:4px;top:50%;width:4px;height:56px;margin-top:-28px}
+.grip-h{top:-6px;left:0;right:0;height:12px;cursor:ns-resize}
+.grip-h::after{top:4px;left:50%;height:4px;width:56px;margin-left:-28px}
+.drawer,.sheet{overflow:visible}
+.sheet{min-height:160px}
+.sheet .lanes,.sheet .match{flex:1;min-height:0}
+.drawer-body{flex:1;min-height:0}
+.with-drawer .tight .three{display:none}
