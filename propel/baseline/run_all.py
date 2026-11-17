@@ -95,8 +95,12 @@ def main(argv: list[str]) -> int:
         newest = max(OUT.glob("compare-*.json"), key=lambda f: f.stat().st_mtime, default=None)
         if newest and "abc" not in a.skip:
             r = subprocess.run([sys.executable, "-m", "propel.baseline.failures", str(newest)], cwd=ROOT, capture_output=True,
-                               text=True, encoding="utf-8")
-            (OUT / f"{newest.stem}-what-broke.md").write_text(r.stdout, encoding="utf-8")
+                               text=True, encoding="utf-8", env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+            if r.returncode == 0 and r.stdout.strip():
+                (OUT / f"{newest.stem}-what-broke.md").write_text(r.stdout, encoding="utf-8")
+            else:   # said in the log, not left as an empty file
+                fh.write(f"\n== what broke: not written (exit {r.returncode})\n{r.stderr[-2000:]}\n")
+                print(f"what broke: not written; see the log (exit {r.returncode})")
     print(f"\nlog: {log.relative_to(ROOT)}" + (f"; steps that failed: {', '.join(failed)}" if failed else "; every step finished"))
     print("The dashboard's Testing page reads the newest reports; restart it to see them.")
     return 1 if failed else 0
