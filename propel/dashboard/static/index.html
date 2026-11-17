@@ -12,10 +12,10 @@
   <header class="top">
     <div class="brand"><span class="logo" aria-hidden="true"></span><span class="name">Kanini Context</span></div>
     <nav class="pages" id="pages" aria-label="Pages">
-      <button type="button" data-page="sources" aria-current="false">Sources</button>
-      <button type="button" data-page="knowledge" aria-current="false">Knowledge</button>
-      <button type="button" data-page="ask" aria-current="page">Ask</button>
-      <button type="button" data-page="testing" aria-current="false">Testing</button>
+      <button type="button" data-page="sources" aria-current="false">Policy sources</button>
+      <button type="button" data-page="knowledge" aria-current="false">Approved rules</button>
+      <button type="button" data-page="ask" aria-current="page">Check an order</button>
+      <button type="button" data-page="testing" aria-current="false">Test results</button>
     </nav>
     <div class="status" id="status">loading…</div>
   </header>
@@ -26,13 +26,13 @@
     <div class="groups" id="src-groups"></div>
     <div class="panel hidden" id="src-docs"></div>
     <div class="panel pipe">
-      <h2>How a new edition gets in: the ingestion agent</h2>
-      <p class="sub">A separate agent from the one that answers. It runs on a schedule and acts only when a source has changed.</p>
+      <h2>How policy updates are caught and approved</h2>
+      <p class="sub">A separate process from the one that answers questions. It checks every source on a schedule, and when one changes, the answers that rely on it are held for staff until the new rules are approved.</p>
       <div class="arch" id="src-flow" role="img" aria-label="The ingestion agent, step by step"></div>
-      <div class="qa" id="src-qa"></div>
+      <details class="qa-d"><summary>Questions people ask about this</summary><div class="qa" id="src-qa"></div></details>
     </div>
     <p class="cover" id="src-cover"></p>
-    <details class="sql"><summary>Show the query</summary><pre id="src-sql"></pre></details>
+    <details class="sql"><summary>Technical: the database query behind this page</summary><pre id="src-sql"></pre></details>
   </section>
 
   <!-- Knowledge -->
@@ -40,8 +40,8 @@
     <aside class="panel filters" aria-label="Filters">
       <div><h3>Show</h3><div class="chips" id="kn-show">
         <button type="button" data-k="rules" aria-pressed="true">Rules</button>
-        <button type="button" data-k="graph" aria-pressed="false">Graph</button>
-        <button type="button" data-k="schema" aria-pressed="false">Schema</button></div></div>
+        <button type="button" data-k="graph" aria-pressed="false">How they connect</button>
+        <button type="button" data-k="schema" aria-pressed="false">Data model (technical)</button></div></div>
       <div id="kn-where-box"><h3>Where</h3><div class="chips" id="kn-where"></div></div>
       <div id="kn-kind-box"><h3>Kind</h3><div class="chips" id="kn-kind"></div></div>
     </aside>
@@ -50,14 +50,14 @@
         <div class="kn-case hidden" id="kn-case"></div>
         <form class="panel kask" id="kn-ask" autocomplete="off">
           <label for="kn-q" id="kn-ask-label">Ask about the rules</label>
-          <div class="kask-row"><input type="text" id="kn-q" placeholder="For example: what hemoglobin level is required?">
+          <div class="kask-row"><input type="text" id="kn-q" placeholder="For example: hemoglobin limit, eGFR, dialysis, Injectafer">
             <button type="submit" class="btn">Ask</button></div>
           <div class="kask-out" id="kn-answer" aria-live="polite"></div>
         </form>
         <input type="search" class="search" id="kn-search" placeholder='Search the rules, for example "eGFR" or "J0885"' aria-label="Search the rules">
         <p class="count" id="kn-count"></p>
         <div class="rulelist" id="kn-list"></div>
-        <details class="sql"><summary>Show the query</summary><pre id="kn-sql"></pre></details>
+        <details class="sql"><summary>Technical: the database query behind this list</summary><pre id="kn-sql"></pre></details>
       </div>
       <div class="panel kn-graph hidden" id="kn-graph"></div>
     </div>
@@ -81,17 +81,17 @@
 
       <div class="float dock" role="toolbar" aria-label="Actions">
         <div class="seg chartmode" role="radiogroup" id="chart-mode" aria-label="What agent B is given">
-          <button type="button" role="radio" aria-checked="true" data-m="facts" title="B is handed the patient's facts, ready to pass to the rules">B gets facts</button>
-          <button type="button" role="radio" aria-checked="false" data-m="raw" title="B is handed the chart (labs, diagnoses, notes) and builds the facts itself">B reads the chart</button>
+          <button type="button" role="radio" aria-checked="true" data-m="facts" title="B is handed the patient's values already pulled out: hemoglobin, eGFR, diagnoses">B is given the facts</button>
+          <button type="button" role="radio" aria-checked="false" data-m="raw" title="B is handed the patient chart (lab results, diagnoses, notes) and finds the values itself">B reads the chart</button>
         </div>
-        <button type="button" class="btn" id="run-race">Run C, B, A</button>
+        <button type="button" class="btn" id="run-race">Run all three</button>
         <button type="button" class="btn ghost" id="open-why" aria-expanded="false">Why is this right?</button>
-        <button type="button" class="btn ghost" id="open-cmp" aria-expanded="false">Compare A, B, C</button>
+        <button type="button" class="btn ghost" id="open-cmp" aria-expanded="false">Side by side</button>
       </div>
 
       <section class="drawer hidden" id="why-drawer" aria-label="Why this is right">
         <div class="grip grip-v" id="why-grip" role="separator" aria-orientation="vertical" aria-label="Resize the panel: drag, or use the left and right arrow keys" tabindex="0"></div>
-        <header><h2>Why this is right</h2><button type="button" class="x" data-close="why" aria-label="Close">Close</button></header>
+        <header><h2>Why this answer is right</h2><button type="button" class="x" data-close="why" aria-label="Close">Close</button></header>
         <div class="drawer-body" id="why"></div>
       </section>
 
@@ -101,7 +101,7 @@
           <h2>Same question, three ways</h2>
           <div class="seg" role="tablist" id="cmp-tabs">
             <button type="button" role="tab" aria-selected="true" data-t="lanes">Run</button>
-            <button type="button" role="tab" aria-selected="false" data-t="match">B against C, field by field</button>
+            <button type="button" role="tab" aria-selected="false" data-t="match">Does B match C?</button>
           </div>
           <ol class="trace" id="trace" aria-label="Agent steps"></ol>
           <button type="button" class="x" data-close="cmp" aria-label="Close">Close</button>
@@ -119,12 +119,15 @@
     <div class="panel t-key" aria-label="How to read this page">
       <h2>How to read this page</h2>
       <dl>
-        <div><dt>Case</dt><dd>One synthetic patient and one drug order, for example an Ohio patient on epoetin alfa under Original Medicare. There are six.</dd></div>
-        <div><dt>Run</dt><dd>One attempt at a case. Each case was answered 5 times by each method, so a score of 30 means 6 cases × 5 runs.</dd></div>
-        <div><dt>Right</dt><dd>The same answer the approved rules give for that case (No PA, PA required, Not yet known…).</dd></div>
-        <div><dt>Facts given</dt><dd>The patient's values already pulled out and labelled, ready for the rules: hemoglobin 9.4, eGFR 52, diagnosis codes, not on dialysis.</dd></div>
-        <div><dt>Patient chart</dt><dd>The patient's record as a clinic keeps it: lab results with their dates and units, the diagnosis list, and doctors' notes. To use it, the agent has to find the values itself, such as the latest hemoglobin, in the right units.</dd></div>
-        <div><dt>Tokens</dt><dd>How much text the AI reads and writes to answer one case. Fewer tokens means cheaper and faster.</dd></div>
+        <div><dt>Prior authorization</dt><dd>Approval a doctor must get from the patient's health plan before giving a drug, so the plan will pay for it.</dd></div>
+        <div><dt>Kanini Context</dt><dd>The approved rules, each checked against its official document, which an AI (or plain code) asks instead of reading the documents again.</dd></div>
+        <div><dt>The answers</dt><dd>No prior authorization needed · Prior authorization required · Coverage criteria not met (no approval needed, but the patient does not meet the policy's medical conditions) · Missing patient information · Send to staff.</dd></div>
+        <div><dt>Case</dt><dd>One made-up patient and one drug order, for example an Ohio patient on epoetin alfa (an anemia drug) under Original Medicare. There are six.</dd></div>
+        <div><dt>Run · Right</dt><dd>A run is one attempt at a case; each case was answered 5 times by each method, so 30 means 6 cases × 5 runs. Right means the same answer the approved rules give.</dd></div>
+        <div><dt>Facts given</dt><dd>The patient's values already pulled out and labelled: hemoglobin 9.4 (a blood count), eGFR 52 (a kidney function value), the diagnosis codes, not on dialysis.</dd></div>
+        <div><dt>Patient chart</dt><dd>The patient's record as a clinic keeps it: lab results with their dates and units, the diagnosis list, and doctors' notes. To use it, the AI has to find the values itself, such as the latest hemoglobin, in the right units.</dd></div>
+        <div><dt>Tokens</dt><dd>How much text the AI reads and writes to answer one case. AI services charge by the token, so fewer tokens means cheaper and faster.</dd></div>
+        <div><dt>Search (RAG)</dt><dd>The common way to give an AI documents: find the few passages that best match the question and send only those.</dd></div>
       </dl>
     </div>
     <div class="t-row">
@@ -136,14 +139,14 @@
       <div class="seg t-tabs" role="tablist" id="t-tabs" aria-label="Details">
         <button type="button" role="tab" aria-selected="true" data-t="cases">Every case</button>
         <button type="button" role="tab" aria-selected="false" data-t="wrong">What went wrong</button>
-        <button type="button" role="tab" aria-selected="false" data-t="e1">Search with other chunking</button>
-        <button type="button" role="tab" aria-selected="false" data-t="e2">Tests built to make the agent fail</button>
+        <button type="button" role="tab" aria-selected="false" data-t="e1">Does better search fix it?</button>
+        <button type="button" role="tab" aria-selected="false" data-t="e2">Stress tests for the AI</button>
         <button type="button" role="tab" aria-selected="false" data-t="limits">Limits</button>
       </div>
       <div class="panel t-pane" id="tp-cases"><div class="testing" id="testing" aria-label="Every case"></div></div>
       <div class="panel t-pane hidden" id="tp-wrong"><div id="t-wrong"></div></div>
-      <div class="panel t-pane hidden" id="tp-e1"><h2>Search with other chunking</h2><div id="t-e1"></div></div>
-      <div class="panel t-pane hidden" id="tp-e2"><h2>Tests built to make the agent fail</h2><div id="t-e2"></div></div>
+      <div class="panel t-pane hidden" id="tp-e1"><h2>Does better search fix it?</h2><div id="t-e1"></div></div>
+      <div class="panel t-pane hidden" id="tp-e2"><h2>Stress tests: charts built to trip up the AI</h2><div id="t-e2"></div></div>
       <div class="panel t-pane hidden" id="tp-limits"><h2>Limits</h2><ul class="limits" id="t-limits"></ul></div>
     </div>
   </section>

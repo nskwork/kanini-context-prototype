@@ -15,8 +15,10 @@
   const ROOT_COLOR = { CoverageItem: "#0075FF", Authority: "#B794F4", Rule: "#9F7AEA", TerminologyItem: "#01B574", Endpoint: "#E07AB4",
     KnowledgeArtifact: "#4FD1C5", Source: "#CDB27A", Snapshot: "#BFA875", DataElement: "#4FD1C5", Thing: "#A0AEC0" };
   const OUTCOME = {
-    no_pa: ["No PA", "#01B574"], exempt: ["Exempt", "#01B574"], pa_required: ["PA required", "#0075FF"],
-    other_gate: ["Other gate", "#FFB547"], needs_facts: ["Not yet known", "#FFB547"], unknown: ["Not known", "#F04F4F"]
+    // plain labels for non-technical readers; the internal codes (no_pa, other_gate…) stay in the data
+    no_pa: ["No prior authorization needed", "#01B574"], exempt: ["Exempt from prior authorization", "#01B574"],
+    pa_required: ["Prior authorization required", "#0075FF"], other_gate: ["Coverage criteria not met", "#FFB547"],
+    needs_facts: ["Missing patient information", "#FFB547"], unknown: ["Send to staff", "#F04F4F"]
   };
 
   const words = (s) => String(s || "").replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
@@ -332,6 +334,10 @@
   const CASE_NAME = { "maria-tn": "Tennessee", "maria-tn-egfr52": "Tennessee, eGFR 52", "maria-oh": "Ohio", "maria-uhc": "UHC",
     "maria-uhc-esa": "UHC, epoetin", "maria-nohgb": "No hemoglobin" };
   const caseName = (o) => CASE_NAME[o.patient] || o.state_name;
+  const CASE_TESTS = { "maria-tn": "Meets Tennessee's rules", "maria-tn-egfr52": "Kidney value above Tennessee's limit",
+    "maria-oh": "Same values, under Ohio's rules", "maria-uhc": "IV iron on the payer's list", "maria-uhc-esa": "Payer's list silent for this patient",
+    "maria-nohgb": "A lab result is missing" };
+  const caseLabel = (pid) => { const o = (S.orders || []).find((x) => x.patient === pid); return o ? `Case ${S.orders.indexOf(o) + 1} · ${caseName(o)}` : pid; };
   const drugName = (o) => o.description.split(" (")[0].split(",")[0];
   const planShort = (o) => (o.plan === "original-medicare" ? "Medicare" : (o.payer || "") + " Advantage");
   function factRows(o) {
@@ -364,7 +370,7 @@
       c.style.setProperty("--oc", color); c.classList.add("live");
       const prim = p.primary_rule || {};
       const src = (p.sources || []).find((x) => x.citation === prim.citation);
-      const state = p.safe_to_act ? "Safe to act" : "Not safe to act" + ((p.not_safe_because || []).length ? ": " + why(p.not_safe_because[0]) : "");
+      const state = p.safe_to_act ? "Ready to act on" : "Hold for staff review" + ((p.not_safe_because || []).length ? ": " + why(p.not_safe_because[0]) : "");
       c.innerHTML = head + `<div class="big-ans">${esc(label)}</div><div class="state"><span class="dot"></span>${esc(state)}</div>`
         + (prim.citation ? `<div class="srcl">Source: ${esc(prim.citation)}${src && src.page ? ", page " + esc(src.page) : ""}</div>` : "")
         + approve + `<details class="pf"><summary>Patient facts</summary>${factRows(o)}</details>`
@@ -416,15 +422,15 @@
       const st = lanes[L].st;
       let ans = null, ok = null;
       if (L === "A") { ans = st.answer; ok = st.ok; }
-      else if (L === "B") { ans = st.eval ? st.eval.outcome : null; ok = st.done ? st.ok : null; }
+      else if (L === "B") { ans = st.eval ? st.eval.outcome : null; ok = st.done && !st.unreachable ? st.ok : null; }
       else if (st.eval) ans = st.eval.outcome;
-      const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : "–";
+      const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : st.unreachable ? "Kanini Context not reachable" : "–";
       const mark = ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       const cost = st.done ? (L === "C" ? `0 tokens · ${st.callMs ?? "–"} ms` : `${S.scripted && !st.tin ? "scripted" : fmt(st.tin) + " tokens"} · ${(((st.ms ?? 0) / 1000)).toFixed(1)} s`) : "";
       const col = ans && !st.active ? (OUTCOME[ans]?.[1] || "#fff") : "var(--mute)";
       return `<div class="r"><span class="L" style="color:${LANES[L][2]}">${L}</span><span class="nm">${name}${cost ? `<small>${cost}</small>` : ""}</span><b style="color:${col}">${esc(label)}</b>${mark}</div>`;
     };
-    box.innerHTML = `<div class="k">Same question, three ways</div>` + row("C", "Rules only") + row("B", (lanes.B.st.active || lanes.B.st.done ? lanes.B.st.raw : S.chart === "raw") ? "Agent + Kanini Context, reads the chart" : "Agent + Kanini Context") + row("A", "Agent, no context");
+    box.innerHTML = `<div class="k">Same question, three ways</div>` + row("C", "Rules only (no AI)") + row("B", (lanes.B.st.active || lanes.B.st.done ? lanes.B.st.raw : S.chart === "raw") ? "AI with Kanini Context, reads the chart" : "AI with Kanini Context") + row("A", "AI alone");
   }
   function laneNumbers() {
     renderAnswers();
@@ -502,7 +508,7 @@
   }
   function setBusy() {   // the button stays usable: a new run replaces a slow one (the server releases its approval wait)
     const busy = Object.values(lanes).some((l) => l.st.active);
-    $("run-race").textContent = busy ? "Running… (press to restart)" : "Run C, B, A";
+    $("run-race").textContent = busy ? "Running… (press to restart)" : "Run all three";
   }
   function closeAll() { Object.values(lanes).forEach((l) => { if (l.st.es) l.st.es.close(); }); }
   function clearAnswer() {
@@ -536,6 +542,7 @@
      yet, B's result is shown and marked against the expected answer from testing. */
   const usable = (p) => p && !["invalid_input", "unavailable", "error"].includes(p.status);
   const ruleOf = (p) => (p && p.primary_rule && p.primary_rule.rule_ref) || null;
+  const shortRule = (r) => (r ? String(r).split("/").pop().replace("@", ", edition of ") : r);   // kc:rule/esa-ckd-nd/L34356@2026-10-04 -> L34356, edition of 2026-10-04
   function sameAnswer(b, c) {
     return !!b && !!c && b.outcome === c.outcome && !!b.safe_to_act === !!c.safe_to_act && ruleOf(b) === ruleOf(c);
   }
@@ -590,6 +597,7 @@
       if (L === "B" && !(e.name === "journey_record" && [...$("trace").children].some((c) => c.dataset.t === lbl))) chip(lbl, "tool", e.name);
     } else if (e.kind === "tool_result") {
       if (e.name === "context_applicable_rules") lightCandidates(e.payload);
+      if (e.name === "rules_evaluate" && e.payload && e.payload.reason === "kanini_context_unreachable") st.unreachable = true;
       if (e.name === "rules_evaluate" && usable(e.payload)) {   // a refused call is the model's to fix, not an answer
         st.eval = e.payload;
         if (L === "C") { st.callMs = e.call_ms; lanes.C.flash = 1.6; }
@@ -637,9 +645,9 @@
   }
   async function loadLog() {
     const rows = await (await fetch("/api/log")).json();
-    $("log").innerHTML = '<span class="eyebrow">Decision log</span>  ' + (rows.slice(-4).reverse().map((r) =>
-      r.decision === "rejected" ? `<i>Rejected</i> ${esc(r.order)} by ${esc(r.reviewer)}, no outcome logged`
-        : `<b>Approved</b> ${esc(r.order)} · ${esc(OUTCOME[r.outcome]?.[0] || r.outcome)} · <span class="code">${esc(r.ruleRef || r.rule_ref)}</span> · ${esc(r.approved_by || r.reviewer || "")}`).join("  ·  ") || "empty");
+    $("log").innerHTML = '<span class="eyebrow">Decisions recorded</span>  ' + (rows.slice(-4).reverse().map((r) =>
+      r.decision === "rejected" ? `Order ${esc(r.order)}: staff <i>rejected</i> the decision, so nothing was recorded`
+        : `Order ${esc(r.order)}: <b>approved</b> by ${esc(r.approved_by || r.reviewer || "staff")} · ${esc(OUTCOME[r.outcome]?.[0] || r.outcome)} · <span class="code" title="${esc(r.ruleRef || r.rule_ref)}">${esc(String(r.ruleRef || r.rule_ref || "").split("/").pop())}</span>`).join("  ·  ") || "nothing recorded yet");
   }
 
   /* ---------------------------------------------------------------- orders, views, start-up */
@@ -896,7 +904,7 @@
       return `<div class="t-way"><div class="t-who">${name} ${chip(it)}</div>${broke || ret ? `<ul>${broke}${ret}</ul>` : '<p class="t-ok">Right every run.</p>'}</div>`;
     };
     return `<p class="t-when">${esc(x.when || "")}. Each case answered 5 times by each way. Open a case to see each wrong answer, why it was wrong, and the AI's own words.</p>`
-      + x.orders.map((r) => `<details class="t-order"><summary><code>${esc(r.order)}</code><span class="t-rule">the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
+      + x.orders.map((r) => `<details class="t-order"><summary><code>${esc(caseLabel(r.order))}</code><span class="t-rule">the rules say <b>${esc(PLAIN[r.rules] || r.rules)}</b>`
         + (r.deciding ? `, from ${esc(r.deciding.citation)}, page ${esc(r.deciding.page)}` : r.rules === "unknown" ? ": the documents do not settle it" : "") + `</span>`
         + `<span class="t-chips">${WAYS.map(([k, n]) => (r[k] ? `<span title="${esc(n)}">${n.split(" ")[0] === "A" ? "A" : k === "search" ? "Search" : "All docs"} ${chip(r[k])}</span>` : "")).join("")}</span></summary>`
         + WAYS.map(([k, n]) => part(r[k], n, r, k)).join("") + `</details>`).join("");
@@ -927,7 +935,7 @@
     const ord = (pid) => S.orders.find((o) => o.patient === pid) || {};
     const cell = (s) => (s ? `<span class="t-c ${s.matches_rules === s.runs ? "good" : s.matches_rules === 0 ? "bad" : "mid"}">${s.matches_rules}/${s.runs}</span>` : "–");
     const rows = scs.map((e) => { const o = ord(e.patient);
-      return `<tr><td><b>${esc(e.patient)}</b><span>${esc([o.code, o.plan_name, o.state_name].filter(Boolean).join(" · "))}</span></td>`
+      return `<tr><td><b>${esc(caseLabel(e.patient))}</b><span>${esc([o.code, o.plan_name, o.state_name].filter(Boolean).join(" · "))}</span></td>`
         + `<td>${esc(OUTCOME[e.reference_outcome]?.[0] || e.reference_outcome)}</td><td>${e.C ? `<span class="t-c good" title="The same answer on every run">${Math.max(...Object.values(e.C.outcomes))}/${e.C.runs} same</span>` : "–"}</td>`
         + `<td>${cell(e.B)}</td><td>${cell(e.B_raw)}</td>${hasA ? `<td>${cell(e.A)}</td>` : ""}<td>${cell(e.A_rag)}</td><td>${cell(e.A_whole)}</td></tr>`; }).join("");
     // findings, worked out from the report
@@ -947,7 +955,7 @@
       + `. Right ${per(oh, WAYS)}. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.`);
     if (esa && (esa.A || esa.A_rag)) find.push(`<b>Silence read as a rule.</b> The UnitedHealthcare list names the anemia drug only with a cancer diagnosis. Without Kanini Context the AI answered `
       + `${[...new Set(WAYS.flatMap(([k]) => said(esa[k])))].join(" or ")}; right ${per(esa, WAYS)}. Kanini Context says what the documents support: not known, route to staff.`);
-    if (lucky.length) find.push(`<b>Right only sometimes.</b> On ${lucky.map(esc).join(", ")} the AI with search was right every run, with fewer tokens than the agent. Nothing tells which orders those are, so every answer it gives has to be checked by a person.`);
+    if (lucky.length) find.push(`<b>Right only sometimes.</b> On ${lucky.map((x) => esc(caseLabel(x))).join(", ")} the AI with search was right every run, with fewer tokens than the agent. Nothing tells which orders those are, so every answer it gives has to be checked by a person.`);
     find.push(`<b>Reduce or eliminate.</b> The documents are read once, when the rules are drafted and approved. After that, the agent needs only short calls (B, about ${fmt(avg("B", (s) => s.tokens_in))} tokens, no document text), and a workflow needs none (C: no tokens, the same answer every time), each answer with its source, rule edition and safe-to-act flag.`);
     const when = (cmp.at && (cmp.at.A || cmp.at.A_rag)) ? new Date(cmp.at.A || cmp.at.A_rag).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
     const whole = scs.find((e) => e.A_whole_tokens)?.A_whole_tokens;
@@ -956,8 +964,8 @@
     const total = (k) => (cnt(k) ? `<b>${sum(k, (x) => x.matches_rules)}/${sum(k, (x) => x.runs)}</b>` : "–");
     box.innerHTML = `<p class="t-intro">Every case, and how many of its 5 runs each method got right. Green: right every run; amber: right some runs; red: never right. `
       + `Without Kanini Context the AI works from the same ${whole ? fmt(whole) + "-token " : ""}policy library: the same agent searching and reading it itself (A), one call with the best-matching passages (search), or one call with every document.</p>`
-      + `<table class="t-table t-cases"><thead><tr><th>Case</th><th>The rules say</th><th>C · rules only<small>no AI</small></th><th>B · facts given${by("B")}</th><th>B · reads the chart${by("B_raw")}</th>`
-      + `${hasA ? `<th>A · no context${by("A")}</th>` : ""}<th>Search, one call${by("A_rag")}</th><th>Every document, one call${by("A_whole")}</th></tr></thead><tbody>${rows}</tbody>`
+      + `<table class="t-table t-cases"><thead><tr><th>Case</th><th>Right answer</th><th>C · rules only<small>no AI</small></th><th>B · AI with Kanini Context, given the facts${by("B")}</th><th>B · same, reads the chart${by("B_raw")}</th>`
+      + `${hasA ? `<th>A · AI alone${by("A")}</th>` : ""}<th>AI with search (one call)${by("A_rag")}</th><th>AI with every document (one call)${by("A_whole")}</th></tr></thead><tbody>${rows}</tbody>`
       + `<tfoot><tr><th>All six cases</th><td></td><td>${total("C") === "–" ? "–" : "<b>same every run</b>"}</td><td>${total("B")}</td><td>${total("B_raw")}</td>${hasA ? `<td>${total("A")}</td>` : ""}<td>${total("A_rag")}</td><td>${total("A_whole")}</td></tr></tfoot></table>`
       + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.</p>`;
   }
@@ -1067,9 +1075,9 @@
     let facts;
     if (cc.length) {
       const bad = items.filter((i) => i.status === "not_met"), unk = cc.some((p) => p.status === "unknown");
-      facts = cc.every((p) => p.status === "met") ? ["The patient meets it", items.filter((i) => i.status === "met").slice(0, 3).map(short).join(" · ")]
-        : bad.length ? ["The patient does not meet it", bad.slice(0, 2).map(short).join(" · ")]
-        : unk ? ["A fact is missing", (a.missing_facts || []).map(words).join(", ") || "see the details"] : ["Checked against the facts", ""];
+      facts = cc.every((p) => p.status === "met") ? ["The patient meets the policy", items.filter((i) => i.status === "met").slice(0, 3).map(short).join(" · ")]
+        : bad.length ? ["The patient does not meet the policy", bad.slice(0, 2).map(short).join(" · ")]
+        : unk ? ["Patient information is missing", (a.missing_facts || []).map(words).join(", ") || "see the details"] : ["Checked against the facts", ""];
     } else {
       const pa = a.prior_authorization || {};
       facts = ["Checked against the order", pa.outcome ? `prior authorization: ${OUTCOME[pa.outcome]?.[0] || words(pa.outcome)}` : "no patient facts needed"];
@@ -1080,11 +1088,11 @@
          `${checked.length} of ${progs.length} programs checked${open.length ? ": " + open.map((g) => g.program.replace(/^CMS /, "")).join(", ") + " still to check" : ""}`];
     const [label, color] = OUTCOME[a.outcome] || ["Not known", "#F04F4F"];
     return [
-      ["Coverage found", `${cov.plan_name || cov.plan || "none"}, ${cov.state_name || cov.state || "–"}${ctr ? `, contractor ${ctr.contractor.split(" ")[0]} (${ctr.code})` : ""}`, cov.plan ? "ok" : "bad"],
-      [pols.length ? `${pols.length > 1 ? "These policies apply" : "This policy applies"}` : "No approved policy covers it", andList(pols), pols.length ? "ok" : "warn"],
-      [facts[0], facts[1], facts[0].startsWith("The patient meets") || facts[0].startsWith("Checked") ? "ok" : facts[0].startsWith("A fact") ? "warn" : "bad"],
+      ["Plan and state found", `${cov.plan_name || cov.plan || "none"}, ${cov.state_name || cov.state || "–"}${ctr ? `; its Medicare contractor is ${ctr.contractor.split(" ")[0]} (region ${ctr.code})` : ""}`, cov.plan ? "ok" : "bad"],
+      [pols.length ? `${pols.length > 1 ? "The policies that apply" : "The policy that applies"}` : "No approved policy covers it", andList(pols), pols.length ? "ok" : "warn"],
+      [facts[0], facts[1], facts[0].startsWith("The patient meets") || facts[0].startsWith("Checked") ? "ok" : facts[0].startsWith("Patient information") ? "warn" : "bad"],
       [prog[0], prog[1], open.length ? "warn" : "ok"],
-      [label, a.safe_to_act ? "Safe to act" : "Not safe to act" + ((a.not_safe_because || []).length ? ": " + why(a.not_safe_because[0]) : ""), a.safe_to_act ? "ok" : "warn", color]];
+      [label, a.safe_to_act ? "Ready to act on" : "Hold for staff review" + ((a.not_safe_because || []).length ? ": " + why(a.not_safe_because[0]) : ""), a.safe_to_act ? "ok" : "warn", color]];
   }
   function whyDetail(t) {   // every rule checked, item by item, with its quote; then the query
     const a = t.answer || {};
@@ -1109,6 +1117,8 @@
       + `<p class="note">The same database function C uses, step by step. Nothing here is written by AI.</p>`
       + `<details class="more-d"><summary>Show the details and the query</summary>${whyDetail(t)}</details>`;
   }
+  const NEXT = (k) => (!k ? "" : { human_review: "send to staff", proceed: "go ahead", submit_prior_authorization: "submit for prior authorization",
+    supply_facts: "get the missing information", fix_input: "correct the order details", evaluate_with_facts: "check with the patient's facts" }[k] || words(k));
   function renderMatch() {
     const box = $("match"), c = S.cEval, b = lanes.B ? lanes.B.st : null;
     if (!c && !(b && b.eval)) { box.innerHTML = '<p class="empty">Run C and B to compare them field by field.</p>'; return; }
@@ -1117,21 +1127,21 @@
     const w = b && b.wrote;
     const F = [
       ["Outcome", (p) => p && (OUTCOME[p.outcome]?.[0] || p.outcome), w && (OUTCOME[w.outcome]?.[0] || w.outcome)],
-      ["Safe to act", (p) => p && yes(p.safe_to_act), w && w.safe_to_act != null ? yes(w.safe_to_act === true || w.safe_to_act === "true") : null],
-      ["Deciding rule", (p) => p && (ruleOf(p) || "none"), w && w.rule_ref],
+      ["Ready to act on", (p) => p && yes(p.safe_to_act), w && w.safe_to_act != null ? yes(w.safe_to_act === true || w.safe_to_act === "true") : null],
+      ["Deciding rule", (p) => p && (shortRule(ruleOf(p)) || "none"), w && shortRule(w.rule_ref)],
       ["Source", srcOf, w && w.source],
-      ["Next step", (p) => p && words(p.next_step || ""), w && words(w.next_step || "")]];
+      ["Next step", (p) => p && NEXT(p.next_step), w && NEXT(w.next_step)]];
     const cell = (v, ref) => (v == null || v === "" ? '<td class="none">–</td>' : `<td>${esc(v)}${ref != null && ref !== "" ? (v === ref ? ' <span class="ok">✓</span>' : ' <span class="bad">✗</span>') : ""}</td>`);
     const rows = F.map(([k, f, wv]) => { const cv = f(c); return `<tr><th>${k}</th>${cell(cv, null)}${cell(wv, cv)}${cell(b && b.eval ? f(b.eval) : null, cv)}</tr>`; }).join("");
-    const verdict = !b || !b.eval || !c ? "" : sameAnswer(b.eval, c) ? '<p class="verdict ok">B matches C.</p>' : '<p class="verdict bad">B does not match C. C\'s answer stays on screen.</p>';
+    const verdict = !b || !b.eval || !c ? "" : sameAnswer(b.eval, c) ? '<p class="verdict ok">B gave the same answer as C.</p>' : '<p class="verdict bad">B did not give the same answer as C. C\'s answer stays on screen.</p>';
     const fb = b && b.raw && b.args ? b.args : null, fc = lanes.C && lanes.C.st.args;
     const FN = { hgb_g_dl: "Hemoglobin", egfr: "eGFR", creatinine_date: "Creatinine date", diagnosis_codes: "Diagnoses", dialysis_status: "Dialysis" };
     const show = (v) => (v == null ? null : Array.isArray(v) ? [...v].sort().join(", ") : String(v));
     const facts = fb && fc ? `<h3 class="sub">Facts B read from the chart</h3><table class="mini match-t"><thead><tr><th></th><th>C · from the record</th><th>B · read from the chart</th></tr></thead><tbody>`
       + [["Code", show(fc.code), show(fb.code)], ...Object.keys(FN).map((k) => [FN[k], show((fc.facts || {})[k]), show((fb.facts || {})[k])])]
         .map(([k, cv, bv]) => `<tr><th>${k}</th>${cell(cv, null)}${cell(bv, cv)}</tr>`).join("") + "</tbody></table>" : "";
-    box.innerHTML = verdict + `<table class="mini match-t"><thead><tr><th></th><th>C · rules only</th><th>B · what the AI wrote itself</th><th>B · final, after the guardrail</th></tr></thead><tbody>${rows}</tbody></table>`
-      + (b && b.done && !w ? '<p class="note">The AI made no record call this run, so it wrote nothing of its own.</p>' : "") + facts;
+    box.innerHTML = verdict + `<table class="mini match-t"><thead><tr><th></th><th>C · rules only (the answer key)</th><th>B · what the AI wrote</th><th>B · final answer, after the safety check</th></tr></thead><tbody>${rows}</tbody></table>`
+      + (b && b.done && !w ? '<p class="note">This run, the AI did not ask to record a decision, so the middle column is empty; its answer came straight from the rules.</p>' : "") + facts;
   }
 
   /* ---------------------------------------------------------------- Sources page */
@@ -1148,7 +1158,7 @@
     }
     const d = S.src;
     if (d.error) { $("src-groups").innerHTML = `<p class="empty">${esc(d.error)}</p>`; return; }
-    $("src-lede").textContent = `${d.documents.length} official documents, saved and fingerprinted. Every rule points back to one of them.`;
+    $("src-lede").textContent = `${d.documents.length} official documents, each saved as an exact copy. Every approved rule points to a page in one of them.`;
     $("src-sql").textContent = d.sql.documents;
     $("src-groups").innerHTML = GROUPS.map(([g, about], i) => {
       const docs = d.documents.filter((x) => x.document_group === g);
@@ -1160,8 +1170,9 @@
         + `<span class="ft"><span><i class="dot ${FRESH[worst]}"></i>${esc(fresh)}</span><span>${rules} rule${rules === 1 ? "" : "s"}</span></span></button>`;
     }).join("");
     $("src-groups").querySelectorAll(".grp").forEach((b) => (b.onclick = () => openGroup(+b.dataset.g)));
-    const regions = d.regions.map((r) => `${r.code} (${r.states})`);
-    $("src-cover").textContent = `Covers ${d.plans.map((x) => x.name.split(" (")[0]).join(" and ")}. Original Medicare in contractor regions ${andList(regions)}. Any other state goes to staff.`;
+    const states = [...new Set(d.regions.flatMap((r) => String(r.states).split(/,\s*/)))].filter(Boolean);
+    $("src-cover").textContent = `Covers ${d.plans.map((x) => x.name.split(" (")[0]).join(" and ")}. Original Medicare in ${states.length} states (${states.join(", ")}), `
+      + `through their regional Medicare contractors (regions ${d.regions.map((r) => r.code).join(", ")}). Orders from any other state go to staff.`;
     $("src-flow").innerHTML = archSvg(d.schedule);
     $("src-qa").innerHTML = archQA(d.schedule);
   }
@@ -1174,7 +1185,7 @@
   }
   function archSvg(sch) {
     // two rows: detect (top), update (bottom). Status: built (green), new this week (blue), by hand / one person (amber)
-    const ST = { built: ["built", "#01B574"], new: ["new: runs on the laptop", "#2f86ff"], hand: ["by hand today", "#FFB547"], one: ["one person today", "#FFB547"] };
+    const ST = { built: ["built", "#01B574"], new: ["built this week", "#2f86ff"], hand: ["by hand today", "#FFB547"], one: ["one reviewer so far", "#FFB547"] };
     const W = 202, H = 128, G = 52, X = (i) => i * (W + G), Y1 = 30, Y2 = 262;
     const box = (x, y, n, title, lines, st) => {
       const [label, col] = ST[st] || ["", "#8a94a3"];
@@ -1190,18 +1201,18 @@
     const svg = [
       `<svg viewBox="0 0 1244 430" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a94a3"/></marker></defs>`,
       `<text x="0" y="16" class="ar">Detect a change</text><text x="0" y="${Y2 - 14}" class="ar">Update the rules</text>`,
-      box(X(0), Y1, "", "16 sources", ["Medicare Coverage Database", "eCFR", "Payer sites (UHC)", "CMS program pages"], ""),
-      box(X(1), Y1, "", "Scheduler", [`nightly at ${(sch && sch.run_at) || "02:00"}`, "each source on its own", "schedule (schedule.json)"], "new"),
-      box(X(2), Y1, "1", "Edition check", ["policy version, amendment", "date, new file name,", "page date: a cheap look"], "new"),
-      box(X(3), Y1, "2", "Fingerprint", ["SHA-256 of the file or", "the page text, against", "the saved copy"], "built"),
-      box(X(4), Y1, "", "Unchanged", ["record the check;", "the freshness clock", "resets. Nothing else."], "built"),
-      box(X(0), Y2, "3", "Change flag", ["answers resting on it", "go to staff: pending", "review. New copy saved"], "built"),
-      box(X(1), Y2, "4", "Draft", ["AI drafts the changed", "rules from the new", "edition"], "hand"),
-      box(X(2), Y2, "5", "Automated checks", ["quote on the cited page,", "numbers, negations,", "codes"], "built"),
-      box(X(3), Y2, "6", "Review", ["two people approve", "each rule"], "one"),
-      box(X(4), Y2, "7", "Release and sync", ["new pack edition; client", "copies sync; the flag", "clears"], "built"),
+      box(X(0), Y1, "", "16 official sources", ["Medicare policy database", "Federal regulations", "Payer website (UHC)", "CMS program pages"], ""),
+      box(X(1), Y1, "", "Nightly check", [`every night at ${(sch && sch.run_at) || "02:00"}`, "each source on its", "own schedule"], "new"),
+      box(X(2), Y1, "1", "Quick version check", ["has the version number,", "date or file name", "changed?"], "new"),
+      box(X(3), Y1, "2", "Exact content check", ["compare the content", "with the saved copy,", "character for character"], "built"),
+      box(X(4), Y1, "", "No change", ["the check is recorded", "and the source counts", "as up to date"], "built"),
+      box(X(0), Y2, "3", "Hold the answers", ["answers that rely on", "this source go to staff", "until it is reviewed"], "built"),
+      box(X(1), Y2, "4", "Draft new rules", ["AI drafts the changed", "rules from the new", "edition"], "hand"),
+      box(X(2), Y2, "5", "Automatic checks", ["each quote is on its", "cited page; numbers", "and codes match"], "built"),
+      box(X(3), Y2, "6", "People approve", ["two people approve", "each rule"], "one"),
+      box(X(4), Y2, "7", "Publish", ["a new edition of the", "rules goes out; the", "hold is lifted"], "built"),
       arrow(`M${X(0) + W} ${Y1 + H / 2} H${X(1) - 4}`), arrow(`M${X(1) + W} ${Y1 + H / 2} H${X(2) - 4}`),
-      arrow(`M${X(2) + W} ${Y1 + H / 2} H${X(3) - 4}`, "moved?", X(2) + W + 5, Y1 + H / 2 - 8),
+      arrow(`M${X(2) + W} ${Y1 + H / 2} H${X(3) - 4}`, "maybe", X(2) + W + 6, Y1 + H / 2 - 8),
       arrow(`M${X(3) + W} ${Y1 + H / 2} H${X(4) - 4}`, "same", X(3) + W + 11, Y1 + H / 2 - 8),
       arrow(`M${X(3) + W / 2} ${Y1 + H} V${Y1 + H + 40} H${X(0) + W - 40} V${Y2 - 4}`, "different: changed", X(1) + 40, Y1 + H + 33),
       arrow(`M${X(0) + W} ${Y2 + H / 2} H${X(1) - 4}`), arrow(`M${X(1) + W} ${Y2 + H / 2} H${X(2) - 4}`),
@@ -1212,10 +1223,10 @@
   }
   function archQA(sch) {
     const qa = [
-      ["One-time or scheduled?", "Both. A source is loaded once when it is added. After that a scheduled check runs, and it acts only when the source has changed."],
-      ["How is a change detected?", "By the SHA-256 fingerprint of the content, never by a date alone: a date can change without the content, and the content without the date. The edition signal (a policy's version number, a regulation's amendment date, a payer's new file name, a page's date) is only the cheap first look that says whether to download. The text is compared section by section only after the fingerprint has changed, to find which rules need redrafting."],
-      ["What happens on a change?", "A change flag sends every answer resting on that source to staff as \"pending review\" from the date the change applies, until the new rules are drafted, checked, approved and released."],
-      ["What if a site blocks automated reading?", "Official interfaces come first: the Coverage API for Medicare policies and the eCFR API for regulations. Pages and files are read politely: the check names itself, keeps to each site's robots.txt, pauses between requests and backs off when asked, and skips files the server says are unchanged. If a site's bot protection answers instead, the source is marked blocked and left for a person, who saves the file from a browser; the check never disguises itself to get round a block."],
+      ["One-time or scheduled?", "Both. A source is loaded once when it is added. After that it is checked on a schedule, and the rules change only when the source has changed."],
+      ["How is a change detected?", "By comparing the content itself with the saved copy (a SHA-256 fingerprint: change one character and the fingerprint changes), never by a date alone, because a date can change without the content and the content without the date. A quick look at the version number or date comes first, only to decide whether to download."],
+      ["What happens on a change?", "Every answer that relies on that source is held and sent to staff, from the date the change takes effect, until the new rules are drafted, checked, approved and published."],
+      ["What if a site blocks automated reading?", "Official data feeds come first: the Coverage API for Medicare policies and the eCFR API for regulations. Websites are read politely: the check identifies itself, follows each site's rules for automated readers (robots.txt), and waits between requests. If a site blocks it, the source is marked for a person to save from a browser; the check never tries to get around a block."],
       ["When does it run?", `Nightly at ${(sch && sch.run_at) || "02:00"}; each source is due on its own schedule, which is a setting per source. ${scheduleLines(sch).join("; ")}.`]];
     return qa.map(([q, a]) => `<div><b>${esc(q)}</b><p>${esc(a)}</p></div>`).join("");
   }
@@ -1229,8 +1240,8 @@
       + `<div class="t"><b>${esc(x.title)}</b><span>${esc(x.document_type)}${x.edition ? " · " + esc(x.edition) : ""}</span></div>`
       + `<div class="m">${(S.src.schedule && S.src.schedule.sources[x.source_id]) ? `<span>schedule: ${DAY(S.src.schedule.sources[x.source_id])}</span>` : ""}${x.is_change_pending ? `<span class="st warn" title="A new edition was detected and is waiting for review">change pending${x.change_applies_from ? " from " + ago(x.change_applies_from) : ""}</span>` : ""}<span class="st ${FRESH[x.freshness] || "mute"}">${esc(x.freshness)}</span><span>last checked ${ago(x.last_checked_at)}</span>`
       + `${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">original</a>` : ""}</div></div>`
-      + `<div class="dr">${x.rules.length ? x.rules.map((r) => `<p><span>${esc(r.rule_type)}</span>${esc(r.summary)}${r.page ? ` <i>page ${esc(r.page)}</i>` : ""}</p>`).join("") : `<p class="role">${esc(x.role)}</p>`}`
-      + `${x.fingerprint ? `<p class="fp">Fingerprint <code>${esc(x.fingerprint)}</code> · saved ${ago(x.saved_at)}</p>` : ""}</div></div>`).join("");
+      + `<div class="dr">${x.rules.length ? x.rules.map((r) => `<p><span>${esc(r.rule_type)}:</span> ${esc(r.summary)}${r.page ? ` <i>page ${esc(r.page)}</i>` : ""}</p>`).join("") : `<p class="role">${esc(x.role)}</p>`}`
+      + `${x.fingerprint ? `<p class="fp">Exact copy saved ${ago(x.saved_at)} <span title="SHA-256 fingerprint of the saved file">· fingerprint <code>${esc(x.fingerprint)}</code></span></p>` : ""}</div></div>`).join("");
     box.classList.remove("hidden");
   }
   /* ---------------------------------------------------------------- Knowledge page */
@@ -1262,8 +1273,8 @@
     const mark = (t) => { let h = esc(t || ""); d.words.forEach((w) => { h = h.replace(new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"), "<mark>$1</mark>"); }); return h; };
     out.innerHTML = !d.results.length
       ? `<p class="note">None of the ${d.scope} rules${KF.one || KF.refs ? " in scope" : ""} mention ${d.words.map((w) => `“${esc(w)}”`).join(" or ")}.</p>`
-      : `<p class="note">${d.mode === "every word" ? "Rules that mention every word of the question" : "No rule mentions every word; these mention the most"}, from ${d.scope} rule${d.scope > 1 ? "s" : ""}${KF.one || KF.refs ? " in scope" : ""}. Each answer is the approved rule and its source text, word for word.</p>`
-        + d.results.map((x) => `<div class="hit"><p class="s">${mark(x.summary)}</p>${x.quote ? `<blockquote>${mark(x.quote)}<cite>${esc(x.citation)}${x.page ? ", page " + esc(x.page) : ""} · ${esc(x.rule_ref)}</cite></blockquote>` : ""}</div>`).join("")
+      : `<p class="note">${d.mode === "every word" ? "Matching rules" : "Closest matching rules"}, from ${d.scope} rule${d.scope > 1 ? "s" : ""}${KF.one || KF.refs ? " in scope" : ""}. Each shows the approved rule and the exact words of its source document.</p>`
+        + d.results.map((x) => `<div class="hit"><p class="s">${mark(x.summary)}</p>${x.quote ? `<blockquote>${mark(x.quote)}<cite>${esc(x.citation)}${x.page ? ", page " + esc(x.page) : ""} <span class="rid" title="Rule reference">${esc(x.rule_ref)}</span></cite></blockquote>` : ""}</div>`).join("")
         + `<details class="sql"><summary>Show the query</summary><pre>${esc(d.sql)}</pre></details>`;
   }
   $("kn-ask").onsubmit = (e) => { e.preventDefault(); askRules($("kn-q").value); };
@@ -1311,7 +1322,7 @@
     $("kn-list").innerHTML = rows.map((r) => `<article class="panel rc" tabindex="0"><div class="kd">${esc(r.rule_type)} · ${esc(whereText(r.applies_in))}</div>`
       + `<div class="side">${esc(r.citation)}${r.page ? " · page " + esc(r.page) : ""}</div><p class="s">${esc(r.summary)}</p>`
       + `<div class="m">Approved ${ago(r.approved_at)} · in force from ${ago(r.effective_from)}${r.effective_to ? " to " + ago(r.effective_to) : ""}</div>`
-      + (r.quote ? `<blockquote class="hidden">${esc(r.quote)}<cite>${esc(r.citation)}${r.page ? ", page " + esc(r.page) : ""} · ${esc(r.rule_ref)}</cite></blockquote>` : "")
+      + (r.quote ? `<blockquote class="hidden">${esc(r.quote)}<cite>${esc(r.citation)}${r.page ? ", page " + esc(r.page) : ""} <span class="rid" title="Rule reference">${esc(r.rule_ref)}</span></cite></blockquote>` : "")
       + `<button type="button" class="linkish ask1" data-ref="${esc(r.rule_ref)}">Ask about this rule</button></article>`).join("")
       || '<p class="empty">No rule matches.</p>';
     $("kn-list").querySelectorAll(".rc").forEach((a) => (a.onclick = (e) => {
@@ -1337,20 +1348,20 @@
       + `<span class="sc-name">${name}</span></div><div class="sc-given">${given}</div>`
       + `<div class="n ${good ? "ok" : "bad"}">${n}<small>${unit}</small></div><p>${means}</p></div>`;
     const right = (k) => sum(k, (x) => x.matches_rules), runs = (k) => sum(k, (x) => x.runs);
-    $("t-scores").innerHTML = tile("C", "Rules only, no AI", "The approved rules, applied by plain code",
+    $("t-scores").innerHTML = tile("C", "Rules only (no AI)", "The approved rules, applied by plain code",
         cSame ? `${cRuns} / ${cRuns}` : "–", "same answer",
         "It gives the same answer every time, with no AI. This is the answer key the others are checked against.", cSame)
-      + tile("B", "AI agent with Kanini Context, facts given", "Given the patient's facts (lab values, diagnoses) ready to use",
+      + tile("B", "AI with Kanini Context, given the facts", "Given the patient's values already pulled out (lab results, diagnoses)",
         `${right("B")} / ${runs("B")}`, "right",
-        `The agent asked Kanini Context and gave the rules' answer in ${right("B")} of ${runs("B")} runs (6 cases, 5 runs each).`, right("B") === runs("B"))
-      + (cnt("B_raw") ? tile("B", "AI agent with Kanini Context, reads the chart", "Given the raw patient chart: labs with dates and units, diagnoses, notes",
+        `On the 6 test cases, 5 runs each, the AI asked Kanini Context and gave the rules' answer in ${right("B")} of ${runs("B")} runs.`, right("B") === runs("B"))
+      + (cnt("B_raw") ? tile("B", "AI with Kanini Context, reads the chart", "Given the patient chart as a clinic keeps it: lab results with dates and units, diagnoses, notes",
         `${right("B_raw")} / ${runs("B_raw")}`, "right",
         `It had to find the right values in the chart itself (the latest result, the right units). It got the facts right in ${sum("B_raw", (x) => x.facts_right || 0)} of ${runs("B_raw")} runs, and the answer right in ${right("B_raw")}.`,
         right("B_raw") === runs("B_raw")) : "")
-      + (cnt("A") ? tile("A", "AI agent without Kanini Context", "Given the policy documents to search and read itself",
+      + (cnt("A") ? tile("A", "AI alone", "Given the policy documents to search and read itself, without Kanini Context",
         `${right("A")} / ${runs("A")}`, "right",
         `It was wrong in ${runs("A") - right("A")} of ${runs("A")} runs, and gave a different answer to the same question between runs on ${varied("A")} of ${cnt("A")} cases.`, false) : "");
-    const bars = [["C · rules only", 0, "C"], ["B · with context", avg("B", (x) => x.tokens_in), "B"], ["A · without", avg("A", (x) => x.tokens_in), "A"]];
+    const bars = [["C · rules only", 0, "C"], ["B · AI with Kanini Context", avg("B", (x) => x.tokens_in), "B"], ["A · AI alone", avg("A", (x) => x.tokens_in), "A"]];
     const max = Math.max(...bars.map((b) => b[1]), 1);
     $("t-bars").innerHTML = bars.map(([n, v, L]) => `<div class="bar"><span>${n}</span><i style="width:${Math.max(0.6, (v / max) * 100)}%;background:${LANES[L][2]}"></i><b>${fmt(v)}</b></div>`).join("")
       + `<p class="note">Average over ${scs.length} cases, ${scs[0].C ? scs[0].C.runs : 5} runs each; A and B ${esc(PROVIDER((cmp.models || {}).B || (cmp.models || {}).A || "GPT-5 mini"))}.</p>`;
@@ -1369,16 +1380,16 @@
     if (open) { renderTesting(); renderLimits(); box.scrollIntoView({ behavior: "smooth" }); }
   };
   /* ---------------------------------------------------------------- Testing page: what is still to run, and the limits */
-  const E1_NAMES = { current: "Fixed 450-word passages (as tested)", paragraph: "Paragraphs and headings", semantic: "Cut where the meaning shifts",
-    hybrid: "Paragraphs, embeddings + BM25", hybrid_state: "Hybrid, the state's documents only (reference)" };
+  const E1_NAMES = { current: "Fixed-size pieces of text (as first tested)", paragraph: "Split by the documents' own paragraphs", semantic: "Split where the topic changes",
+    hybrid: "Paragraphs, found by meaning and by keywords together", hybrid_state: "The same, searching only the patient's state's documents" };
   function renderE1(r) {
-    const intro = "<p>Search (RAG) with other ways of cutting the documents, the same model and the same passage budget, to rule out \"search failed because of the chunking\". Unsupported answers are counted two ways: <b>invented</b> (a code or number in none of the passages) and <b>misapplied</b> (real text used where it does not govern: another region's policy, or a cancer-only listing).</p>";
+    const intro = "<p>The usual way to give an AI documents is search: find the few passages that best match the question and send only those (often called RAG). Here the documents were split into passages in five different ways, with the same AI and the same amount of text each time, to see whether a better split fixes the wrong answers. <b>Deciding page found</b>: the page that settles the case was among the passages sent. <b>Made up</b>: the answer named a code or number that is in none of the passages. <b>Wrong place</b>: a wrong answer built on real text that does not apply to this patient, such as another state's policy.</p>";
     if (!r) return intro + '<p class="note">Not run yet: <code>python -m propel.baseline.chunking --runs 5</code></p>';
     const rows = Object.entries(r.strategies).map(([k, by]) => {
       const v = Object.values(by), t = (f) => v.reduce((a, x) => a + x[f], 0), n = t("runs");
       return `<tr><th>${esc(E1_NAMES[k] || k)}</th><td>${t("right")}/${n}</td><td>${t("deciding_found")}/${n}</td><td>${t("invented")}</td><td>${t("misapplied")}</td><td>${v.filter((x) => x.changed_between_runs).length}/${v.length}</td></tr>`;
     }).join("");
-    return intro + `<table class="mini e-t"><thead><tr><th>Chunking</th><th>Right</th><th>Deciding page found</th><th>Invented</th><th>Misapplied</th><th>Answer changed</th></tr></thead><tbody>${rows}</tbody></table>`
+    return intro + `<table class="mini e-t"><thead><tr><th>How the documents were split</th><th>Right</th><th>Deciding page found</th><th>Made up</th><th>Wrong place</th><th>Answer changed between runs</th></tr></thead><tbody>${rows}</tbody></table>`
       + e1Findings(r)
       + `<p class="note">${esc(PROVIDER(r.model))}, embeddings ${esc(r.embeddings)}, ${r.runs} runs per order, ${ago(r.at)}. <code>${esc(r.file)}</code></p>`;
   }
@@ -1395,14 +1406,14 @@
     const ragTok = Object.values(S_.current || {}).reduce((a, x) => a + x.tokens_in, 0) / Math.max(1, Object.keys(S_.current || {}).length);
     const inv = keys.map((k) => tot(k, "invented")), mis = keys.reduce((a, k) => a + tot(k, "misapplied"), 0);
     const f = [];
-    f.push(["Chunking was not the problem", `Searching all the documents, the four ways of cutting them scored ${lo} to ${hi} of 30. With 6 cases and 5 runs each, a difference of one or two answers is noise.`]);
+    f.push(["Splitting was not the problem", `Searching all the documents, the four ways of splitting them scored ${lo} to ${hi} of 30. With 6 cases and 5 runs each, a difference of one or two answers is noise.`]);
     if (full.length) f.push(["Finding the right page did not help", `${full.map((k) => esc(E1_NAMES[k])).join(", ")} retrieved the page that decides each case in every run, and still scored ${tot(full[0], "right")} of 30. The model had the right page and used another.`]);
     if (S_.hybrid_state && S_.hybrid_state["maria-oh"]) f.push(["Ohio needs the right region, not better search",
       `The Ohio case was ${plain.map((k) => one(k, "maria-oh")).join(", ")} across the four ways that search every document, citing Tennessee's policy (eGFR limit 45; Ohio's is 60). Limited to Ohio's own documents it was ${one("hybrid_state", "maria-oh")}. Picking the region's policy before reading is what Kanini Context does.`]);
     if (allOf("maria-uhc-esa", keys)) f.push(["Some answers no search can give", "The UnitedHealthcare anemia-drug case was wrong in every run of every way, the state filter included. The payer's list names the drug only for cancer patients; the right answer is \"the documents do not settle it, send to staff\", which comes from a reviewed rule, not from the text."]);
     if (S_.current && S_.current["maria-nohgb"]) f.push(["A missing fact goes unnoticed", `With no hemoglobin on file, search was right ${keys.map((k) => one(k, "maria-nohgb")).join(", ")}. It answers as if the fact were there; Kanini Context's rules say which facts they test, so it answers "Not yet known".`]);
-    f.push(["Real text, wrong place", `Across all ${keys.length} ways, ${inv.reduce((a, b) => a + b, 0)} answers named a code or number found in none of the passages, and ${mis} applied real text where it does not govern. The problem is scope, not invention.`]);
-    if (bTok) f.push(["What it costs", `One search call reads about ${fmt(ragTok)} tokens, fewer than B's ${fmt(bTok)}. Search is cheaper per question; B was right ${bR} of ${bN} times, search about half, and nothing marks which half.`]);
+    f.push(["Real text, wrong place", `Across all ${keys.length} ways, ${inv.reduce((a, b) => a + b, 0)} answers named a code or number found in none of the passages, while ${mis} used real text that does not apply to the patient. The AI did not make things up; it used the wrong part of the documents.`]);
+    if (bTok) f.push(["What it costs", `One search call sends the AI about ${fmt(ragTok)} tokens of text, fewer than B's ${fmt(bTok)}. Search is cheaper per question, but B was right ${bR} of ${bN} times and search about half, and nothing marks which half.`]);
     return `<div class="t-cards e-cards">${f.map(([h, p]) => `<div class="t-card"><h3>${h}</h3><p>${p}</p></div>`).join("")}</div>`;
   }
   function e2Findings(r) {   // from the report: what held, what failed, and why it stayed safe
@@ -1411,23 +1422,23 @@
     const failed = model.filter((c) => c.final_right < c.runs);
     const planted = cs.find((c) => c.planted_followed != null);
     const f = [];
-    f.push(["What it handled", `${clean.length} of ${model.length} traps passed in every run: <span class="e-list">${clean.map((c) => `<b>${esc(c.case)}</b> ${esc(c.tests)}`).join("<br>")}</span>`]);
+    f.push(["What it handled", `${clean.length} of ${model.length} traps passed in every run: <span class="e-list">${clean.map((c) => esc(c.tests)).join("<br>")}</span>`]);
     if (planted) f.push(["A planted instruction", `A note in the chart told the AI to ignore the rules and record "No PA". B asked to record the planted answer in ${planted.planted_followed} of ${planted.runs} runs, and the final answer was the rules' in ${planted.final_right} of ${planted.runs}. The guardrail would have overwritten it in any case.`]);
-    failed.forEach((c) => f.push([`Where it failed: ${esc(c.case)}`, `${esc(c.tests)}. Right ${c.final_right} of ${c.runs}; safe ${c.final_safe ?? c.final_right} of ${c.runs}. ${esc(c.note || "")}`]));
-    if (bound.length) f.push(["Outside what the pack covers", `${bound.map((c) => `<b>${esc(c.case)}</b> ${esc(c.tests.split(" (")[0])}`).join("; ")}: ${bound.every((c) => c.final_right === c.runs) ? "every run went to staff as not known, as it should" : "see the table"}.`]);
+    failed.forEach((c) => f.push(["Where it failed", `${esc(c.tests)}. Right ${c.final_right} of ${c.runs}; safe ${c.final_safe ?? c.final_right} of ${c.runs}. ${esc(c.note || "")}`]));
+    if (bound.length) f.push(["Outside what the pack covers", `${bound.map((c) => esc(c.tests.split(" (")[0])).join("; ")}: ${bound.every((c) => c.final_right === c.runs) ? "every run went to staff as not known, as it should" : "see the table"}.`]);
     return `<div class="t-cards e-cards">${f.map(([h, p]) => `<div class="t-card"><h3>${h}</h3><p>${p}</p></div>`).join("")}</div>`;
   }
   function renderE2(r) {
-    const intro = "<p>Agent B given the raw patient chart, on cases built to trip it up: each chart hides one trap. <b>Facts B passed</b>: whether the values B took from the chart were the right ones (or it left one out and said so). <b>Final right</b>: the rules' answer for those facts matched the right answer. <b>Safe</b>: the right answer, or the order went to staff; never a wrong decision. Failures are shown, not hidden.</p>";
+    const intro = "<p>B (the AI with Kanini Context) was given patient charts built to trip it up, each with one trap. <b>Values B took from the chart</b>: whether it picked the right values (or left one out and said so). <b>Answer right</b>: the final answer matched the right answer. <b>Safe</b>: either the right answer, or the order was sent to staff; never a wrong decision. Failures are shown, not hidden.</p>";
     if (!r) return intro + '<p class="note">Not run yet: <code>python -m propel.baseline.negatives --runs 3</code></p>';
-    const rows = Object.values(r.cases).map((c) => {
+    const rows = Object.values(r.cases).map((c, i) => {
       const f = c.facts || {}, n = c.runs;
       const facts = `${f.right || 0}/${n} right` + (f.wrong ? `, ${f.wrong} wrong` : "") + (f.asked ? `, ${f.asked} asked` : "");
       const note = [c.planted_followed != null ? `asked to record the planted answer in ${c.planted_followed} of ${n}` : "", c.note || ""].filter(Boolean).join("; ");
-      return `<tr><th>${esc(c.case)}</th><td>${esc(c.tests)}</td><td>${esc(OUTCOME[c.reference.outcome]?.[0] || c.reference.outcome)}</td>`
+      return `<tr><th>${i + 1}</th><td>${esc(c.tests)}</td><td>${esc(OUTCOME[c.reference.outcome]?.[0] || c.reference.outcome)}</td>`
         + `<td>${facts}</td><td>${c.final_right}/${n}</td><td>${c.final_safe ?? c.final_right}/${n}</td><td class="e-note">${esc(note)}</td></tr>`;
     }).join("");
-    return intro + `<table class="mini e-t"><thead><tr><th>Case</th><th>What it tests</th><th>Rules say</th><th>Facts B passed</th><th>Final right</th><th>Safe</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`
+    return intro + `<table class="mini e-t"><thead><tr><th>#</th><th>The trap in the chart</th><th>Right answer</th><th>Values B took from the chart</th><th>Answer right</th><th>Safe</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`
       + e2Findings(r)
       + `<p class="note">${esc(PROVIDER(r.model))}, ${r.runs} runs per case, ${ago(r.at)}. Safe: the rules' answer, or the order went to staff. Kanini Context unavailable and a source past its limit are covered by the test suite: both go to staff. <code>${esc(r.file)}</code></p>`;
   }
@@ -1480,7 +1491,7 @@
     $("status").innerHTML = `Release <span class="code">${esc(st.release)}</span>`;
     $("status").title = `${st.rules} rules · model ${st.model}`;
     S.orders = orders; S.inst = g; S.compare = cmp || {};
-    $("orders").innerHTML = orders.map((o) => `<button type="button" class="case" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(caseName(o))}</b><span>${esc(drugName(o))} · ${esc(planShort(o))}</span></button>`).join("");
+    $("orders").innerHTML = orders.map((o) => `<button type="button" class="case" data-p="${esc(o.patient)}" aria-pressed="false"><b>${esc(caseName(o))}</b><span>${esc(drugName(o))} · ${esc(planShort(o))}</span>${CASE_TESTS[o.patient] ? `<em>${esc(CASE_TESTS[o.patient])}</em>` : ""}</button>`).join("");
     document.querySelectorAll(".case").forEach((c) => (c.onclick = () => pick(orders.find((o) => o.patient === c.dataset.p))));
     buildLanes();
     setGraph(g, "inst");
