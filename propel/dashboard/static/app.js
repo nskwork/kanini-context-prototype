@@ -422,7 +422,7 @@
     } else {
       const [label, color] = OUTCOME[p.outcome] || ["Not known", "#F04F4F"];
       c.style.setProperty("--oc", color); c.classList.add("live");
-      const prim = p.primary_rule || {};
+      const prim = decidingRule(p) || {};
       const src = (p.sources || []).find((x) => x.citation === prim.citation);
       const state = p.safe_to_act ? "Ready to act on" : "Hold for staff review" + ((p.not_safe_because || []).length ? ": " + why(p.not_safe_because[0]) : "");
       c.innerHTML = head + `<div class="big-ans">${esc(label)}</div><div class="state"><span class="dot"></span>${esc(state)}</div>`
@@ -627,7 +627,9 @@
      safe-to-act flag and the same deciding rule (no deciding rule on both sides counts as the same). With no C answer
      yet, B's result is shown and marked against the expected answer from testing. */
   const usable = (p) => p && !["invalid_input", "unavailable", "error"].includes(p.status);
-  const ruleOf = (p) => (p && p.primary_rule && p.primary_rule.rule_ref) || null;
+  // a Send-to-staff answer was settled by no rule: the coverage rule it checked is not shown as its deciding rule
+  const decidingRule = (p) => (p && p.outcome !== "unknown" && p.primary_rule) || null;
+  const ruleOf = (p) => (decidingRule(p) && decidingRule(p).rule_ref) || null;
   const shortRule = (r) => (r ? String(r).split("/").pop().replace("@", ", edition of ") : r);   // kc:rule/esa-ckd-nd/L34356@2026-10-04 -> L34356, edition of 2026-10-04
   function sameAnswer(b, c) {
     return !!b && !!c && b.outcome === c.outcome && !!b.safe_to_act === !!c.safe_to_act && ruleOf(b) === ruleOf(c);
@@ -1276,7 +1278,7 @@
   function renderMatch() {
     const box = $("match"), c = S.cEval, b = lanes.B ? lanes.B.st : null;
     if (!c && !(b && b.eval)) { box.innerHTML = '<p class="empty">Run C and B to compare them field by field.</p>'; return; }
-    const srcOf = (p) => { if (!p) return null; const pr = p.primary_rule || {}; const x = (p.sources || []).find((y) => y.citation === pr.citation) || {}; return pr.citation ? `${pr.citation}${x.page ? ", page " + x.page : ""}` : "none"; };
+    const srcOf = (p) => { if (!p) return null; const pr = decidingRule(p) || {}; const x = (p.sources || []).find((y) => y.citation === pr.citation) || {}; return pr.citation ? `${pr.citation}${x.page ? ", page " + x.page : ""}` : "none"; };
     const yes = (v) => (v == null ? null : v ? "yes" : "no");
     const w = b && b.wrote;
     const F = [

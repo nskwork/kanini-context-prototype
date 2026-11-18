@@ -398,17 +398,18 @@ STEP_SQL: list[list[tuple[str, str]]] = [
   FROM kc_views.medicare_regions
  WHERE state_code = %(state)s""")],
     [("Approved rules in force for this drug, plan and place on the date (the next step checks which ones the patient meets)",
-      """SELECT r.citation, r.rule_type, r.subject, r.applies_in, r.effective_from
+      """SELECT r.citation, r.rule_type, r.summary, r.applies_in, r.effective_from
   FROM kc_views.rules r
  WHERE r.rule_ref IN (SELECT a ->> 'rule_ref'
                         FROM jsonb_array_elements(kc_api.applicable_rules(%(plan)s, %(state)s, %(code)s, %(as_of)s::date) -> 'rules') a)
    AND r.rule_type <> 'Medicare program list checked'
  ORDER BY r.citation, r.rule_type""")],
-    [("The patient's values against each policy's criteria", """SELECT p ->> 'citation' AS policy, i ->> 'detail' AS what_was_checked, i ->> 'status' AS result
+    [("The patient's values against each policy's criteria (an option not supplied is left out when another option in its group is met)", """SELECT p ->> 'citation' AS policy, i ->> 'detail' AS what_was_checked, i ->> 'status' AS result
   FROM kc_api.evaluate_order(%(plan)s, %(state)s, %(code)s, %(as_of)s::date, %(facts)s::jsonb) x,
        jsonb_array_elements(x -> 'coverage_criteria' -> 'policies') p,
        jsonb_array_elements(p -> 'groups') g,
-       jsonb_array_elements(g -> 'items') i""")],
+       jsonb_array_elements(g -> 'items') i
+ WHERE NOT (g ->> 'status' = 'met' AND i ->> 'status' = 'unknown')""")],
     [("CMS prior authorization programs for this place and date, and what each list says", """SELECT mp.program, mp.is_checked, mp.finding, mp.page
   FROM kc_views.medicare_programs mp
  WHERE %(plan)s = 'original-medicare'
@@ -418,7 +419,8 @@ STEP_SQL: list[list[tuple[str, str]]] = [
                   AND (ps.effective_to IS NULL OR ps.effective_to >= %(as_of)s::date))
  ORDER BY mp.program""")],
     [("The answer, as lane C gets it", """SELECT x ->> 'outcome' AS outcome, x ->> 'safe_to_act' AS ready_to_act_on, x ->> 'next_step' AS next_step,
-       x -> 'primary_rule' ->> 'citation' AS deciding_policy, x ->> 'pack_release' AS release
+       CASE WHEN x ->> 'outcome' = 'unknown' THEN 'none: no rule settles it, so it goes to staff'
+            ELSE x -> 'primary_rule' ->> 'citation' END AS deciding_policy, x ->> 'pack_release' AS release
   FROM kc_api.evaluate_order(%(plan)s, %(state)s, %(code)s, %(as_of)s::date, %(facts)s::jsonb) x"""),
      ("The stored row behind it: the deciding rule, its quote, its approval and its source document", """SELECT r.citation, r.page, r.summary, r.quote, r.edition, r.approved_by, r.approved_at::date AS approved_at,
        d.last_checked_at::date AS source_last_checked, d.freshness
@@ -446,6 +448,8 @@ def _step_rows(params: dict) -> list[list[dict]]:
                 step = [STEP_MA]   # a Medicare Advantage plan's own policies decide, not the state's contractor region
             tables = []
             for title, sql in step:
+                if "%(rule)s" in sql and not params.get("rule"):
+                    continue   # no deciding rule: the row would suggest one
                 shown = sql
                 for k, v in params.items():
                     shown = shown.replace(f"%({k})s", lit(v))
@@ -476,7 +480,8 @@ def explain(patient: str):
             r = c.execute("SELECT kc_api.explain_order(%s, %s, %s, %s::date, %s::jsonb)", args).fetchone()[0]
     except psycopg.errors.UndefinedFunction:
         raise HTTPException(503, REBUILD)
-    rule = ((r.get("answer") or {}).get("primary_rule") or {}).get("rule_ref") or ""
+    ans = r.get("answer") or {}   # a Send-to-staff answer was settled by no rule: no "deciding rule" row for it
+    rule = "" if ans.get("outcome") == "unknown" else ((ans.get("primary_rule") or {}).get("rule_ref") or "")
     rows = _step_rows({"plan": args[0], "state": args[1], "code": args[2], "as_of": args[3], "facts": args[4], "rule": rule})
     return {**r, "rows": rows, "sql": {"answer": f"SELECT kc_api.evaluate_order({shown});", "trace": f"SELECT kc_api.explain_order({shown});"}}
 

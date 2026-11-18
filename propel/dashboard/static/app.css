@@ -852,3 +852,4 @@ table.srow td.qt{font-style:italic;color:#c9d0da;min-width:220px}
 details.srows details.sql pre{font-size:11.5px;white-space:pre-wrap}
 table.srow.kv th{width:34%;text-align:left;font-weight:500;color:#9aa4b1;vertical-align:top}
 table.srow.kv td.qt{min-width:0}
+.with-drawer .graphbox .legend{max-width:calc(100% - var(--drawer-w) - 36px);flex-wrap:wrap}
