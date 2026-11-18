@@ -596,8 +596,8 @@ details.more-d{margin-top:14px}
 
 @media (max-width:1320px){.groups{grid-template-columns:repeat(2,minmax(0,1fr))}.answer{width:300px}.three{width:300px}.answer .big-ans{font-size:38px}}
 @media (max-height:800px){.answer .big-ans{font-size:36px}.answer{padding:16px 18px}.three{padding:12px 16px;gap:5px}.graphbox .legend{max-height:18px;overflow:hidden}}
-@media (max-width:1100px){.app{grid-template-rows:auto 1fr}#page-knowledge{grid-template-columns:1fr}.scores,.t-row,.flow5{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1100px){#page-knowledge{grid-template-columns:1fr}.scores,.t-row,.flow5{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 .more{display:block;text-align:left;margin-top:12px}
 .edge.prog{stroke-opacity:.45}
 
@@ -807,5 +807,35 @@ details.t-key[open]>summary::after{content:"Hide"}
   .caseline{padding:6px 12px;gap:2px 12px}.caseline .cq{font-size:14px}
   .case{padding:6px 12px}
 }
-.graphbox .legend{background:rgba(18,22,28,.9);padding:5px 10px;border-radius:8px;width:max-content;max-width:calc(100% - 36px)}
+.graphbox .legend{opacity:1;background:rgba(18,22,28,.94);padding:5px 10px;border-radius:8px;width:max-content;max-width:calc(100% - 36px)}
 #kn-graph .graphbox .legend{bottom:14px;opacity:1}   /* no buttons on this page: the key sits at the bottom, over nothing */
+
+/* second review round */
+:root{--blue:#005fcc}   /* white text on blue buttons: 6:1 for a projector (was 4.2:1) */
+.case[aria-pressed="true"] em,.case[aria-pressed="true"] span{color:#e3eeff}
+.t-c.bad{color:#ff6b6b}
+#log i{color:#ff6b6b}
+.rc .rid{color:#9aa8b8}
+.arch text.as[fill="#2f86ff"]{fill:#5aa2ff}
+#run-race{min-width:220px;justify-content:center}   /* the dock does not jump when the label changes */
+.sheet .match{padding-bottom:20px}
+.three .nm .ds,.three .whyb{font-size:13px}
+.legend{font-size:12px}
+.with-drawer .dock .chartmode{display:none}
+.with-drawer .dock{max-width:calc(100% - var(--drawer-w) - 24px)}
+@media (max-width:1700px){.with-drawer .three{display:none}}   /* the drawer has the answer; the graph keeps its room */
+#kn-graph .graphbox .legend{max-height:none}
+#ask-graph .graphbox .legend{bottom:90px}
+@media (max-height:700px){#kn-graph .graphbox .legend{display:flex}}   /* the data model's "Show the whole diagram" stays */
+.stage2{min-height:260px}
+@media (max-width:1100px){
+  .app{overflow:auto}   /* a very small window scrolls instead of squeezing the graph to nothing */
+  .case em{display:none}
+  #page-knowledge{grid-template-rows:auto minmax(0,1fr)}
+  #page-knowledge .filters{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 16px}
+  .lane{grid-template-columns:24px minmax(0,1fr) minmax(0,1.7fr);align-items:center}.lane .track{display:none}
+  .lane .lt{grid-column:2;grid-row:1}.lane .nums{grid-column:3;grid-row:1}
+  .sc .n{white-space:normal}
+}
+.sc .n{font-size:clamp(34px,3.6vw,48px)}
+@media (max-width:1320px){.sc .n small{display:block;margin:2px 0 0 2px}}   /* narrow tiles: "right" goes under the score */

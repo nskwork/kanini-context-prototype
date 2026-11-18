@@ -56,11 +56,12 @@
   let sim = null, nodes = [], links = [], adj = new Map(), byKey = new Map(), zoomK = 1, t0 = performance.now();
   const comets = [];   // {chain:[node...], color, t, speed}
 
+  const RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const zoom = d3.zoom().scaleExtent([0.25, 6]).on("zoom", (e) => {
     root.attr("transform", e.transform);
     zoomK = e.transform.k;
     if (S.view === "onto") return;   // the schema diagram scales as one drawing
-    gNodes.selectAll("text").attr("transform", `scale(${Math.min(1.6, Math.max(0.75, 1 / Math.sqrt(zoomK)))})`);
+    gNodes.selectAll("text").attr("transform", `scale(${labelScale()})`);
     labelPass();
   });
   svg.call(zoom).on("dblclick.zoom", null);
@@ -106,7 +107,7 @@
     let lastLabels = 0;
     sim.on("tick", () => {
       const now = performance.now();
-      if (now - lastLabels > 400) { lastLabels = now; labelPass(); }   // nodes drift: overlaps are checked again
+      if (now - lastLabels > 1200) { lastLabels = now; labelPass(); }   // nodes drift: overlaps are checked again
       le.attr("x1", (l) => l.source.x).attr("y1", (l) => l.source.y).attr("x2", (l) => l.target.x).attr("y2", (l) => l.target.y);
       ng.attr("transform", (n) => `translate(${n.x},${n.y})`);
     });
@@ -160,6 +161,8 @@
       + (l.source.cand && l.target.cand ? " cand" : ""));
     labelPass();
   }
+  const labelScale = () => Math.min(2.2, Math.max(0.75, 1 / zoomK));   // labels keep about 12px on screen at any zoom out
+  const shown = new Set();
   function labelPass() {
     const big = new Set(["Plan", "Payer", "Authority", "Concept", "Class"]);
     const lit = nodes.some((n) => n.on || n.cand);
@@ -169,8 +172,9 @@
       : (big.has(n.kind) || (!lit && n.kind === "Jurisdiction")) && (zoomK >= 1.25 || !lit) ? 0.75   // with nothing lit, the main nodes are named at any zoom
       : S.view === "onto" && (n.depth <= 1 || zoomK >= 1.3) ? 0.75 : 0;
     // a label that would overlap one already placed stays hidden (it shows on hover); the answer's own nodes go first
-    const rank = (n) => (n.on && n.primary ? 6 : n.on ? 5 : n.unscr ? 4 : n.cand ? 3 : n.prog ? 2 : big.has(n.kind) ? 1 : 0);
-    const s = Math.min(1.6, Math.max(0.75, 1 / Math.sqrt(zoomK))), fs = 12 * s, placed = [], op = new Map();
+    // a label on screen keeps its place over an equal one, so drifting nodes do not make labels blink
+    const rank = (n) => (n.on && n.primary ? 6 : n.on ? 5 : n.unscr ? 4 : n.cand ? 3 : n.prog ? 2 : big.has(n.kind) ? 1 : 0) + (shown.has(n) ? 0.5 : 0);
+    const s = labelScale(), fs = 12 * s, placed = [], op = new Map();
     nodes.slice().sort((a, b) => rank(b) - rank(a)).forEach((n) => {
       const o = want(n);
       if (!o || !Number.isFinite(n.x)) { op.set(n, 0); return; }
@@ -178,13 +182,14 @@
       if (placed.some((p) => x0 < p[2] && x1 > p[0] && y0 < p[3] && y1 > p[1])) { op.set(n, 0); return; }
       placed.push([x0, y0, x1, y1]); op.set(n, o);
     });
-    gNodes.selectAll("text").style("opacity", (n) => op.get(n) ?? 0);
+    shown.clear(); op.forEach((v, n) => { if (v) shown.add(n); });
+    gNodes.selectAll("text").attr("transform", `scale(${s})`).style("opacity", (n) => op.get(n) ?? 0);
   }
   function legend(mode) {
     const counts = {};
     nodes.forEach((n) => { const k = mode === "onto" ? n.root : n.kind; counts[k] = (counts[k] || 0) + 1; });
     const pal = mode === "onto" ? ROOT_COLOR : KIND_COLOR;
-    $("legend").innerHTML = (mode === "onto" ? "<span>classes by root ·</span>" : `<span>${nodes.length} nodes · ${links.length} edges ·</span>`) +
+    $("legend").innerHTML = (mode === "onto" ? "<span>classes by root ·</span>" : `<span>All that Kanini Context holds. An answer lights up what it used ·</span>`) +
       Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span><i style="background:${pal[k] || "#A0AEC0"}"></i>${esc(cap(words(k)))} ${n}</span>`).join("");
   }
   function tip(e, n) {
@@ -203,7 +208,9 @@
       if (c) l = c.right - r.left + 8;
       if (a) rr = a.left - r.left - 8;
       if (d && d.height) b = d.top - r.top - 4;
-      if (rr - l < r.width * 0.3) { l = 0; rr = r.width; }   // too narrow: use the whole graph
+      const dr = box("why-drawer");
+      if (dr) rr = Math.min(rr, dr.left - r.left - 8);   // the drawer covers the right side
+      if (rr - l < r.width * 0.3) { l = 0; rr = dr ? dr.left - r.left - 8 : r.width; }   // too narrow: the whole graph left of the drawer
     }
     return [l, rr, 0, b];
   }
@@ -214,9 +221,9 @@
     if (w0 < 10 || h0 < 10) return;   // the graph is on a page not in view
     const [l, r, t, b] = freeArea(), w = r - l, h = b - t;
     const x0 = d3.min(pts, (n) => n.x), x1 = d3.max(pts, (n) => n.x), y0 = d3.min(pts, (n) => n.y), y1 = d3.max(pts, (n) => n.y);
-    const k = Math.min(2.4, 0.8 / Math.max((x1 - x0 + 100) / w, (y1 - y0 + 100) / h));
+    const k = Math.min(2.4, (S.page === "knowledge" ? 0.95 : 0.8) / Math.max((x1 - x0 + 100) / w, (y1 - y0 + 100) / h));
     const tr = d3.zoomIdentity.translate((l + r) / 2, (t + b) / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
-    (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
+    (ms && !RM ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
   /* zoom with the mouse wheel or a trackpad; the camera still follows each answer on its own */
 
@@ -233,6 +240,7 @@
     return out;
   }
   function addComets(chain, color, n = 3) {
+    if (RM) return;   // reduced motion: no dots travelling along the links
     if (!chain || chain.length < 2) return;
     for (let i = 0; i < n; i++) comets.push({ chain, color, t: -i / n, speed: 0.22 + chain.length * -0.008 });
   }
@@ -467,7 +475,7 @@
       if (L === "A") { ans = st.answer; ok = S.scripted && !st.tin ? null : st.ok; }   // a scripted stand-in is not graded
       else if (L === "B") { ans = st.eval ? st.eval.outcome : null; ok = st.done && !st.unreachable ? st.ok : null; }
       else if (st.eval) ans = st.eval.outcome;
-      const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : st.unreachable ? "Kanini Context not reachable" : st.failed ? "not answered" : "–";
+      const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : st.unreachable ? "Kanini Context not reachable" : st.failed ? "not answered" : st.done && L !== "C" ? "no answer" : "–";
       const mark = ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       const cost = st.done && !st.failed ? (L === "C" ? `0 tokens · ${st.callMs ?? "–"} ms` : `${S.scripted && !st.tin ? "scripted" : fmt(st.tin) + " tokens"} · ${(((st.ms ?? 0) / 1000)).toFixed(1)} s`) : "";
       const col = ans && !st.active ? (OUTCOME[ans]?.[1] || "#fff") : "var(--mute)";
@@ -699,7 +707,9 @@
       $("ok")?.closest(".approve")?.remove();   // decided: the buttons go, the trace keeps the decision
       chip(e.approved ? "staff approved" : "staff rejected");
       setTimeout(loadLog, 800);
-    } else if (e.kind === "abandoned") {
+    } else if (e.kind === "abandoned") {   // a newer B run took over: this approval is closed, and this run did not answer
+      st.awaiting = false; $("ok")?.closest(".approve")?.remove();
+      if (!st.eval) { st.failed = true; st.note = "Replaced by a newer run"; }
       chip("not approved: a new run started");
     } else if (e.kind === "done" || e.kind === "error") {
       if (st.es) { st.es.close(); st.es = null; }
@@ -720,13 +730,18 @@
     const run = lanes.B.st.run;
     if (!run) return;
     $("ok").disabled = true; $("nok").disabled = true;
-    await fetch(`/api/run/${run}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ approved: ok }) });
+    const res = await fetch(`/api/run/${run}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ approved: ok }) }).catch(() => null);
+    if (!res || !res.ok) {   // the approval was closed (a newer run) or the server is gone: say so, no dead buttons
+      lanes.B.st.awaiting = false; $("ok")?.closest(".approve")?.remove(); chip("approval no longer open: run B again");
+    }
   }
   async function loadLog() {
-    const rows = await (await fetch("/api/log")).json();
-    $("log").innerHTML = '<span class="eyebrow">Decisions recorded</span>  ' + (rows.slice(-4).reverse().map((r) =>
-      r.decision === "rejected" ? `Order ${esc(r.order)}: staff <i>rejected</i> the decision, so nothing was recorded`
-        : `Order ${esc(r.order)}: <b>approved</b> by ${esc(r.approved_by || r.reviewer || "staff")} · ${esc(OUTCOME[r.outcome]?.[0] || r.outcome)} · <span class="code" title="${esc(r.ruleRef || r.rule_ref)}">${esc(String(r.ruleRef || r.rule_ref || "").split("/").pop())}</span>`).join("  ·  ") || "nothing recorded yet");
+    const all = await fetch("/api/log").then((r) => (r.ok ? r.json() : [])).catch(() => []);
+    const mine = S.order && S.order.order_id ? all.filter((r) => r.order === S.order.order_id) : all;   // this case's order only
+    const rows = mine.filter((r, i, a) => i === a.length - 1 || JSON.stringify(r) !== JSON.stringify(a[i + 1]));
+    $("log").innerHTML = '<span class="eyebrow">Decisions recorded for this case</span>  ' + (rows.slice(-3).reverse().map((r) =>
+      r.decision === "rejected" ? `Staff chose not to record B's answer (${esc(ago(r.at))})`
+        : `Order ${esc(r.order)}: <b>approved</b> by ${esc(r.approved_by || r.reviewer || "staff")} · ${esc(OUTCOME[r.outcome]?.[0] || r.outcome)} · <span class="code" title="${esc(r.ruleRef || r.rule_ref)}">${esc(String(r.ruleRef || r.rule_ref || "").split("/").pop())}</span>`).join("  ·  ") || "none yet");
   }
 
   /* ---------------------------------------------------------------- orders, views, start-up */
@@ -961,7 +976,7 @@
     if (whole || fit >= 0.85) { fitRect(...schemaBox, ms); return; }
     const r = schemaAt && schemaAt.get("Rule");
     const cx = r ? r.x + r.w / 2 : (schemaBox[0] + schemaBox[2]) / 2, cy = r ? r.y + r.h / 2 : (schemaBox[1] + schemaBox[3]) / 2;
-    const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(1).translate(-cx, -cy);
+    const tr = r ? d3.zoomIdentity.translate(w / 2 - cx, 70 - r.y) : d3.zoomIdentity.translate(w / 2, h / 2).scale(1).translate(-cx, -cy);
     (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
   function fitRect(x0, y0, x1, y1, ms = 700) {
@@ -985,7 +1000,7 @@
     const chip = (it) => (it ? `<span class="t-c ${it.right === it.runs ? "good" : it.right === 0 ? "bad" : "mid"}">${it.right}/${it.runs}</span>` : "");
     const part = (it, name, r, key) => {
       if (!it) return "";
-      const broke = it.broke.map((b) => `<li>${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(plainWhy(b.why))}.`
+      const broke = it.broke.map((b) => `<li>${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>, which is wrong: ${esc(plainWhy(b.why))}.`
         + (b.cited_other_region ? ` ${b.cited_other_region} of them cited ${esc(b.other_region_name)}'s policy.` : "")
         + (b.quote && b.quote.why ? `<blockquote class="t-q">“${esc(b.quote.why)}”${b.quote.source ? `<cite>Source it cited: ${esc(b.quote.source)}</cite>` : ""}</blockquote>` : "") + "</li>").join("");
       const ret = key === "search" && "deciding_page_found" in it && r.deciding && it.broke.length
@@ -1056,7 +1071,8 @@
       + `<table class="t-table t-cases"><thead><tr><th>Case</th><th>Right answer</th><th>C · rules only<small>no AI</small></th><th>B · AI with Kanini Context, given the facts${by("B")}</th><th>B · same, reads the chart${by("B_raw")}</th>`
       + `${hasA ? `<th>A · AI alone${by("A")}</th>` : ""}<th>AI with search (one call)${by("A_rag")}</th><th>AI with every document (one call)${by("A_whole")}</th></tr></thead><tbody>${rows}</tbody>`
       + `<tfoot><tr><th>All six cases</th><td></td><td>${total("C") === "–" ? "–" : "<b>same every run</b>"}</td><td>${total("B")}</td><td>${total("B_raw")}</td>${hasA ? `<td>${total("A")}</td>` : ""}<td>${total("A_rag")}</td><td>${total("A_whole")}</td></tr></tfoot></table>`
-      + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.${cnt("A_whole") && cmp.models && cmp.models.A_whole && cmp.models.A_rag && cmp.models.A_whole !== cmp.models.A_rag ? ` Each column is scored on its own: the every-document column comes from an earlier run on another AI service, because one call with every document is larger than the per-minute limit of the service used for the rest.` : ""}</p>`;
+      + `<p class="t-foot">Right means the same answer as the approved rules for that order.${cnt("A_whole") && cmp.models && cmp.models.A_whole && cmp.models.A_rag && cmp.models.A_whole !== cmp.models.A_rag ? ` Each column is scored on its own: the every-document column comes from an earlier run on another AI service, because one call with every document is larger than the per-minute limit of the service used for the rest.` : ""}</p>`
+      + `<details class="sql"><summary>Technical: the result files</summary><pre>${[...new Set(Object.values(cmp.files || {}))].map((f) => "propel/baseline/results/" + esc(f)).join("\n")}</pre></details>`;
   }
 
 
@@ -1091,6 +1107,19 @@
   }
 
   /* ---------------------------------------------------------------- Ask: the drawer and the sheet over the graph */
+  document.addEventListener("keydown", (e) => {   // arrow keys move along tabs and radio buttons, as a presenter expects
+    const grp = e.target.closest && e.target.closest('[role="tablist"],[role="radiogroup"]');
+    if (!grp || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const items = [...grp.querySelectorAll('[role="tab"],[role="radio"]')], i = items.indexOf(e.target);
+    if (i < 0) return;
+    const j = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + items.length) % items.length;
+    e.preventDefault(); items[j].focus(); items[j].click();
+  });
+  document.addEventListener("keydown", (e) => {   // Escape closes the open panel and puts focus back on its button
+    if (e.key !== "Escape") return;
+    if (!$("why-drawer").classList.contains("hidden")) openPanel("why", false);
+    else if (!$("cmp-sheet").classList.contains("hidden")) openPanel("cmp", false);
+  });
   function openPanel(which, open) {
     const el = which === "why" ? $("why-drawer") : $("cmp-sheet"), btn = which === "why" ? $("open-why") : $("open-cmp");
     const show = open ?? el.classList.contains("hidden");
@@ -1098,6 +1127,9 @@
     $("page-ask").classList.toggle("with-sheet", !$("cmp-sheet").classList.contains("hidden"));
     $("page-ask").classList.toggle("with-drawer", !$("why-drawer").classList.contains("hidden"));
     if (show && which === "cmp") lanesTick(0);
+    if (show) el.querySelector("[data-close]")?.focus();   // keyboard users land in the panel
+    else if (el.contains(document.activeElement) || document.activeElement === document.body) btn.focus();   // and back on its button
+    if (which === "why") setTimeout(() => fitTo(S.eval ? nodes.filter((n) => n.on || n.prog || n.unscr) : nodes, 500), 60);   // the graph moves out from under the drawer
   }
   /* the drawer and the sheet resize from their inner edge: drag the handle, or focus it and use the arrow keys;
      a double click goes back to the default size. Sizes are remembered in this browser only. */
@@ -1112,10 +1144,14 @@
       // the answer card and the score box need about 740px beside the drawer; with less, the score box steps aside
       // (the same three answers are in the Compare sheet)
       stage.classList.toggle("tight", r.width - (w || Math.min(520, r.width * 0.46)) < 740);
+      const g = $("why-grip"), now = Math.round(w || Math.min(520, r.width * 0.46));
+      g.setAttribute("aria-valuemin", "320"); g.setAttribute("aria-valuemax", String(Math.max(320, Math.round(r.width - 560)))); g.setAttribute("aria-valuenow", String(now));
     } else {
       const h = sizes.cmp ? Math.max(160, Math.min(r.height - 80, sizes.cmp)) : null;
       $("cmp-sheet").style.height = h ? h + "px" : "";
       $("cmp-sheet").style.maxHeight = h ? "none" : "";
+      const g = $("cmp-grip");
+      g.setAttribute("aria-valuemin", "160"); g.setAttribute("aria-valuemax", String(Math.round(r.height - 80))); g.setAttribute("aria-valuenow", String(Math.round(h || $("cmp-sheet").getBoundingClientRect().height || 0)));
     }
   }
   function grip(el, which) {
@@ -1232,7 +1268,7 @@
       + [["Code", show(fc.code), show(fb.code)], ...Object.keys(FN).map((k) => [FN[k], show((fc.facts || {})[k]), show((fb.facts || {})[k])])]
         .map(([k, cv, bv]) => `<tr><th>${k}</th>${cell(cv, null)}${cell(bv, cv)}</tr>`).join("") + "</tbody></table>" : "";
     box.innerHTML = verdict + `<table class="mini match-t"><thead><tr><th></th><th>C · rules only (the answer key)</th><th>B · what the AI wrote</th><th>B · final answer, after the safety check</th></tr></thead><tbody>${rows}</tbody></table>`
-      + (b && b.done && !w ? '<p class="note">This run, the AI did not ask to record a decision, so the middle column is empty; its answer came straight from the rules.</p>' : "") + facts;
+      + (b && b.done && !w ? '<p class="note">This run, the AI did not write its own decision, so the middle column is empty. The AI\u2019s job is to find the right rule and read the patient\u2019s values; the final answer is always taken from the approved rule, so the AI cannot override it.</p>' : "") + facts;
   }
 
   /* ---------------------------------------------------------------- Sources page */
@@ -1303,7 +1339,7 @@
       box(X(3), Y2, "6", "People approve", ["two people approve", "each rule"], "one"),
       box(X(4), Y2, "7", "Publish", ["a new edition of the", "rules goes out; the", "hold is lifted"], "built"),
       arrow(`M${X(0) + W} ${Y1 + H / 2} H${X(1) - 4}`), arrow(`M${X(1) + W} ${Y1 + H / 2} H${X(2) - 4}`),
-      arrow(`M${X(2) + W} ${Y1 + H / 2} H${X(3) - 4}`, "maybe", X(2) + W + 6, Y1 + H / 2 - 8),
+      arrow(`M${X(2) + W} ${Y1 + H / 2} H${X(3) - 4}`, "changed?", X(2) + W + 6, Y1 + H / 2 - 8),
       arrow(`M${X(3) + W} ${Y1 + H / 2} H${X(4) - 4}`, "same", X(3) + W + 11, Y1 + H / 2 - 8),
       arrow(`M${X(3) + W / 2} ${Y1 + H} V${Y1 + H + 40} H${X(0) + W - 40} V${Y2 - 4}`, "different: changed", X(1) + 40, Y1 + H + 33),
       arrow(`M${X(0) + W} ${Y2 + H / 2} H${X(1) - 4}`), arrow(`M${X(1) + W} ${Y2 + H / 2} H${X(2) - 4}`),
@@ -1410,18 +1446,22 @@
     const rows = S.kn.rules.filter((r) => (!KF.refs || KF.refs.includes(r.rule_ref)) && (!wf || wf(r)) && (!KF.kind || r.rule_type === KF.kind)
       && (!KF.q || [r.summary, r.citation, r.subject, r.rule_ref, r.quote, r.applies_in].join(" ").toLowerCase().includes(KF.q)));
     $("kn-count").textContent = `${rows.length} of ${S.kn.rules.length} rules`;
-    $("kn-list").innerHTML = rows.map((r) => `<article class="panel rc" tabindex="0"><div class="kd">${esc(r.rule_type)} · ${esc(whereText(r.applies_in))}</div>`
+    $("kn-list").innerHTML = rows.map((r) => `<article class="panel rc" tabindex="0" role="button" aria-expanded="false" aria-label="${esc(r.summary)}: show the quote"><div class="kd">${esc(r.rule_type)} · ${esc(whereText(r.applies_in))}</div>`
       + `<div class="side">${esc(r.citation)}${r.page ? " · page " + esc(r.page) : ""}</div><p class="s">${esc(r.summary)}</p>`
-      + `<div class="m">Approved ${ago(r.approved_at)} · in force from ${ago(r.effective_from)}${r.effective_to ? " to " + ago(r.effective_to) : ""}</div>`
+      + `<div class="m">Approved${r.approved_by ? " by " + esc(r.approved_by) : ""} ${ago(r.approved_at)} · in force from ${ago(r.effective_from)}${r.effective_to ? " to " + ago(r.effective_to) : ""}</div>`
       + (r.quote ? `<blockquote class="hidden">${esc(r.quote)}<cite>${esc(r.citation)}${r.page ? ", page " + esc(r.page) : ""} <span class="rid" title="Rule reference">${esc(r.rule_ref)}</span></cite></blockquote>` : "")
       + `<button type="button" class="linkish ask1" data-ref="${esc(r.rule_ref)}">Ask about this rule</button></article>`).join("")
       || '<p class="empty">No rule matches.</p>';
     $("kn-list").querySelectorAll(".rc").forEach((a) => (a.onclick = (e) => {
       if (e.target.classList.contains("ask1")) {
         KF.one = e.target.dataset.ref; renderAskLabel(); $("kn-answer").innerHTML = "";
-        $("kn-ask").scrollIntoView({ behavior: "smooth", block: "start" }); $("kn-q").focus(); return;
+        $("kn-ask").scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); $("kn-q").focus(); return;
       }
-      a.querySelector("blockquote")?.classList.toggle("hidden");
+      const q = a.querySelector("blockquote");
+      if (q) { q.classList.toggle("hidden"); a.setAttribute("aria-expanded", String(!q.classList.contains("hidden"))); }
+    }));
+    $("kn-list").querySelectorAll(".rc").forEach((a) => (a.onkeydown = (e) => {   // Enter or Space opens the quote, as a click does
+      if ((e.key === "Enter" || e.key === " ") && e.target === a) { e.preventDefault(); a.click(); }
     }));
   }
 
@@ -1441,7 +1481,7 @@
     const right = (k) => sum(k, (x) => x.matches_rules), runs = (k) => sum(k, (x) => x.runs);
     $("t-scores").innerHTML = tile("C", "Rules only (no AI)", "The approved rules, applied by plain code",
         cSame ? `${cRuns} / ${cRuns}` : "–", "same answer",
-        "It gives the same answer every time, with no AI. This is the answer key the others are checked against.", cSame)
+        "The answer key: the approved rules applied by plain code, with no AI. It gave the same answer in all 30 runs; the others are checked against it.", cSame)
       + tile("B", "AI with Kanini Context, given the facts", "Given the patient's values already pulled out (lab results, diagnoses)",
         `${right("B")} / ${runs("B")}`, "right",
         `On the 6 test cases, 5 runs each, the AI asked Kanini Context, and the answer recorded was the rules' answer in ${right("B")} of ${runs("B")} runs.`, right("B") === runs("B"))
@@ -1468,13 +1508,13 @@
     const box = $("t-all"), open = box.classList.contains("hidden");
     box.classList.toggle("hidden", !open); $("t-more").setAttribute("aria-expanded", String(open));
     $("t-more").textContent = open ? "Hide every run and the limits" : "See every run and the limits";
-    if (open) { renderTesting(); renderLimits(); box.scrollIntoView({ behavior: "smooth" }); }
+    if (open) { renderTesting(); renderLimits(); box.scrollIntoView({ behavior: RM ? "auto" : "smooth" }); }
   };
   /* ---------------------------------------------------------------- Testing page: what is still to run, and the limits */
   const E1_NAMES = { current: "Fixed-size pieces of text (as first tested)", paragraph: "Split by the documents' own paragraphs", semantic: "Split where the topic changes",
     hybrid: "Paragraphs, found by meaning and by keywords together", hybrid_state: "The same, searching only the patient's state's documents" };
   function renderE1(r) {
-    const intro = "<p>The usual way to give an AI documents is search: find the few passages that best match the question and send only those (often called RAG). Here the documents were split into passages in five different ways, with the same AI and the same amount of text each time, to see whether a better split fixes the wrong answers. <b>Deciding page found</b>: the page that settles the case was among the passages sent. <b>Made up</b>: the answer named a code or number that is in none of the passages. <b>Wrong place</b>: a wrong answer built on real text that does not apply to this patient, such as another state's policy.</p>";
+    const intro = "<p>The usual way to give an AI documents is search: find the few passages that best match the question and send only those (often called RAG). Here the documents were split into passages in five different ways, with the same AI and the same amount of text each time, to see whether a better split fixes the wrong answers. This is a separate run from the other tabs, so its search figures differ slightly from theirs. <b>Deciding page found</b>: the page that settles the case was among the passages sent. <b>Made up</b>: the answer named a code or number that is in none of the passages. <b>Wrong place</b>: a wrong answer built on real text that does not apply to this patient, such as another state's policy.</p>";
     if (!r) return intro + '<p class="note">Not run yet: <code>python -m propel.baseline.chunking --runs 5</code></p>';
     const rows = Object.entries(r.strategies).map(([k, by]) => {
       const v = Object.values(by), t = (f) => v.reduce((a, x) => a + x[f], 0), n = t("runs");

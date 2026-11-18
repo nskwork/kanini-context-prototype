@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      <section class="float answer" id="card" aria-label="The answer"></section>
+      <section class="float answer" id="card" aria-label="The answer" aria-live="polite" aria-atomic="true"></section>
       <section class="float three" id="answers" aria-label="Same question, three ways"></section>
       <section class="float detail hidden" id="detail" aria-label="Selected node"></section>
 
@@ -100,15 +100,15 @@
         <div class="grip grip-h" id="cmp-grip" role="separator" aria-orientation="horizontal" aria-label="Resize the panel: drag, or use the up and down arrow keys" tabindex="0"></div>
         <header>
           <h2>Same question, three ways</h2>
-          <div class="seg" role="tablist" id="cmp-tabs">
-            <button type="button" role="tab" aria-selected="true" data-t="lanes">Run</button>
-            <button type="button" role="tab" aria-selected="false" data-t="match">Does B match C?</button>
+          <div class="seg" role="tablist" id="cmp-tabs" aria-label="Run or compare">
+            <button type="button" role="tab" aria-selected="true" data-t="lanes" aria-controls="lanes">Run</button>
+            <button type="button" role="tab" aria-selected="false" data-t="match" aria-controls="match">Does B match C?</button>
           </div>
           <ol class="trace" id="trace" aria-label="Agent steps"></ol>
           <button type="button" class="x" data-close="cmp" aria-label="Close">Close</button>
         </header>
-        <div class="lanes" id="lanes"></div>
-        <div class="match hidden" id="match"></div>
+        <div class="lanes" id="lanes" role="tabpanel"></div>
+        <div class="match hidden" id="match" role="tabpanel" tabindex="0"></div>
         <div class="log" id="log"></div>
       </section>
     </div>
@@ -123,6 +123,7 @@
         <div><dt>Prior authorization</dt><dd>Approval a doctor must get from the patient's health plan before giving a drug, so the plan will pay for it.</dd></div>
         <div><dt>Kanini Context</dt><dd>The approved rules, each checked against its official document, which an AI (or plain code) asks instead of reading the documents again.</dd></div>
         <div><dt>The answers</dt><dd>No prior authorization needed · Prior authorization required · Coverage criteria not met (no approval needed, but the patient does not meet the policy's medical conditions) · Missing patient information · Send to staff.</dd></div>
+        <div><dt>Ready to act on · Hold for staff review</dt><dd>Whether an answer can be used as it is, or a person must look first (for example because a source is out of date or a value is missing).</dd></div>
         <div><dt>Case</dt><dd>One made-up patient and one drug order, for example an Ohio patient on epoetin alfa (an anemia drug) under Original Medicare. There are six.</dd></div>
         <div><dt>Run · Right</dt><dd>A run is one attempt at a case; each case was answered 5 times by each method, so 30 means 6 cases × 5 runs. Right means the same answer the approved rules give.</dd></div>
         <div><dt>Facts given</dt><dd>The patient's values already pulled out and labelled: hemoglobin 9.4 (a blood count), eGFR 52 (a kidney function value), the diagnosis codes, not on dialysis.</dd></div>
@@ -142,17 +143,17 @@
     </div>
     <div class="t-all hidden" id="t-all">
       <div class="seg t-tabs" role="tablist" id="t-tabs" aria-label="Details">
-        <button type="button" role="tab" aria-selected="true" data-t="cases">Every case</button>
-        <button type="button" role="tab" aria-selected="false" data-t="wrong">What went wrong</button>
-        <button type="button" role="tab" aria-selected="false" data-t="e1">Does better search fix it?</button>
-        <button type="button" role="tab" aria-selected="false" data-t="e2">Stress tests for the AI</button>
-        <button type="button" role="tab" aria-selected="false" data-t="limits">Limits</button>
+        <button type="button" role="tab" aria-selected="true" data-t="cases" aria-controls="tp-cases">Every case</button>
+        <button type="button" role="tab" aria-selected="false" data-t="wrong" aria-controls="tp-wrong">What went wrong</button>
+        <button type="button" role="tab" aria-selected="false" data-t="e1" aria-controls="tp-e1">Does better search fix it?</button>
+        <button type="button" role="tab" aria-selected="false" data-t="e2" aria-controls="tp-e2">Stress tests for the AI</button>
+        <button type="button" role="tab" aria-selected="false" data-t="limits" aria-controls="tp-limits">Limits</button>
       </div>
-      <div class="panel t-pane" id="tp-cases"><div class="testing" id="testing" aria-label="Every case"></div></div>
-      <div class="panel t-pane hidden" id="tp-wrong"><div id="t-wrong"></div></div>
-      <div class="panel t-pane hidden" id="tp-e1"><h2>Does better search fix it?</h2><div id="t-e1"></div></div>
-      <div class="panel t-pane hidden" id="tp-e2"><h2>Stress tests: charts built to trip up the AI</h2><div id="t-e2"></div></div>
-      <div class="panel t-pane hidden" id="tp-limits"><h2>Limits</h2><ul class="limits" id="t-limits"></ul></div>
+      <div class="panel t-pane" id="tp-cases" role="tabpanel"><div class="testing" id="testing" aria-label="Every case"></div></div>
+      <div class="panel t-pane hidden" id="tp-wrong" role="tabpanel"><div id="t-wrong"></div></div>
+      <div class="panel t-pane hidden" id="tp-e1" role="tabpanel"><h2>Does better search fix it?</h2><div id="t-e1"></div></div>
+      <div class="panel t-pane hidden" id="tp-e2" role="tabpanel"><h2>Stress tests: charts built to trip up the AI</h2><div id="t-e2"></div></div>
+      <div class="panel t-pane hidden" id="tp-limits" role="tabpanel"><h2>Limits</h2><ul class="limits" id="t-limits"></ul></div>
     </div>
   </section>
 </div>
