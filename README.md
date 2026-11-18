@@ -4,7 +4,7 @@
 
 <br>
 
-![tests](https://img.shields.io/badge/tests-167%20passing%20%2B%205%20live-a3e635?style=flat-square)
+![tests](https://img.shields.io/badge/tests-173%20passing%20%2B%205%20live-a3e635?style=flat-square)
 ![scope tests](https://img.shields.io/badge/scope%20tests-23%20of%2023-a3e635?style=flat-square)
 ![spec](https://img.shields.io/badge/schema%20spec-v1.5-22d3ee?style=flat-square)
 ![release](https://img.shields.io/badge/release-2026.11.0-22d3ee?style=flat-square)

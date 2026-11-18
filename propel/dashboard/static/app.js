@@ -895,7 +895,7 @@
     const chip = (it) => (it ? `<span class="t-c ${it.right === it.runs ? "good" : it.right === 0 ? "bad" : "mid"}">${it.right}/${it.runs}</span>` : "");
     const part = (it, name, r, key) => {
       if (!it) return "";
-      const broke = it.broke.map((b) => `<li>${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(b.why)}.`
+      const broke = it.broke.map((b) => `<li>${b.runs} run${b.runs > 1 ? "s" : ""} answered <b>${esc(PLAIN[b.answer] || b.answer)}</b>: ${esc(plainWhy(b.why))}.`
         + (b.cited_other_region ? ` ${b.cited_other_region} of them cited ${esc(b.other_region_name)}'s policy.` : "")
         + (b.quote && b.quote.why ? `<blockquote class="t-q">“${esc(b.quote.why)}”${b.quote.source ? `<cite>Source it cited: ${esc(b.quote.source)}</cite>` : ""}</blockquote>` : "") + "</li>").join("");
       const ret = key === "search" && "deciding_page_found" in it && r.deciding && it.broke.length
@@ -1417,14 +1417,18 @@
     if (bTok) f.push(["What it costs", `One search call sends the AI about ${fmt(ragTok)} tokens of text, fewer than B's ${fmt(bTok)}. Search is cheaper per question, but B was right ${bR} of ${bN} times and search about half, and nothing marks which half.`]);
     return `<div class="t-cards e-cards">${f.map(([h, p]) => `<div class="t-card"><h3>${h}</h3><p>${p}</p></div>`).join("")}</div>`;
   }
+  function plainWhy(t) {   // the report's short answer names, in the words used on the rest of the page
+    const names = { "Other gate": "other_gate", "PA required": "pa_required", "No PA": "no_pa" };
+    return String(t || "").replace(/\b(Other gate|PA required|No PA)\b/g, (m) => PLAIN[names[m]] || m);
+  }
   function e2Findings(r) {   // from the report: what held, what failed, and why it stayed safe
     const cs = Object.values(r.cases), model = cs.filter((c) => c.kind !== "boundary"), bound = cs.filter((c) => c.kind === "boundary");
     const clean = model.filter((c) => c.final_right === c.runs && (c.facts || {}).right === c.runs);
     const failed = model.filter((c) => c.final_right < c.runs);
     const planted = cs.find((c) => c.planted_followed != null);
     const f = [];
-    f.push(["What it handled", `${clean.length} of ${model.length} traps passed in every run: <span class="e-list">${clean.map((c) => esc(c.tests)).join("<br>")}</span>`]);
-    if (planted) f.push(["A planted instruction", `A note in the chart told the AI to ignore the rules and record "No PA". B asked to record the planted answer in ${planted.planted_followed} of ${planted.runs} runs, and the final answer was the rules' in ${planted.final_right} of ${planted.runs}. The guardrail would have overwritten it in any case.`]);
+    f.push(["What it handled", `${clean.length} of ${model.length} traps passed in every run${model.some((c) => c.history) ? " of the rerun" : ""}: <span class="e-list">${clean.map((c) => esc(c.tests)).join("<br>")}</span>`]);
+    if (planted) f.push(["A planted instruction", `A note in the chart told the AI to ignore the rules and record "${esc(PLAIN.no_pa)}". B asked to record the planted answer in ${planted.planted_followed} of ${planted.runs} runs, and the final answer was the rules' in ${planted.final_right} of ${planted.runs}. The guardrail would have overwritten it in any case.`]);
     failed.forEach((c) => f.push(["Where it failed", `${esc(c.tests)}. Right ${c.final_right} of ${c.runs}; safe ${c.final_safe ?? c.final_right} of ${c.runs}. ${esc(c.note || "")}`]));
     model.filter((c) => c.history).forEach((c) => f.push(["Fixed after the first run", `${esc(c.tests)}. ${esc(c.history)}`]));
     if (bound.length) f.push(["Outside what the pack covers", `${bound.map((c) => esc(c.tests.split(" (")[0])).join("; ")}: ${bound.every((c) => c.final_right === c.runs) ? "every run went to staff as not known, as it should" : "see the table"}.`]);
@@ -1452,8 +1456,8 @@
     $("t-limits").innerHTML = [
       "It covers only what has been curated: two plans, the regions above, two drugs. Every new state or payer is curation work.",
       "Curation needs people: rules are drafted with AI but checked and approved by hand. In the prototype one engineer approved them.",
-      "An answer is only as current as the last check. Old sources or a lapsed client copy make answers \"not safe to act\": safe, but less automation.",
-      "\"No PA\" under Original Medicare rests on the CMS program lists being complete; a new program has to be added before such answers are trusted again.",
+      "An answer is only as current as the last check. Old sources or a lapsed client copy send answers to \"Hold for staff review\": safe, but less automation.",
+      `"${PLAIN.no_pa}" under Original Medicare rests on the CMS program lists being complete; a new program has to be added before such answers are trusted again.`,
       "The agent still has to read the patient record correctly. Wrong facts in give a wrong answer out.",
       "B's score depends on its guardrail: the model often skips writing its own card, and a card it writes can be wrong until the guardrail sets it from the rules.",
       "B costs model calls and time that C does not. Use C wherever no judgement is needed.",

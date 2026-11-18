@@ -604,7 +604,7 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
   fit AS (
     SELECT * FROM hit WHERE matched_by IS NOT NULL
        AND NOT (display ~* 'non[- ]?ESRD' AND lower(p_text) ~ '(esrd|dialysis)'
-                AND lower(p_text) !~ '(non[- ]?esrd|not on dialysis|no dialysis|not dialy)'))
+                AND lower(p_text) !~ '(non[- ]?esrd|non[- ]?dialysis|pre[- ]?dialysis|not on dialysis|no dialysis|not dialy)'))
   SELECT jsonb_build_object(
     'status', CASE count(*) WHEN 0 THEN 'no_match' WHEN 1 THEN 'one_match' ELSE 'several_matches' END,
     'query', p_text,
