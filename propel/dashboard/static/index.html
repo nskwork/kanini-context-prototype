@@ -128,10 +128,14 @@
         <div><dt>Patient chart</dt><dd>The patient's record as a clinic keeps it: lab results with their dates and units, the diagnosis list, and doctors' notes. To use it, the AI has to find the values itself, such as the latest hemoglobin, in the right units.</dd></div>
         <div><dt>Tokens</dt><dd>How much text the AI reads and writes to answer one case. AI services charge by the token, so fewer tokens means cheaper and faster.</dd></div>
         <div><dt>Search (RAG)</dt><dd>The common way to give an AI documents: find the few passages that best match the question and send only those.</dd></div>
+        <div><dt>LCD</dt><dd>A Local Coverage Determination: a Medicare contractor's written policy for its region, such as LCD L39237 for Tennessee and L34356 for Ohio.</dd></div>
+        <div><dt>Billing code (HCPCS)</dt><dd>The code an order uses for a drug, such as J0885 for epoetin alfa. The rules are looked up by this code.</dd></div>
+        <div><dt>The pack</dt><dd>The approved rules Kanini Context holds: the plans, regions and drugs that have been curated so far.</dd></div>
+        <div><dt>Guardrail</dt><dd>A check in code, not in the AI, that makes the recorded answer match the rules' answer whatever the AI wrote.</dd></div>
       </dl>
     </div>
     <div class="t-row">
-      <div class="panel t-bars"><h2>AI tokens per question</h2><p class="sub">Average text the AI had to read and write to answer one case.</p><div id="t-bars"></div></div>
+      <div class="panel t-bars"><h2>AI tokens per question</h2><p class="sub">Average text the AI read (input tokens) to answer one case.</p><div id="t-bars"></div></div>
       <div class="panel t-fails"><h2>What went wrong without context</h2><div id="t-fails"></div>
         <button type="button" class="more" id="t-more" aria-expanded="false">See every run and the limits</button></div>
     </div>

@@ -155,3 +155,8 @@ def test_raw_chart_run_streams_the_facts_b_built(client, kc_http, monkeypatch):
     assert call["args"]["facts"]["egfr"] == 52
     got = next(e for e in evs if e["kind"] == "tool_result" and e["name"] == "journey_get")
     assert "chart" in json.dumps(got) and "rules_evaluate_args" not in json.dumps(got)
+
+
+def test_run_refuses_input_of_the_wrong_type(client):
+    for body in ({"patient": ["maria-tn"]}, {"patient": "maria-tn", "mode": ["workflow"]}, {"patient": "nobody"}):
+        assert client.post("/api/run", json=body).status_code == 400

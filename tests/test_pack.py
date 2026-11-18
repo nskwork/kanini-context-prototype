@@ -390,7 +390,10 @@ def test_what_broke_names_the_wrong_answers_and_the_missing_page():
         "A_rag_sent": {"passages": [{"title": "Billing and Coding Article A58982, Erythropoiesis Stimulating Agents (for L39237)", "page": 4}]}}}}
     x = failures.explain(rep)["orders"][0]
     assert x["rules"] == "no_pa" and x["search"]["broke"][0]["answer"] == "other_gate"
-    assert "Tennessee's eGFR limit" in x["search"]["broke"][0]["why"]
+    assert "Tennessee's eGFR limit" not in x["search"]["broke"][0]["why"]   # no saved runs: nothing is claimed about them
+    rep["scenarios"]["1"]["A_rag_runs"] = [{"outcome": "other_gate", "reasons": ["eGFR 52 is not below 45"]}] * 5
+    x = failures.explain(rep)["orders"][0]
+    assert "Tennessee's eGFR limit" in x["search"]["broke"][0]["why"] and "(5 of 5 runs used it)" in x["search"]["broke"][0]["why"]
     assert x["search"]["deciding_page_found"] is False and x["search"]["other_region"] == 1
     md = failures.to_markdown({"at": rep["at"], "orders": [x]})
     assert "13 Nov 2026, 08:42 Central time" in md and "**not** among" in md

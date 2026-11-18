@@ -424,9 +424,9 @@
       if (L === "A") { ans = st.answer; ok = S.scripted && !st.tin ? null : st.ok; }   // a scripted stand-in is not graded
       else if (L === "B") { ans = st.eval ? st.eval.outcome : null; ok = st.done && !st.unreachable ? st.ok : null; }
       else if (st.eval) ans = st.eval.outcome;
-      const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : st.unreachable ? "Kanini Context not reachable" : "–";
+      const label = st.skipped ? "not run" : st.active ? "running…" : ans ? (OUTCOME[ans]?.[0] || ans) : st.unreachable ? "Kanini Context not reachable" : st.failed ? "not answered" : "–";
       const mark = ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
-      const cost = st.done ? (L === "C" ? `0 tokens · ${st.callMs ?? "–"} ms` : `${S.scripted && !st.tin ? "scripted" : fmt(st.tin) + " tokens"} · ${(((st.ms ?? 0) / 1000)).toFixed(1)} s`) : "";
+      const cost = st.done && !st.failed ? (L === "C" ? `0 tokens · ${st.callMs ?? "–"} ms` : `${S.scripted && !st.tin ? "scripted" : fmt(st.tin) + " tokens"} · ${(((st.ms ?? 0) / 1000)).toFixed(1)} s`) : "";
       const col = ans && !st.active ? (OUTCOME[ans]?.[1] || "#fff") : "var(--mute)";
       return `<div class="r"><span class="L" style="color:${LANES[L][2]}">${L}</span><span class="nm">${name}${cost ? `<small>${cost}</small>` : ""}</span><b style="color:${col}">${esc(label)}</b>${mark}</div>`;
     };
@@ -507,8 +507,16 @@
     kids.forEach((k) => { room -= k.offsetWidth + 6; k.style.display = room < 0 ? "none" : ""; });
   }
   function setBusy() {   // the button stays usable: a new run replaces a slow one (the server releases its approval wait)
-    const busy = Object.values(lanes).some((l) => l.st.active);
+    const busy = !!S.racing || Object.values(lanes).some((l) => l.st.active);
     $("run-race").textContent = busy ? "Running… (press to restart)" : "Run all three";
+  }
+  function failLane(L, st, msg) {   // the lane ends with a message instead of "running…" for good
+    if (st.es) { st.es.close(); st.es = null; }
+    if (st.ms == null) st.ms = performance.now() - st.t0;
+    st.note = msg; st.failed = true; st.done = true; st.active = false;
+    if (st.finish) st.finish();
+    if (L === "B") { gradeB(); renderMatch(); }
+    setBusy(); laneNumbers();
   }
   function closeAll() { Object.values(lanes).forEach((l) => { if (l.st.es) l.st.es.close(); }); }
   function clearAnswer() {
@@ -523,15 +531,33 @@
     if (which.includes("C") || (which.includes("B") && !S.cEval)) clearAnswer();
     else if (which.includes("B")) $("trace").innerHTML = "";
     const seq = ++S.seq;   // a newer run or order choice stops this sequence
+    S.racing = seq; setBusy();   // busy from the first click to the last lane, also between lanes
+    try { await raceLanes(which, seq); } finally { if (S.racing === seq) { S.racing = 0; setBusy(); } }
+  }
+  async function raceLanes(which, seq) {
     for (const L of which) {   // one lane at a time, so each gets the model to itself and its time is its own
       if (seq !== S.seq) return;
       const st = lanes[L].st; st.active = true; st.t0 = performance.now(); st.raw = L === "B" && S.chart === "raw";
       const finished = new Promise((res) => { st.finish = res; });
-      const r = await (await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ patient: S.order.patient, mode: LANES[L][0], raw: L === "B" && S.chart === "raw" }) })).json();
+      const current = () => seq === S.seq && lanes[L].st === st;   // a newer run or case choice owns the lane now
+      let r;
+      try {
+        const res = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ patient: S.order.patient, mode: LANES[L][0], raw: L === "B" && S.chart === "raw" }) });
+        if (!res.ok) throw new Error(`the dashboard server answered ${res.status}`);
+        r = await res.json();
+      } catch (err) {
+        if (!current()) return;
+        failLane(L, st, "Could not start: " + (err.message === "Failed to fetch" ? "the dashboard server is not reachable" : err.message));
+        continue;
+      }
+      if (!current()) return;
       st.run = r.run;
       st.es = new EventSource(`/api/run/${r.run}/events`);
-      st.es.onmessage = (m) => onEvent(L, JSON.parse(m.data));
+      st.es.onmessage = (m) => { if (lanes[L].st === st) onEvent(L, JSON.parse(m.data)); };
+      st.es.onerror = () => {   // the browser retries a dropped stream by itself; a closed one is given up
+        if (lanes[L].st === st && !st.done && st.es && st.es.readyState === EventSource.CLOSED) failLane(L, st, "Lost the connection to the dashboard server");
+      };
       if (L === "B" && S.eval) card(S.eval);   // C's answer stays; the card gains B's approve buttons
       setBusy(); laneNumbers();
       await finished;
@@ -548,6 +574,7 @@
   }
   function gradeB() {
     const b = lanes.B.st;
+    if (b.unreachable || b.failed) { b.ok = null; return; }   // never reached Kanini Context or the server: not graded, not "wrong"
     if (!b.eval) { b.ok = b.done ? false : null; return; }
     if (S.cEval) b.ok = sameAnswer(b.eval, S.cEval);
     else { const e = S.order && scenarioFor(S.order.patient); b.ok = e ? b.eval.outcome === e.reference_outcome : null; }
@@ -653,7 +680,7 @@
   /* ---------------------------------------------------------------- orders, views, start-up */
   function pick(o) {
     S.order = o;
-    S.seq = (S.seq || 0) + 1;   // stop any sequence still running
+    S.seq = (S.seq || 0) + 1; S.racing = 0;   // stop any sequence still running
     closeAll();
     document.querySelectorAll(".case").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.p === o.patient)));
     clearAnswer();
@@ -891,7 +918,7 @@
     unparseable: "no readable answer", "no card": "no decision card" };
   function whatBroke(x) {   // case by case: the rules' answer, each baseline's wrong answers and why (propel/baseline/failures.py)
     if (!x || !x.orders) return "";
-    const WAYS = [["agent", "A · agent without Kanini Context"], ["search", "Single call with search (RAG)"], ["whole", "Single call with every document"]];
+    const WAYS = [["agent", "A · AI alone"], ["search", "AI with search (one call)"], ["whole", "AI with every document (one call)"]];
     const chip = (it) => (it ? `<span class="t-c ${it.right === it.runs ? "good" : it.right === 0 ? "bad" : "mid"}">${it.right}/${it.runs}</span>` : "");
     const part = (it, name, r, key) => {
       if (!it) return "";
@@ -945,29 +972,28 @@
     const lucky = scs.filter((e) => e.A_rag && e.A_rag.matches_rules === e.A_rag.runs).map((e) => e.patient);
     const varied = (k) => scs.filter((e) => e[k] && Object.keys(e[k].outcomes || {}).length > 1).length;
     const find = [];
-    if (hasA) find.push(`<b>The same agent without the context layer.</b> For every order it searched and read the policy documents again: ${avg("A", (s) => s.llm_calls).toFixed(1)} AI calls and about ${fmt(avg("A", (s) => s.tokens_in))} tokens an order, against ${avg("B", (s) => s.llm_calls).toFixed(1)} calls and ${fmt(avg("B", (s) => s.tokens_in))} tokens with Kanini Context, and none without AI. It matched the rules ${sum("A", (s) => s.matches_rules)} of ${sum("A", (s) => s.runs)} times, and gave more than one answer to the same question on ${varied("A")} of ${cnt("A")} orders.`);
-    if (cnt("A_rag")) find.push(`<b>Repeated calls, different answers.</b> Without the context layer, every order sends the AI back to the documents to work out the same information again: about ${fmt(avg("A_rag", (s) => s.tokens_in))} tokens a question with search, ${fmt(avg("A_whole", (s) => s.tokens_in))} reading everything. Asked the same question five times, it gave more than one answer on ${varied("A_rag")} of ${cnt("A_rag")} orders with search${cnt("A_whole") ? ` and ${varied("A_whole")} of ${cnt("A_whole")} reading everything` : ""}. Kanini Context gave one answer per order, every time.`);
+    if (hasA) find.push(`<b>A · AI alone, the same agent without Kanini Context.</b> For every order it searched and read the policy documents again: ${avg("A", (s) => s.llm_calls).toFixed(1)} AI calls and about ${fmt(avg("A", (s) => s.tokens_in))} tokens an order, against ${avg("B", (s) => s.llm_calls).toFixed(1)} calls and ${fmt(avg("B", (s) => s.tokens_in))} tokens with Kanini Context, and none without AI. It matched the rules ${sum("A", (s) => s.matches_rules)} of ${sum("A", (s) => s.runs)} times, and gave more than one answer to the same question on ${varied("A")} of ${cnt("A")} orders.`);
+    if (cnt("A_rag")) find.push(`<b>Repeated calls, different answers.</b> Without Kanini Context, every order sends the AI back to the documents to work out the same information again: about ${fmt(avg("A_rag", (s) => s.tokens_in))} tokens a question with search${oh && oh.A_sent ? ` (${oh.A_sent.passages.length} passages)` : ""}, about ${fmt(Math.round(avg("A_whole", (s) => s.tokens_in) / 500) * 500)} with every document. Asked the same question five times, it gave more than one answer on ${varied("A_rag")} of ${cnt("A_rag")} orders with search${cnt("A_whole") ? ` and ${varied("A_whole")} of ${cnt("A_whole")} with every document` : ""}. Kanini Context gave one answer per order, every time.`);
     const said = (st) => Object.keys((st && st.outcomes) || {}).filter((o) => o !== "unknown").map((o) => `"${PLAIN[o] || o}"`);
     const per = (e, parts) => parts.filter(([k]) => e[k]).map(([k, w]) => `${e[k].matches_rules} of ${e[k].runs} ${w}`).join(", ");
-    const WAYS = [["A", "as the agent with no context"], ["A_rag", "with search"], ["A_whole", "reading everything"]];
+    const WAYS = [["A", "by AI alone"], ["A_rag", "with search"], ["A_whole", "with every document"]];
     if (oh && (oh.A || oh.A_rag)) find.push(`<b>The wrong region.</b> On the Ohio order the AI applied Tennessee's policy to an Ohio patient (its eGFR limit of 45, or its CKD code list without N18.31)`
       + (oh.A_rag && oh.A_sent ? `; retrieval sent ${tn} passages from Tennessee's policy and ${ohio} from Ohio's` : "")
-      + `. Right ${per(oh, WAYS)}. Kanini Context binds each rule to its contractor region, so the question never reaches the wrong policy.`);
+      + `. Right ${per(oh, WAYS)}. Kanini Context binds each rule to its Medicare region (each region has its own contractor and policy), so the question never reaches the wrong policy.`);
     if (esa && (esa.A || esa.A_rag)) find.push(`<b>Silence read as a rule.</b> The UnitedHealthcare list names the anemia drug only with a cancer diagnosis. Without Kanini Context the AI answered `
       + `${[...new Set(WAYS.flatMap(([k]) => said(esa[k])))].join(" or ")}; right ${per(esa, WAYS)}. Kanini Context says what the documents support: not known, route to staff.`);
     if (lucky.length) find.push(`<b>Right only sometimes.</b> On ${lucky.map((x) => esc(caseLabel(x))).join(", ")} the AI with search was right every run, with fewer tokens than the agent. Nothing tells which orders those are, so every answer it gives has to be checked by a person.`);
-    find.push(`<b>Reduce or eliminate.</b> The documents are read once, when the rules are drafted and approved. After that, the agent needs only short calls (B, about ${fmt(avg("B", (s) => s.tokens_in))} tokens, no document text), and a workflow needs none (C: no tokens, the same answer every time), each answer with its source, rule edition and safe-to-act flag.`);
+    find.push(`<b>Reduce or eliminate.</b> The documents are read once, when the rules are drafted and approved. After that, the agent needs only short calls (B, about ${fmt(avg("B", (s) => s.tokens_in))} tokens, no document text), and a workflow needs none (C: no tokens, the same answer every time), each answer with its source, its rule edition, and whether it is Ready to act on or Hold for staff review.`);
     const when = (cmp.at && (cmp.at.A || cmp.at.A_rag)) ? new Date(cmp.at.A || cmp.at.A_rag).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
-    const whole = scs.find((e) => e.A_whole_tokens)?.A_whole_tokens;
     $("t-wrong").innerHTML = `<h2>What went wrong, and why</h2>` + cards(find) + `<h2 class="t-h2">Case by case</h2>` + whatBroke(cmp.explain);
     const M = cmp.models || {}, by = (k) => (M[k] ? `<small>${esc(PROVIDER(M[k]))}</small>` : "");
     const total = (k) => (cnt(k) ? `<b>${sum(k, (x) => x.matches_rules)}/${sum(k, (x) => x.runs)}</b>` : "–");
     box.innerHTML = `<p class="t-intro">Every case, and how many of its 5 runs each method got right. Green: right every run; amber: right some runs; red: never right. `
-      + `Without Kanini Context the AI works from the same ${whole ? fmt(whole) + "-token " : ""}policy library: the same agent searching and reading it itself (A), one call with the best-matching passages (search), or one call with every document.</p>`
+      + `Without Kanini Context the AI works from the same policy library${cnt("A_whole") ? ` (about ${fmt(Math.round(avg("A_whole", (x) => x.tokens_in) / 500) * 500)} tokens)` : ""}: the same agent searching and reading it itself (A), one call with the best-matching passages (search), or one call with every document.</p>`
       + `<table class="t-table t-cases"><thead><tr><th>Case</th><th>Right answer</th><th>C · rules only<small>no AI</small></th><th>B · AI with Kanini Context, given the facts${by("B")}</th><th>B · same, reads the chart${by("B_raw")}</th>`
       + `${hasA ? `<th>A · AI alone${by("A")}</th>` : ""}<th>AI with search (one call)${by("A_rag")}</th><th>AI with every document (one call)${by("A_whole")}</th></tr></thead><tbody>${rows}</tbody>`
       + `<tfoot><tr><th>All six cases</th><td></td><td>${total("C") === "–" ? "–" : "<b>same every run</b>"}</td><td>${total("B")}</td><td>${total("B_raw")}</td>${hasA ? `<td>${total("A")}</td>` : ""}<td>${total("A_rag")}</td><td>${total("A_whole")}</td></tr></tfoot></table>`
-      + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.</p>`;
+      + `<p class="t-foot">From <code>propel/baseline/results/</code>: ${[...new Set(Object.values(cmp.files || {}))].map((f) => `<code>${esc(f)}</code>`).join(", ")}. Right means the same answer as the approved rules for that order.${cnt("A_whole") && cmp.models && cmp.models.A_whole && cmp.models.A_rag && cmp.models.A_whole !== cmp.models.A_rag ? ` Each column is scored on its own: the every-document column comes from an earlier run on another AI service, because one call with every document is larger than the per-minute limit of the service used for the rest.` : ""}</p>`;
   }
 
 
@@ -1016,7 +1042,7 @@
   function applySize(which) {
     const stage = document.querySelector(".stage2"), r = stage.getBoundingClientRect();
     if (which === "why") {
-      const w = sizes.why ? Math.max(320, Math.min(r.width - 160, sizes.why)) : null;
+      const w = sizes.why ? Math.max(320, Math.min(r.width - 560, sizes.why)) : null;
       stage.style.setProperty("--drawer-w", w ? w + "px" : "min(520px, 46%)");
       // the answer card and the score box need about 740px beside the drawer; with less, the score box steps aside
       // (the same three answers are in the Compare sheet)
@@ -1353,7 +1379,7 @@
         "It gives the same answer every time, with no AI. This is the answer key the others are checked against.", cSame)
       + tile("B", "AI with Kanini Context, given the facts", "Given the patient's values already pulled out (lab results, diagnoses)",
         `${right("B")} / ${runs("B")}`, "right",
-        `On the 6 test cases, 5 runs each, the AI asked Kanini Context and gave the rules' answer in ${right("B")} of ${runs("B")} runs.`, right("B") === runs("B"))
+        `On the 6 test cases, 5 runs each, the AI asked Kanini Context, and the answer recorded was the rules' answer in ${right("B")} of ${runs("B")} runs.`, right("B") === runs("B"))
       + (cnt("B_raw") ? tile("B", "AI with Kanini Context, reads the chart", "Given the patient chart as a clinic keeps it: lab results with dates and units, diagnoses, notes",
         `${right("B_raw")} / ${runs("B_raw")}`, "right",
         `It had to find the right values in the chart itself (the latest result, the right units). It got the facts right in ${sum("B_raw", (x) => x.facts_right || 0)} of ${runs("B_raw")} runs, and the answer right in ${right("B_raw")}.`,
@@ -1407,14 +1433,14 @@
     const inv = keys.map((k) => tot(k, "invented")), mis = keys.reduce((a, k) => a + tot(k, "misapplied"), 0);
     const f = [];
     f.push(["Splitting was not the problem", `Searching all the documents, the four ways of splitting them scored ${lo} to ${hi} of 30. With 6 cases and 5 runs each, a difference of one or two answers is noise.`]);
-    if (full.length) f.push(["Finding the right page did not help", `${full.map((k) => esc(E1_NAMES[k])).join(", ")} retrieved the page that decides each case in every run, and still scored ${tot(full[0], "right")} of 30. The model had the right page and used another.`]);
+    if (full.length) f.push(["Finding the right page did not help", `${full.map((k) => esc(E1_NAMES[k])).join(", ")} retrieved the page that decides each case in every run, and still scored ${tot(full[0], "right")} of 30. Having the right page was not enough: most wrong answers used text that does not apply to the patient.`]);
     if (S_.hybrid_state && S_.hybrid_state["maria-oh"]) f.push(["Ohio needs the right region, not better search",
       `The Ohio case was ${plain.map((k) => one(k, "maria-oh")).join(", ")} across the four ways that search every document, citing Tennessee's policy (eGFR limit 45; Ohio's is 60). Limited to Ohio's own documents it was ${one("hybrid_state", "maria-oh")}. Picking the region's policy before reading is what Kanini Context does.`]);
     if (allOf("maria-uhc-esa", keys)) f.push(["Some answers no search can give", "The UnitedHealthcare anemia-drug case was wrong in every run of every way, the state filter included. The payer's list names the drug only for cancer patients; the right answer is \"the documents do not settle it, send to staff\", which comes from a reviewed rule, not from the text."]);
     if (S_.current && S_.current["maria-nohgb"]) f.push(["A missing fact goes unnoticed", `With no hemoglobin on file, search was right ${keys.map((k) => one(k, "maria-nohgb")).join(", ")}. It answers as if the fact were there; Kanini Context's rules say which facts they test, so it answers "Missing patient information".`]);
     const invN = inv.reduce((a, b) => a + b, 0);
     f.push(["Real text, wrong place", `Across all ${keys.length} ways, ${invN} ${invN === 1 ? "answer" : "answers"} named a code or number found in none of the passages, while ${mis} used real text that does not apply to the patient. ${invN * 10 < mis ? "The AI rarely made things up; mostly it used the wrong part of the documents." : "Some answers made things up, and others used the wrong part of the documents."}`]);
-    if (bTok) f.push(["What it costs", `One search call sends the AI about ${fmt(ragTok)} tokens of text, fewer than B's ${fmt(bTok)}. Search is cheaper per question, but B was right ${bR} of ${bN} times and search about half, and nothing marks which half.`]);
+    if (bTok) f.push(["What it costs", `In this test one search call sends the AI about ${fmt(ragTok)} tokens of text (a budget of about 9,500 tokens of passages), fewer than B's ${fmt(bTok)}. Search is cheaper per question, but B was right ${bR} of ${bN} times and search about half, and nothing marks which half.`]);
     return `<div class="t-cards e-cards">${f.map(([h, p]) => `<div class="t-card"><h3>${h}</h3><p>${p}</p></div>`).join("")}</div>`;
   }
   function plainWhy(t) {   // the report's short answer names, in the words used on the rest of the page

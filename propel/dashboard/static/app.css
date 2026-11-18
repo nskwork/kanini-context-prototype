@@ -210,8 +210,8 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
   .zoom button{min-width:34px;padding:0 8px}
 }
 @media (max-width:1100px){
-  .app{grid-template-rows:auto 1fr auto;overflow:auto;height:auto}
-  html,body{overflow:auto}
+  .app{grid-template-rows:auto minmax(0,1fr) auto}   /* the page keeps its full height: the stage never collapses */
+  .cases{flex-wrap:wrap}   /* every case button stays on screen */
   .top{flex-wrap:wrap;padding:8px 14px}
   .stage{grid-template-columns:1fr;grid-template-rows:auto 60vh auto}
   .lane{grid-template-columns:24px 1fr}
@@ -706,9 +706,10 @@ details.sql pre,pre.q{background:#0b0d10}
 
 /* Testing page score tiles: who, what they were given, the score, what it means */
 .sc{display:flex;flex-direction:column;gap:2px}
-.sc .sc-h{display:flex;align-items:baseline;gap:10px}
+.sc .sc-h{display:flex;align-items:baseline;gap:10px;min-height:2.9em}   /* one- and two-line names: the scores line up */
 .sc .sc-name{font-size:15px;font-weight:600;color:#eceff4}
-.sc .sc-given{font-size:12.5px;color:#9aa4b1;line-height:1.4;min-height:2.8em}
+.sc .sc-given{font-size:12.5px;color:#9aa4b1;line-height:1.4;min-height:4.2em}
+.sc .n{white-space:nowrap}
 .sc .n small{font-size:15px;font-weight:500;margin-left:8px;color:#c9d0da}
 .sc p{line-height:1.45}
 
@@ -736,7 +737,7 @@ details.t-order summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
 details.t-order summary::-webkit-details-marker{display:none}
 details.t-order summary::before{content:"▸";color:#9aa4b1;width:10px}
 details.t-order[open] summary::before{content:"▾"}
-details.t-order summary code{font-family:var(--code);font-size:13px;color:#b9a6ff;min-width:130px}
+details.t-order summary code{font-family:var(--code);font-size:13px;color:#b9a6ff;flex:0 0 240px}   /* every row starts its text at the same place */
 details.t-order .t-rule{flex:1;min-width:260px}
 details.t-order .t-rule b{color:#eceff4}
 details.t-order .t-chips{display:flex;gap:12px;font-size:12.5px;color:#9aa4b1}

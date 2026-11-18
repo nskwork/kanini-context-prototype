@@ -162,7 +162,7 @@ def explain(report: dict) -> dict:
                     # the limit itself, however it was written ("< 45", "≈45", "below 45", "threshold … 45"), not a citation alone
                     tn = sum(1 for t in texts if re.search(r"(?:[<≤≈~]\s*|below\s+|less than\s+|under\s+|threshold[^.;]{0,40}?)45\b", t, re.I))
                     st3a = sum(1 for t in texts if re.search(r"N18\.31|3a|IIIa", t, re.I))
-                    if not runs_o or tn:
+                    if tn:   # said only when the runs show it
                         b["why"] += ("; Other gate is the answer under Tennessee's eGFR limit (below 45), not Ohio's (below 60)"
                                      + (f" ({tn} of {len(texts)} runs used it)" if texts else ""))
                     if st3a:

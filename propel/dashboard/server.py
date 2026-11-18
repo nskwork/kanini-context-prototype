@@ -198,7 +198,8 @@ def compare():
             if tgt["patient"] != e["patient"]:
                 continue
             lanes = {"A": e.get("A_agent"), "A_rag": e.get("A_rag"), "A_whole": e.get("A_whole"), "B": e.get("B"), "B_raw": e.get("B_raw"), "C": e.get("C"),
-                     "A_sent": e.get("A_rag_sent"), "A_whole_tokens": e.get("A_whole_prompt_tokens"), "A_runs": e.get("A_agent_runs")}
+                     "A_sent": e.get("A_rag_sent"), "A_whole_tokens": e.get("A_whole_prompt_tokens"), "A_runs": e.get("A_agent_runs"),
+                     "A_rag_runs": e.get("A_rag_runs"), "A_whole_runs": e.get("A_whole_runs")}
             for lane, v in lanes.items():
                 if v and lane not in tgt:
                     tgt[lane] = v
@@ -214,7 +215,7 @@ def compare():
         from propel.baseline import failures
         at = out.get("at") or {}
         out["explain"] = failures.explain({"at": at.get("A") or at.get("A_rag"), "scenarios": out["scenarios"]})
-        names = {"A": "A · agent without Kanini Context", "A_rag": "Single LLM call with search (RAG)", "A_whole": "Single LLM call with every document"}
+        names = {"A": "A · AI alone", "A_rag": "AI with search (one call)", "A_whole": "AI with every document (one call)"}
         out["explain"]["when"] = "; ".join(f"{names[k]} {failures._when(v)}" for k, v in at.items() if k in names)
     except Exception as ex:
         print(f"[dashboard] testing explanation not available: {ex}", flush=True)
@@ -447,14 +448,22 @@ async def run_workflow(run: Run):
     p, o = _order(run.patient)
     f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
     args = {"plan": p["coverage"]["plan"], "state": p["coverage"]["state"], "code": o["code"], "date_of_service": o["date_of_service"]}
-    await run.emit("tool_call", name="rules_evaluate", args={**args, "facts": f}, turn=0)
-    t = time.perf_counter()
+    try:
+        await run.emit("tool_call", name="rules_evaluate", args={**args, "facts": f}, turn=0)
+        t = time.perf_counter()
+        r = await asyncio.to_thread(_evaluate, args["plan"], args["state"], o["code"], args["date_of_service"], f)
+        await run.emit("tool_result", name="rules_evaluate", payload=r, call_ms=round((time.perf_counter() - t) * 1000, 1))
+        await run.emit("done", llm_calls=0, tokens_in=0, tokens_out=0)
+    except Exception as ex:   # the lane always ends: a database error is reported, never a lane left waiting
+        await run.emit("error", message="the rules database did not answer: " + str(ex)[:300])
+    finally:
+        run.done = True
+
+
+def _evaluate(plan: str, state: str, code: str, dos: str, facts: dict) -> dict:
     with db() as c:
-        r = c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)",
-                      (args["plan"], args["state"], "HCPCS|" + o["code"], args["date_of_service"], json.dumps(f))).fetchone()[0]
-    await run.emit("tool_result", name="rules_evaluate", payload=r, call_ms=round((time.perf_counter() - t) * 1000, 1))
-    await run.emit("done", llm_calls=0, tokens_in=0, tokens_out=0)
-    run.done = True
+        return c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)",
+                         (plan, state, "HCPCS|" + code, dos, json.dumps(facts))).fetchone()[0]
 
 
 async def run_documents(run: Run):
@@ -484,9 +493,8 @@ async def run_documents(run: Run):
         await run.emit("model", turn=1, tokens_in=u.prompt_tokens, tokens_out=u.completion_tokens, answer=ans.get("outcome"),
                        reasons=ans.get("reasons") or [], citation=ans.get("citation"))
         f = {**p["facts"], "encounter_type": o["encounter_type"], "urgency": o["urgency"], "request_type": o["request_type"]}
-        with db() as c:   # the rules' answer for the same order, to mark the AI's answer right or wrong
-            ref = c.execute("SELECT kc_api.evaluate_order(%s,%s,%s,%s::date,%s::jsonb)", (p["coverage"]["plan"], p["coverage"]["state"],
-                            "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f))).fetchone()[0]
+        # the rules' answer for the same order, to mark the AI's answer right or wrong
+        ref = await asyncio.to_thread(_evaluate, p["coverage"]["plan"], p["coverage"]["state"], o["code"], o["date_of_service"], f)
         await run.emit("reference", outcome=ref["outcome"], matches=ans.get("outcome") == ref["outcome"])
         await run.emit("done", llm_calls=1, tokens_in=u.prompt_tokens, tokens_out=u.completion_tokens)
     except Exception as ex:
@@ -736,7 +744,7 @@ def _rules_answer(pid: str) -> dict:
 @app.post("/api/run")
 async def start(body: dict):
     pid, mode, raw = body.get("patient"), body.get("mode", "agent"), bool(body.get("raw")) and body.get("mode", "agent") == "agent"
-    if pid not in PATIENTS or mode not in ("agent", "nocontext", "workflow", "documents"):
+    if not isinstance(pid, str) or not isinstance(mode, str) or pid not in PATIENTS or mode not in ("agent", "nocontext", "workflow", "documents"):
         raise HTTPException(400, "patient must be a known patient id and mode agent, workflow or documents")
     for old in [x for x in RUNS.values() if x.mode == mode]:   # a new run of a mode replaces the last one of that mode
         if old.confirm and not old.confirm.done():
