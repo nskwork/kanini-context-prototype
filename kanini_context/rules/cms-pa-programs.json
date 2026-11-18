@@ -480,6 +480,13 @@
       "NANDHU S K"
     ],
     "review_exception": "Prototype scope: one engineer checked each rule against its source; formal two-person review at a later stage",
-    "reviewed_at": "2026-11-12"
+    "reviewed_at": "2026-11-17",
+    "approvals": [
+      {
+        "by": "NANDHU S K",
+        "at": "2026-11-17"
+      }
+    ],
+    "reviewed_sha": "ebb3023c18936640313dce3fb9c9af830143672f6a3334861671d8da67446116"
   }
 }
