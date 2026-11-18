@@ -2,13 +2,14 @@
 --
 -- Loaded after api.sql. Nothing here changes a table, a tool or an answer.
 --
--- Five views in their own schema, kc_views, each one row per thing a reader would point at:
+-- Seven views in their own schema, kc_views, each one row per thing a reader would point at:
 --   kc_views.documents          one row per source document
 --   kc_views.rules              one row per approved rule, with what it says in plain words
 --   kc_views.policy_scopes      one row per place, plan or program where a policy applies
 --   kc_views.medicare_programs  one row per CMS prior authorization program, with what its list says
 --   kc_views.codes              one row per code in a code group the rules use
 --   kc_views.releases           one row per release of the pack, with its sync to this copy
+--   kc_views.medicare_regions   one row per state, with the Medicare contractor region that covers it
 -- and one function in kc_api, explain_order, which traces one answer step by step.
 -- Read access for the agent role is granted in release/build.py.
 --
@@ -440,6 +441,27 @@ COMMENT ON COLUMN kc_views.codes.description IS 'The code''s description; empty 
 COMMENT ON COLUMN kc_views.codes.relation IS 'How the code relates to the group: equivalent, narrower, broader, related, or member.';
 COMMENT ON COLUMN kc_views.codes.effective_from IS 'First day the code belongs to the group.';
 COMMENT ON COLUMN kc_views.codes.effective_to IS 'Last day the code belongs to the group; empty means no end date.';
+
+-------------------------------------------------------------------------------
+-- medicare_regions
+-------------------------------------------------------------------------------
+CREATE VIEW kc_views.medicare_regions AS
+SELECT s.code      AS state_code,
+       s.name      AS state_name,
+       m.code      AS region_code,
+       m.name      AS region_name,
+       m.contractor
+  FROM kc_core.edge e
+  JOIN kc_core.jurisdiction s ON s.entity_id = e.from_id AND s.kind = 'state'
+  JOIN kc_core.jurisdiction m ON m.entity_id = e.to_id AND m.kind = 'mac_ab'
+ WHERE e.relation_type = 'within' AND upper_inf(e.recorded);
+
+COMMENT ON VIEW kc_views.medicare_regions IS 'One row per state, with the Medicare contractor region that covers it. Each region''s contractor writes its own coverage policies, so the region decides which policy applies.';
+COMMENT ON COLUMN kc_views.medicare_regions.state_code IS 'The state''s two-letter code.';
+COMMENT ON COLUMN kc_views.medicare_regions.state_name IS 'The state''s name.';
+COMMENT ON COLUMN kc_views.medicare_regions.region_code IS 'The Medicare A/B contractor region (jurisdiction), such as J15 or JJ.';
+COMMENT ON COLUMN kc_views.medicare_regions.region_name IS 'The region''s full name.';
+COMMENT ON COLUMN kc_views.medicare_regions.contractor IS 'The Medicare contractor for the region, who writes its local coverage policies.';
 
 -------------------------------------------------------------------------------
 -- releases

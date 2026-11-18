@@ -111,7 +111,7 @@ def test_every_view_and_column_is_described(db):
     assert not missing, missing
     views = db.execute("""SELECT c.relname, obj_description(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                            WHERE n.nspname = 'kc_views' AND c.relkind = 'v'""").fetchall()
-    assert {v for v, _ in views} == {"documents", "rules", "policy_scopes", "medicare_programs", "codes", "releases"}
+    assert {v for v, _ in views} == {"documents", "rules", "policy_scopes", "medicare_programs", "codes", "releases", "medicare_regions"}
     assert all(d for _, d in views)
 
 

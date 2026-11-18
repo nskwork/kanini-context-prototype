@@ -391,6 +391,77 @@ def _order_args(pid: str) -> tuple:
     return p["coverage"]["plan"], p["coverage"]["state"], "HCPCS|" + o["code"], o["date_of_service"], json.dumps(f)
 
 
+# The stored rows behind each of the five steps of "Why is this right?", one list of tables per step. Every query reads
+# the views (kc_views) or calls the same functions lane C calls, inside one read-only transaction with a time limit.
+STEP_SQL: list[list[tuple[str, str]]] = [
+    [("The state's Medicare contractor region", """SELECT state_code, state_name, region_code, contractor
+  FROM kc_views.medicare_regions
+ WHERE state_code = %(state)s""")],
+    [("Approved rules in force for this drug, plan and place on the date (the next step checks which ones the patient meets)",
+      """SELECT r.citation, r.rule_type, r.subject, r.applies_in, r.effective_from
+  FROM kc_views.rules r
+ WHERE r.rule_ref IN (SELECT a ->> 'rule_ref'
+                        FROM jsonb_array_elements(kc_api.applicable_rules(%(plan)s, %(state)s, %(code)s, %(as_of)s::date) -> 'rules') a)
+   AND r.rule_type <> 'Medicare program list checked'
+ ORDER BY r.citation, r.rule_type""")],
+    [("The patient's values against each policy's criteria", """SELECT p ->> 'citation' AS policy, i ->> 'detail' AS what_was_checked, i ->> 'status' AS result
+  FROM kc_api.evaluate_order(%(plan)s, %(state)s, %(code)s, %(as_of)s::date, %(facts)s::jsonb) x,
+       jsonb_array_elements(x -> 'coverage_criteria' -> 'policies') p,
+       jsonb_array_elements(p -> 'groups') g,
+       jsonb_array_elements(g -> 'items') i""")],
+    [("CMS prior authorization programs for this place and date, and what each list says", """SELECT mp.program, mp.is_checked, mp.finding, mp.page
+  FROM kc_views.medicare_programs mp
+ WHERE %(plan)s = 'original-medicare'
+   AND EXISTS (SELECT 1 FROM kc_views.policy_scopes ps
+                WHERE ps.citation = mp.program AND ps.place_code IN ('US', %(state)s)
+                  AND ps.effective_from <= %(as_of)s::date
+                  AND (ps.effective_to IS NULL OR ps.effective_to >= %(as_of)s::date))
+ ORDER BY mp.program""")],
+    [("The answer, as lane C gets it", """SELECT x ->> 'outcome' AS outcome, x ->> 'safe_to_act' AS ready_to_act_on, x ->> 'next_step' AS next_step,
+       x -> 'primary_rule' ->> 'citation' AS deciding_policy, x ->> 'pack_release' AS release
+  FROM kc_api.evaluate_order(%(plan)s, %(state)s, %(code)s, %(as_of)s::date, %(facts)s::jsonb) x"""),
+     ("The stored row behind it: the deciding rule, its quote, its approval and its source document", """SELECT r.citation, r.page, r.summary, r.quote, r.edition, r.approved_by, r.approved_at::date AS approved_at,
+       d.last_checked_at::date AS source_last_checked, d.freshness
+  FROM kc_views.rules r
+  JOIN kc_views.documents d ON d.source_id = r.source_id
+ WHERE r.rule_ref = %(rule)s""")]]
+STEP_MA = ("Policies stored for this plan", """SELECT DISTINCT plan, citation, document_type
+  FROM kc_views.policy_scopes
+ WHERE plan_code = %(plan)s
+ ORDER BY citation""")
+
+
+def _plain(v):
+    return v.isoformat() if hasattr(v, "isoformat") else v
+
+
+def _step_rows(params: dict) -> list[list[dict]]:
+    lit = lambda v: "'" + str(v).replace("'", "''") + "'"  # noqa: E731  (shown to the reader, never executed)
+    out = []
+    with db() as c, c.transaction():
+        c.execute("SET TRANSACTION READ ONLY")
+        c.execute("SET LOCAL statement_timeout = '3000ms'")
+        for i, step in enumerate(STEP_SQL):
+            if i == 0 and params["plan"] != "original-medicare":
+                step = [STEP_MA]   # a Medicare Advantage plan's own policies decide, not the state's contractor region
+            tables = []
+            for title, sql in step:
+                shown = sql
+                for k, v in params.items():
+                    shown = shown.replace(f"%({k})s", lit(v))
+                try:
+                    with c.transaction():   # a savepoint: one failing query leaves the others
+                        cur = c.execute(sql, params)
+                        cols = [d.name for d in cur.description]
+                        rows = [[_plain(v) for v in r] for r in cur.fetchall()]
+                    tables.append({"title": title, "sql": shown + ";", "cols": cols, "rows": rows})
+                except psycopg.Error as ex:
+                    tables.append({"title": title, "sql": shown + ";", "cols": [], "rows": [],
+                                   "error": REBUILD if isinstance(ex, psycopg.errors.UndefinedTable) else str(ex).splitlines()[0]})
+            out.append(tables)
+    return out
+
+
 @app.get("/api/explain")
 def explain(patient: str):
     """Why the rules' answer is right, step by step, from kc_api.explain_order: it calls kc_api.evaluate_order (the
@@ -405,7 +476,9 @@ def explain(patient: str):
             r = c.execute("SELECT kc_api.explain_order(%s, %s, %s, %s::date, %s::jsonb)", args).fetchone()[0]
     except psycopg.errors.UndefinedFunction:
         raise HTTPException(503, REBUILD)
-    return {**r, "sql": {"answer": f"SELECT kc_api.evaluate_order({shown});", "trace": f"SELECT kc_api.explain_order({shown});"}}
+    rule = ((r.get("answer") or {}).get("primary_rule") or {}).get("rule_ref") or ""
+    rows = _step_rows({"plan": args[0], "state": args[1], "code": args[2], "as_of": args[3], "facts": args[4], "rule": rule})
+    return {**r, "rows": rows, "sql": {"answer": f"SELECT kc_api.evaluate_order({shown});", "trace": f"SELECT kc_api.explain_order({shown});"}}
 
 
 # --- Runs: the agent (B) or the workflow (C), streamed as events ----------------------------------------------------

@@ -160,3 +160,21 @@ def test_raw_chart_run_streams_the_facts_b_built(client, kc_http, monkeypatch):
 def test_run_refuses_input_of_the_wrong_type(client):
     for body in ({"patient": ["maria-tn"]}, {"patient": "maria-tn", "mode": ["workflow"]}, {"patient": "nobody"}):
         assert client.post("/api/run", json=body).status_code == 400
+
+
+def test_explain_shows_the_stored_rows_behind_each_step(client):
+    """Each of the five steps carries the rows the views hold for it and the query that read them; the deciding
+    rule's stored row is the answer's own rule."""
+    e = client.get("/api/explain", params={"patient": "maria-oh"}).json()
+    assert len(e["rows"]) == 5 and all(t["sql"].startswith("SELECT") and "error" not in t for s in e["rows"] for t in s)
+    [region] = e["rows"][0]
+    assert region["rows"] == [["OH", "Ohio", "J15", region["rows"][0][3]]]
+    answer, rule = e["rows"][4]
+    assert answer["rows"][0][answer["cols"].index("outcome")] == e["answer"]["outcome"]
+    cited = rule["rows"][0][rule["cols"].index("citation")]
+    assert cited == e["answer"]["primary_rule"]["citation"] == "LCD L34356"
+    assert {"quote", "approved_by", "source_last_checked"} <= set(rule["cols"])
+    progs = [r[0] for r in e["rows"][3][0]["rows"]]
+    assert progs == sorted(g["program"] for g in e["programs"])   # the same programs explain_order checked
+    uhc = client.get("/api/explain", params={"patient": "maria-uhc"}).json()
+    assert uhc["rows"][0][0]["title"] == "Policies stored for this plan" and uhc["rows"][3][0]["rows"] == []

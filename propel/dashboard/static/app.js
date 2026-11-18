@@ -1185,7 +1185,7 @@
       if (S.order !== o) return;
       S.trace = r.ok ? await r.json() : { error: (await r.json().catch(() => ({}))).detail || "The explanation is not available." };
     } catch (_) { S.trace = { error: "The explanation is not available." }; }
-    renderWhy();
+    renderWhy(); renderMatch();   // the comparison also shows the deciding rule's stored row
   }
   const STATUS = { met: ["met", "ok"], not_met: ["not met", "bad"], unknown: ["unknown", "warn"], not_applicable: ["not applicable", "mute"] };
   const pill = (st) => { const [t, c] = STATUS[st] || [words(st || ""), "mute"]; return `<span class="st ${c}">${esc(t)}</span>`; };
@@ -1236,12 +1236,39 @@
     return cc + (progRows ? `<table class="mini"><thead><tr><th>Medicare program</th><th>List</th><th>Finding</th></tr></thead><tbody>${progRows}</tbody></table>` : "")
       + `<pre class="q">${esc(t.sql.answer)}\n\n-- the steps above\n${esc(t.sql.trace)}</pre>`;
   }
+  // the stored rows behind one step: each table with the query that produced it
+  const COLS = { state_code: "State", state_name: "Name", region_code: "Region", is_checked: "List checked", ready_to_act_on: "Ready to act on",
+    what_was_checked: "What was checked", source_last_checked: "Source last checked", approved_by: "Approved by", approved_at: "Approved on",
+    effective_from: "In force from", applies_in: "Applies in", rule_type: "Rule type", document_type: "Document", next_step: "Next step",
+    deciding_policy: "Deciding policy" };
+  const cellOf = (col, v) => {
+    if (v == null || v === "") return '<td class="none">–</td>';
+    if (col === "outcome") return `<td><b style="color:${(OUTCOME[v] || [])[1] || "inherit"}">${esc((OUTCOME[v] || [v])[0])}</b></td>`;
+    if (col === "result") return `<td>${pill(v)}</td>`;
+    if (v === true || v === "true") return "<td>yes</td>";
+    if (v === false || v === "false") return "<td>no</td>";
+    if (col === "next_step") return `<td>${esc(NEXT(v))}</td>`;
+    if (col === "quote") return `<td class="qt">“${esc(v)}”</td>`;
+    return `<td>${esc(String(v))}</td>`;
+  };
+  function stepRows(tables) {
+    if (!tables || !tables.length) return "";
+    return `<details class="srows"><summary>The stored rows behind this step</summary>` + tables.map((t) =>
+      `<div class="srow-t">${esc(t.title)}</div>`
+      + (t.error ? `<p class="empty">${esc(t.error)}</p>`
+        : !t.rows.length ? `<p class="empty">No rows: nothing stored matches, which is why this step reads as it does.</p>`
+        : t.rows.length === 1 && t.cols.length > 3   // one row: one line per column, readable in the narrow panel
+          ? `<table class="mini srow kv"><tbody>${t.cols.map((c, j) => `<tr><th>${esc(COLS[c] || words(c).replace(/^\w/, (x) => x.toUpperCase()))}</th>${cellOf(c, t.rows[0][j])}</tr>`).join("")}</tbody></table>`
+        : `<div class="srow-w"><table class="mini srow"><thead><tr>${t.cols.map((c) => `<th>${esc(COLS[c] || words(c).replace(/^\w/, (x) => x.toUpperCase()))}</th>`).join("")}</tr></thead><tbody>`
+          + t.rows.map((r) => `<tr>${r.map((v, j) => cellOf(t.cols[j], v)).join("")}</tr>`).join("") + "</tbody></table></div>")
+      + `<details class="sql"><summary>The query</summary><pre>${esc(t.sql)}</pre></details>`).join("") + "</details>";
+  }
   function renderWhy() {
     const box = $("why"), t = S.trace;
     if (!t) { box.innerHTML = '<p class="empty">Run the case to see why the answer is right.</p>'; return; }
     if (t.error) { box.innerHTML = `<p class="empty">${esc(t.error)}</p>`; return; }
-    box.innerHTML = `<ol class="steps">${whySteps(t).map(([h, d, st, col], i) => `<li class="${st}"><span>${i + 1}</span><div><b${col ? ` style="color:${col}"` : ""}>${esc(h)}</b>${d ? `<p>${esc(d)}</p>` : ""}</div></li>`).join("")}</ol>`
-      + `<p class="note">The same database function C uses, step by step. Nothing here is written by AI.</p>`
+    box.innerHTML = `<ol class="steps">${whySteps(t).map(([h, d, st, col], i) => `<li class="${st}"><span>${i + 1}</span><div><b${col ? ` style="color:${col}"` : ""}>${esc(h)}</b>${d ? `<p>${esc(d)}</p>` : ""}${stepRows((t.rows || [])[i])}</div></li>`).join("")}</ol>`
+      + `<p class="note">The same database function C uses, step by step. Nothing here is written by AI. Under each step, “The stored rows behind this step” shows the rows in the database and the query that read them.</p>`
       + `<details class="more-d"><summary>Show the details and the query</summary>${whyDetail(t)}</details>`;
   }
   const NEXT = (k) => (!k ? "" : { human_review: "send to staff", proceed: "go ahead", submit_prior_authorization: "submit for prior authorization",
@@ -1258,6 +1285,15 @@
       ["Deciding rule", (p) => p && (shortRule(ruleOf(p)) || "none"), w && shortRule(w.rule_ref)],
       ["Source", srcOf, w && w.source],
       ["Next step", (p) => p && NEXT(p.next_step), w && NEXT(w.next_step)]];
+    // the deciding rule's stored row (kc_views.rules joined to kc_views.documents), for whichever answer uses that rule
+    const dec = S.trace && S.trace.rows && (S.trace.rows[4] || [])[1], decRef = S.trace && ruleOf(S.trace.answer);
+    if (dec && dec.rows && dec.rows.length && decRef) {
+      const row = Object.fromEntries(dec.cols.map((k, j) => [k, dec.rows[0][j]]));
+      const of = (v) => (p) => (p && ruleOf(p) === decRef ? v : null);
+      F.push(["Rule's edition", of(row.edition), null],
+        ["Approved by", of(row.approved_by ? `${row.approved_by}, ${row.approved_at}` : null), null],
+        ["Source last checked", of(row.source_last_checked ? `${row.source_last_checked} (${row.freshness})` : null), null]);
+    }
     const cell = (v, ref) => (v == null || v === "" ? '<td class="none">–</td>' : `<td>${esc(v)}${ref != null && ref !== "" ? (v === ref ? ' <span class="ok">✓</span>' : ' <span class="bad">✗</span>') : ""}</td>`);
     const rows = F.map(([k, f, wv]) => { const cv = f(c); return `<tr><th>${k}</th>${cell(cv, null)}${cell(wv, cv)}${cell(b && b.eval ? f(b.eval) : null, cv)}</tr>`; }).join("");
     const verdict = !b || !b.eval || !c ? "" : sameAnswer(b.eval, c) ? '<p class="verdict ok">B gave the same answer as C.</p>' : '<p class="verdict bad">B did not give the same answer as C. C\'s answer stays on screen.</p>';
