@@ -247,6 +247,7 @@ def test_20_overlapping_rule_version(release, tmp_path, db):
         (tmp_path / p.name).write_text(p.read_text(encoding="utf-8"))
     dup = copy.deepcopy(src["rules"][0]) | {"valid_from": "2026-10-01"}
     src["rules"].append(dup)
+    src["review"] = {k: v for k, v in src["review"].items() if k != "reviewed_sha"}   # an edited copy: its fingerprint no longer applies
     (tmp_path / "mcd-lcd-l39237.json").write_text(json.dumps(src), encoding="utf-8")
     with psycopg.connect("dbname=postgres", autocommit=True) as c:
         c.execute("DROP DATABASE IF EXISTS kct_overlap WITH (FORCE)")

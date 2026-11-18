@@ -181,8 +181,10 @@ def test_engineer_approval_loads_as_a_real_release(release, tmp_path):
     import sys
     import psycopg
     from kanini_context.curation.approve import SCOPE_EXCEPTION
-    for p in (ROOT / "kanini_context/rules").glob("*.json"):
-        (tmp_path / p.name).write_text(p.read_text(encoding="utf-8"))
+    for p in (ROOT / "kanini_context/rules").glob("*.json"):   # copies as never approved: this test is a first approval
+        d = json.loads(p.read_text(encoding="utf-8"))
+        d["review"] = {k: v for k, v in d["review"].items() if k not in ("reviewed_by", "reviewed_at", "approvals", "reviewed_sha", "review_exception")}
+        (tmp_path / p.name).write_text(json.dumps(d), encoding="utf-8")
     files = sorted(tmp_path.glob("*.json"))
     a = subprocess.run([sys.executable, "-m", "kanini_context.curation.approve", "--by", "Test Engineer", "--yes", *map(str, files)],
                        cwd=ROOT, capture_output=True, text=True)

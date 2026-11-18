@@ -88,3 +88,19 @@ def test_the_loader_counts_one_person_once_whatever_the_case():
     d["review"].update({"reviewed_by": ["NANDHU S K", "nandhu s k"]})
     with pytest.raises(LoadError):
         review_of(d, False)
+
+
+def test_a_release_needs_the_approved_files_fingerprint():
+    d = fresh()
+    d["review"].update({"reviewed_by": ["NANDHU S K"], "review_exception": A.SCOPE_EXCEPTION})   # approved before fingerprints
+    with pytest.raises(LoadError, match="without a fingerprint"):
+        review_of(d, False)
+    assert review_of(d, True)[0] == ["NANDHU S K"]          # a local TEST build still loads it
+    A.record(fresh_d := fresh(), ["NANDHU S K"])
+    assert review_of(fresh_d, False)[0] == ["NANDHU S K"]   # approved now: loads
+
+
+def test_committed_rule_files_are_approved_with_a_fingerprint():
+    for p in (ROOT / "kanini_context/rules").glob("*.json"):
+        d = json.loads(p.read_text(encoding="utf-8"))
+        assert d["review"].get("reviewed_sha") == A.content_sha(d), p.name
