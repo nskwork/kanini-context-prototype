@@ -103,7 +103,10 @@
     ng.append("circle").attr("class", "core");
     ng.append("text").attr("dy", 16).attr("text-anchor", "middle").text((n) => nodeLabel(n));
     paint();
+    let lastLabels = 0;
     sim.on("tick", () => {
+      const now = performance.now();
+      if (now - lastLabels > 400) { lastLabels = now; labelPass(); }   // nodes drift: overlaps are checked again
       le.attr("x1", (l) => l.source.x).attr("y1", (l) => l.source.y).attr("x2", (l) => l.target.x).attr("y2", (l) => l.target.y);
       ng.attr("transform", (n) => `translate(${n.x},${n.y})`);
     });
@@ -159,9 +162,23 @@
   }
   function labelPass() {
     const big = new Set(["Plan", "Payer", "Authority", "Concept", "Class"]);
-    gNodes.selectAll("text").style("opacity", (n) =>
+    const lit = nodes.some((n) => n.on || n.cand);
+    const want = (n) =>
       ["Source", "Program", "ValueSet", "Snapshot"].includes(n.kind) && n.on && zoomK < 2.1 ? 0   // repeats a nearby name: on hover or deep zoom
-      : n.on || n.cand || n.unscr ? 1 : n.prog ? (zoomK >= 1.8 && n.kind !== "Rule" ? 0.85 : 0) : zoomK >= 2.1 ? 0.85 : zoomK >= 1.25 && big.has(n.kind) ? 0.75 : S.view === "onto" && (n.depth <= 1 || zoomK >= 1.3) ? 0.75 : 0);
+      : n.on || n.cand || n.unscr ? 1 : n.prog ? (zoomK >= 1.8 && n.kind !== "Rule" ? 0.85 : 0) : zoomK >= 2.1 ? 0.85
+      : (big.has(n.kind) || (!lit && n.kind === "Jurisdiction")) && (zoomK >= 1.25 || !lit) ? 0.75   // with nothing lit, the main nodes are named at any zoom
+      : S.view === "onto" && (n.depth <= 1 || zoomK >= 1.3) ? 0.75 : 0;
+    // a label that would overlap one already placed stays hidden (it shows on hover); the answer's own nodes go first
+    const rank = (n) => (n.on && n.primary ? 6 : n.on ? 5 : n.unscr ? 4 : n.cand ? 3 : n.prog ? 2 : big.has(n.kind) ? 1 : 0);
+    const s = Math.min(1.6, Math.max(0.75, 1 / Math.sqrt(zoomK))), fs = 12 * s, placed = [], op = new Map();
+    nodes.slice().sort((a, b) => rank(b) - rank(a)).forEach((n) => {
+      const o = want(n);
+      if (!o || !Number.isFinite(n.x)) { op.set(n, 0); return; }
+      const w = nodeLabel(n).length * fs * 0.62 + 8 * s, x0 = n.x - w / 2, x1 = n.x + w / 2, y0 = n.y + 16 * s - fs * 1.1, y1 = n.y + 16 * s + fs * 0.4;
+      if (placed.some((p) => x0 < p[2] && x1 > p[0] && y0 < p[3] && y1 > p[1])) { op.set(n, 0); return; }
+      placed.push([x0, y0, x1, y1]); op.set(n, o);
+    });
+    gNodes.selectAll("text").style("opacity", (n) => op.get(n) ?? 0);
   }
   function legend(mode) {
     const counts = {};
@@ -177,14 +194,28 @@
     t.style.left = e.clientX - r.left + 14 + "px"; t.style.top = e.clientY - r.top + 10 + "px";
     t.classList.remove("hidden");
   }
+  function freeArea() {   // on the order page: the graph between the answer card, the three-ways panel and the buttons
+    const r = svg.node().getBoundingClientRect();
+    let l = 0, rr = r.width, b = r.height;
+    if (S.page === "ask" && S.view !== "onto") {
+      const box = (id) => { const e = $(id); return e && e.offsetParent ? e.getBoundingClientRect() : null; };
+      const c = box("card"), a = box("answers"), d = document.querySelector(".dock")?.getBoundingClientRect();
+      if (c) l = c.right - r.left + 8;
+      if (a) rr = a.left - r.left - 8;
+      if (d && d.height) b = d.top - r.top - 4;
+      if (rr - l < r.width * 0.3) { l = 0; rr = r.width; }   // too narrow: use the whole graph
+    }
+    return [l, rr, 0, b];
+  }
   function fitTo(set, ms = 900) {
     const pts = set.filter((n) => Number.isFinite(n.x));
     if (!pts.length) return;
-    const [w, h] = size();
-    if (w < 10 || h < 10) return;   // the graph is on a page not in view
+    const [w0, h0] = size();
+    if (w0 < 10 || h0 < 10) return;   // the graph is on a page not in view
+    const [l, r, t, b] = freeArea(), w = r - l, h = b - t;
     const x0 = d3.min(pts, (n) => n.x), x1 = d3.max(pts, (n) => n.x), y0 = d3.min(pts, (n) => n.y), y1 = d3.max(pts, (n) => n.y);
-    const k = Math.min(2.4, 0.7 / Math.max((x1 - x0 + 100) / w, (y1 - y0 + 100) / h));
-    const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    const k = Math.min(2.4, 0.8 / Math.max((x1 - x0 + 100) / w, (y1 - y0 + 100) / h));
+    const tr = d3.zoomIdentity.translate((l + r) / 2, (t + b) / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
     (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
   /* zoom with the mouse wheel or a trackpad; the camera still follows each answer on its own */
@@ -354,17 +385,32 @@
     if (exp && exp.reference_outcome) rows.push(["Expected", OUTCOME[exp.reference_outcome]?.[0] || exp.reference_outcome]);
     return `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd${k === "Expected" ? ' class="exp"' : ""}>${esc(v)}</dd>`).join("")}</dl>`;
   }
+  const question = (o) => `Does ${drugName(o).toLowerCase()} (${o.code}) for this ${o.state_name} ${planShort(o)} patient need prior authorization?`;
+  function caseLine() {   // the case stays on screen before, during and after a run
+    const o = S.order, box = $("caseline");
+    if (!box) return;
+    if (!o) { box.innerHTML = ""; return; }
+    const f = o.facts || {}, unit = (k) => ((o.fact_names || {})[k] || {}).unit || "";
+    const vals = [["Hemoglobin", f.hgb_g_dl != null ? `${f.hgb_g_dl} ${unit("hgb_g_dl") || "g/dL"}` : "not on file"],
+      ["eGFR", f.egfr != null ? String(f.egfr) : null], ["Diagnoses", (f.diagnosis_codes || []).join(", ") || null],
+      ["Dialysis", f.dialysis_status === "none" ? "no" : f.dialysis_status || null]].filter(([, v]) => v);
+    const exp = scenarioFor(o.patient);
+    box.innerHTML = `<span class="cq">Case ${S.orders.indexOf(o) + 1} · ${esc(question(o))}</span>`
+      + vals.map(([k, v]) => `<span class="cv"><b>${esc(k)}</b>${esc(v)}</span>`).join("")
+      + (exp && exp.reference_outcome ? `<span class="ce">Expected: <b>${esc(OUTCOME[exp.reference_outcome]?.[0] || exp.reference_outcome)}</b></span>` : "");
+  }
   function card(p) {
     const c = $("card"), o = S.order;
+    caseLine();
     if (!o) { c.innerHTML = ""; return; }
     const head = `<div class="k">Case ${S.orders.indexOf(o) + 1} · ${esc(caseName(o))}</div>`;
-    const q = `Does ${drugName(o).toLowerCase()} (${o.code}) for this ${o.state_name} ${planShort(o)} patient need prior authorization?`;
     const b = lanes.B && lanes.B.st;
-    const approve = b && (b.awaiting || (b.active && !b.done))
-      ? '<div class="approve"><span>The agent asks to log this decision</span><button type="button" class="yes" id="ok" disabled>Approve</button><button type="button" class="no" id="nok" disabled>Reject</button></div>' : "";
+    // only once B has finished and asks: staff, not the agent, decide whether the decision is written to the record
+    const approve = b && b.awaiting
+      ? '<div class="approve"><span>B asks to record this decision. Staff decide:</span><button type="button" class="yes" id="ok">Approve</button><button type="button" class="no" id="nok">Reject</button></div>' : "";
     if (!p) {
       c.style.removeProperty("--oc"); c.classList.remove("live");
-      c.innerHTML = head + `<p class="q">${esc(q)}</p>` + factRows(o) + approve;
+      c.innerHTML = head + `<p class="q">Not run yet. Press <b>Run all three</b> to ask C, B and A.</p>` + factRows(o) + approve;
     } else {
       const [label, color] = OUTCOME[p.outcome] || ["Not known", "#F04F4F"];
       c.style.setProperty("--oc", color); c.classList.add("live");
@@ -377,10 +423,7 @@
         + ((p.rule_refs || []).length ? `<button type="button" class="linkish" id="to-rules">The ${p.rule_refs.length} rules behind this answer</button>` : "");
       if ($("to-rules")) $("to-rules").onclick = () => caseRules(o, p.rule_refs);
     }
-    if ($("ok")) {
-      $("ok").onclick = () => confirm(true); $("nok").onclick = () => confirm(false);
-      if (b.awaiting) { $("ok").disabled = false; $("nok").disabled = false; }
-    }
+    if ($("ok")) { $("ok").onclick = () => confirm(true); $("nok").onclick = () => confirm(false); }
     renderAnswers();
   }
 
@@ -418,7 +461,7 @@
   function renderAnswers() {   // C, B and A: each one's answer for this case, B and A marked against C
     const box = $("answers");
     if (!box) return;
-    const row = (L, name) => {
+    const row = (L, name, desc) => {
       const st = lanes[L].st;
       let ans = null, ok = null;
       if (L === "A") { ans = st.answer; ok = S.scripted && !st.tin ? null : st.ok; }   // a scripted stand-in is not graded
@@ -428,9 +471,18 @@
       const mark = ok == null ? "" : ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
       const cost = st.done && !st.failed ? (L === "C" ? `0 tokens · ${st.callMs ?? "–"} ms` : `${S.scripted && !st.tin ? "scripted" : fmt(st.tin) + " tokens"} · ${(((st.ms ?? 0) / 1000)).toFixed(1)} s`) : "";
       const col = ans && !st.active ? (OUTCOME[ans]?.[1] || "#fff") : "var(--mute)";
-      return `<div class="r"><span class="L" style="color:${LANES[L][2]}">${L}</span><span class="nm">${name}${cost ? `<small>${cost}</small>` : ""}</span><b style="color:${col}">${esc(label)}</b>${mark}</div>`;
+      return `<div class="r"><span class="L" style="color:${LANES[L][2]}">${L}</span><span class="nm">${name}${desc ? `<em class="ds">${esc(desc)}</em>` : ""}${cost ? `<small>${cost}</small>` : ""}</span><b style="color:${col}">${esc(label)}</b>${mark}</div>`;
     };
-    box.innerHTML = `<div class="k">Same question, three ways</div>` + row("C", "Rules only (no AI)") + row("B", (lanes.B.st.active || lanes.B.st.done ? lanes.B.st.raw : S.chart === "raw") ? "AI with Kanini Context, reads the chart" : "AI with Kanini Context") + row("A", "AI alone");
+    const b = lanes.B.st, bRaw = b.active || b.done ? b.raw : S.chart === "raw";
+    const verdict = b.done && b.eval && S.cEval && !b.unreachable && !b.failed
+      ? (sameAnswer(b.eval, S.cEval) ? `<div class="verdict same">B matches C: the same answer from the same approved rule.</div>`
+        : `<div class="verdict diff">B differs from C. Open "Side by side", then "Does B match C?".</div>`) : "";
+    box.innerHTML = `<div class="k">Same question, three ways</div>`
+      + row("C", "Rules only (no AI)", "The approved rules, applied by plain code")
+      + row("B", bRaw ? "AI with Kanini Context, reads the chart" : "AI with Kanini Context", "An AI agent that asks Kanini Context")
+      + row("A", "AI alone", "An AI agent that reads the documents itself")
+      + verdict
+      + `<div class="whyb">Why B when C gives the same answer: in a real workflow the agent also decides the next step; C answers only this one question.</div>`;
   }
   function laneNumbers() {
     renderAnswers();
@@ -637,8 +689,8 @@
         if (src) { src.on = true; paint(); }
       }
     } else if (e.kind === "confirm_request") {
-      if ($("ok")) { $("ok").disabled = false; $("nok").disabled = false; }
       st.confirmed = true; st.awaiting = true;
+      if (L === "B") card(S.eval);   // the approve buttons appear now, enabled
       if (L === "B") { st.done = true; gradeB(); renderMatch(); }
       if (st.finish) st.finish();
       st.ms = performance.now() - st.t0; st.done = true; st.active = false;
@@ -679,7 +731,7 @@
 
   /* ---------------------------------------------------------------- orders, views, start-up */
   function pick(o) {
-    S.order = o;
+    S.order = o; remember("case", o.patient);   // a refresh keeps the case
     S.seq = (S.seq || 0) + 1; S.racing = 0;   // stop any sequence still running
     closeAll();
     document.querySelectorAll(".case").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.p === o.patient)));
@@ -704,7 +756,7 @@
     KnowledgeArtifact: "#4FD1C5", Concept: "#01B574", Code: "#A0AEC0", ValueSet: "#A0AEC0", Payer: "#E07AB4", Plan: "#0075FF",
     Program: "#0075FF", Jurisdiction: "#FFB547", Endpoint: "#E07AB4", TerminologyItem: "#01B574", CoverageItem: "#0075FF" };
   const BOX_W = 224, COL_GAP = 120, ROW_GAP = 40, FIELD_H = 15, MAX_FIELDS = 9, BAND_GAP = 120;
-  let schemaBox = null;
+  let schemaBox = null, schemaAt = null;
 
   function schemaLit(p) {   // the classes an answer passes through, from the answer itself
     const lit = new Set();
@@ -768,6 +820,7 @@
     frameOf("CoverageItem", "Coverage", SCHEMA_BOTTOM.items);
     const at = (name) => box.get(name) || frames.get(name);
     const all = [...box.values(), ...frames.values()];
+    schemaAt = box;
     schemaBox = [d3.min(all, (b) => b.x) - 40, d3.min(all, (b) => b.y) - 50, d3.max(all, (b) => b.x + b.w) + 40, d3.max(all, (b) => b.y + b.h) + 40];
 
     let defs = svg.select("defs.schema");
@@ -865,7 +918,9 @@
 
     const kindsN = sc.entities.reduce((a, e) => a + e.kinds.length, 0);
     $("legend").innerHTML = `<span>${data.counts.classes} classes (${box.size} boxes, 2 groups, ${kindsN} listed as kinds) · ${data.counts.relations} relations · ${data.counts.attributes} fields ·</span>`
-      + (lit.size ? `<span><i style="background:var(--lime)"></i>classes the last answer passed through</span>` : `<span>answer an order to light up the classes it passes through</span>`);
+      + (lit.size ? `<span><i style="background:var(--lime)"></i>classes the last answer passed through</span>` : `<span>answer an order to light up the classes it passes through</span>`)
+      + `<span>· drag to move, scroll to zoom ·</span><button type="button" id="schema-all">Show the whole diagram</button>`;
+    $("schema-all").onclick = () => fitSchema(700, true);
     fitSchema(0);
   }
 
@@ -898,8 +953,16 @@
     d.querySelector(".close").onclick = () => schemaSelect(null);
   }
 
-  function fitSchema(ms = 700) {
-    if (schemaBox) fitRect(...schemaBox, ms);
+  function fitSchema(ms = 700, whole = false) {   // opens at a readable size on the Rule class; drag and scroll to move
+    if (!schemaBox) return;
+    const [w, h] = size();
+    if (w < 10 || h < 10) return;
+    const fit = 0.96 / Math.max((schemaBox[2] - schemaBox[0]) / w, (schemaBox[3] - schemaBox[1]) / h);
+    if (whole || fit >= 0.85) { fitRect(...schemaBox, ms); return; }
+    const r = schemaAt && schemaAt.get("Rule");
+    const cx = r ? r.x + r.w / 2 : (schemaBox[0] + schemaBox[2]) / 2, cy = r ? r.y + r.h / 2 : (schemaBox[1] + schemaBox[3]) / 2;
+    const tr = d3.zoomIdentity.translate(w / 2, h / 2).scale(1).translate(-cx, -cy);
+    (ms ? svg.transition().duration(ms).ease(d3.easeCubicInOut) : svg).call(zoom.transform, tr);
   }
   function fitRect(x0, y0, x1, y1, ms = 700) {
     const [w, h] = size();
@@ -1006,12 +1069,14 @@
     const box = $("graphbox"), host = where === "knowledge" ? $("kn-graph") : $("ask-graph");
     if (box.parentElement !== host) host.insertBefore(box, host.firstChild);
   }
-  async function showPage(name) {
+  const remember = (k, v) => { try { sessionStorage.setItem("kc." + k, v); } catch (_) { /* private window: not kept */ } };
+  const recall = (k) => { try { return sessionStorage.getItem("kc." + k); } catch (_) { return null; } };
+  async function showPage(name, push = false) {
     if (!PAGES.includes(name)) return;
     S.page = name;
     PAGES.forEach((n) => $("page-" + n).classList.toggle("hidden", n !== name));
     document.querySelectorAll("#pages button").forEach((b) => b.setAttribute("aria-current", b.dataset.page === name ? "page" : "false"));
-    if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name);
+    if (location.hash.slice(1) !== name) history[push ? "pushState" : "replaceState"](null, "", "#" + name);   // Back returns to the last page
     if (name === "ask") {
       placeGraph("ask");
       if (S.view !== "inst") await setView("inst"); else if (S.eval) { focus(); }
@@ -1502,7 +1567,7 @@
   $("run-race").onclick = () => race(["C", "B", "A"]);
   S.chart = "facts";
   $("chart-mode").querySelectorAll("button").forEach((btn) => (btn.onclick = () => {
-    S.chart = btn.dataset.m;
+    S.chart = btn.dataset.m; remember("chart", S.chart);
     $("chart-mode").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", String(x === btn)));
     laneNumbers();
   }));
@@ -1514,10 +1579,16 @@
     $("lanes").classList.toggle("hidden", b.dataset.t !== "lanes"); $("match").classList.toggle("hidden", b.dataset.t !== "match");
   }));
   document.querySelectorAll("#kn-show button").forEach((b) => (b.onclick = () => knShow(b.dataset.k)));
-  document.querySelectorAll("#pages button").forEach((b) => (b.onclick = () => showPage(b.dataset.page)));
-  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (PAGES.includes(h) && h !== S.page) showPage(h); });
+  document.querySelectorAll("#pages button").forEach((b) => (b.onclick = () => showPage(b.dataset.page, true)));
+  const fromUrl = () => { const h = location.hash.slice(1); if (PAGES.includes(h) && h !== S.page) showPage(h); };
+  window.addEventListener("hashchange", fromUrl);
+  window.addEventListener("popstate", fromUrl);
 
   (async function init() {
+    const first = location.hash.slice(1);   // show the asked-for page at once, not the order page first
+    if (PAGES.includes(first)) { PAGES.forEach((n) => $("page-" + n).classList.toggle("hidden", n !== first));
+      document.querySelectorAll("#pages button").forEach((b) => b.setAttribute("aria-current", b.dataset.page === first ? "page" : "false")); }
+    if (recall("chart") === "raw") { S.chart = "raw"; $("chart-mode").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.m === "raw"))); }
     const get = (u, fb) => fetch(u).then((r) => (r.ok ? r.json() : fb)).catch(() => fb);
     const [st, orders, g, cmp] = await Promise.all([get("/api/status", {}), get("/api/orders", []), get("/api/graph", { nodes: [], edges: [] }), get("/api/compare", {})]);
     S.scripted = !!st.scripted;
@@ -1528,10 +1599,10 @@
     document.querySelectorAll(".case").forEach((c) => (c.onclick = () => pick(orders.find((o) => o.patient === c.dataset.p))));
     buildLanes();
     setGraph(g, "inst");
-    pick(orders[0]);
+    pick(orders.find((o) => o.patient === recall("case")) || orders[0]);
     loadLog();
     renderLimits();
     const h = location.hash.slice(1);
-    if (PAGES.includes(h) && h !== "ask") showPage(h);
+    if (PAGES.includes(h) && h !== "ask") { S.page = "ask"; showPage(h); }
   })();
 })();

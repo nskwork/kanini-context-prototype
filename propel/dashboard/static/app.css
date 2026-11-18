@@ -104,7 +104,7 @@ h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-
 .edge.prog{stroke:rgba(251,146,60,.5);stroke-width:1.3}
 .edge.unscr{stroke:rgba(251,113,133,.55);stroke-width:1.3}
 .node circle.core{transition:r .6s,opacity .6s,fill .6s}
-.node text{font-family:var(--text);font-size:10px;font-weight:500;fill:var(--mute);pointer-events:none;transition:opacity .4s;paint-order:stroke;stroke:rgba(4,5,12,.85);stroke-width:3px}
+.node text{font-family:var(--text);font-size:12px;font-weight:500;fill:var(--mute);pointer-events:none;transition:opacity .4s;paint-order:stroke;stroke:rgba(4,5,12,.85);stroke-width:3px}
 .node.on text{font-size:11.5px;font-weight:700;fill:#f5f3ff}
 .node.cand text{font-weight:600;fill:#ddd6fe}
 .node.prog text{font-weight:600;fill:#fdba74}
@@ -458,7 +458,7 @@ details.sql pre,pre.q{margin:10px 0 0;padding:12px 14px;max-height:320px;overflo
 .x{border:0;background:rgba(255,255,255,.07);color:var(--ink2);border-radius:9px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
 
 /* Ask */
-#page-ask{display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px;padding:14px 24px 22px}
+#page-ask{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:10px;padding:14px 24px 22px}
 #page-ask.hidden{display:none!important}
 .cases{display:flex;gap:8px;overflow-x:auto}
 .case{display:flex;flex-direction:column;align-items:flex-start;padding:8px 14px;border-radius:12px;border:0;background:var(--panel2);box-shadow:var(--edge);color:var(--ink2);font-size:12.5px;cursor:pointer;white-space:nowrap}
@@ -595,7 +595,7 @@ details.more-d{margin-top:14px}
 #t-e1 p,#t-e2 p:not(.note){margin:10px 0 0;font-size:14px;color:var(--ink2);line-height:1.5}
 
 @media (max-width:1320px){.groups{grid-template-columns:repeat(2,minmax(0,1fr))}.answer{width:300px}.three{width:300px}.answer .big-ans{font-size:38px}}
-@media (max-height:800px){.answer .big-ans{font-size:36px}.answer{padding:16px 18px}.three{padding:12px 16px;gap:5px}.graphbox .legend{display:none}}
+@media (max-height:800px){.answer .big-ans{font-size:36px}.answer{padding:16px 18px}.three{padding:12px 16px;gap:5px}.graphbox .legend{max-height:18px;overflow:hidden}}
 @media (max-width:1100px){.app{grid-template-rows:auto 1fr}#page-knowledge{grid-template-columns:1fr}.scores,.t-row,.flow5{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .more{display:block;text-align:left;margin-top:12px}
@@ -773,3 +773,39 @@ details.t-order .t-chips span{display:inline-flex;align-items:center;gap:5px}
 .nums{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr)}
 .nums>div:last-child .n{font-family:var(--display);font-size:15px;line-height:1.25;white-space:normal}
 .answer .big-ans{font-size:34px;line-height:1.08}
+
+/* The case being run, always on screen above the graph: the question, the patient's key values, the expected answer */
+.caseline{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px;padding:10px 16px;border-radius:12px;background:#12161c;box-shadow:inset 0 0 0 1px #2a323d}
+.caseline .cq{flex:1 0 100%;font-size:15px;font-weight:600;color:#eceff4}
+.caseline .cv{font-size:13px;color:#c9d0da}
+.caseline .cv b{color:#9aa4b1;font-weight:500;margin-right:4px}
+.caseline .ce{font-size:13px;color:#9aa4b1;margin-left:auto}
+.caseline .ce b{color:#fff}
+/* "Prototype" beside the name */
+.proto{align-self:center;font-size:11.5px;font-weight:600;color:#ffd27a;padding:2px 8px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(255,210,122,.45)}
+/* Same question, three ways: what each lane is, whether B matches C, and why B */
+.three .nm .ds{display:block;font-style:normal;font-size:12px;color:#9aa4b1;margin-top:1px}
+.three .verdict{margin-top:2px;padding:7px 10px;border-radius:10px;font-size:13.5px;font-weight:600;line-height:1.35}
+.three .verdict.same{color:#7ee2b8;background:rgba(1,181,116,.12);box-shadow:inset 0 0 0 1px rgba(1,181,116,.35)}
+.three .verdict.diff{color:#ffd27a;background:rgba(246,173,85,.1);box-shadow:inset 0 0 0 1px rgba(246,173,85,.35)}
+.three .whyb{font-size:12px;line-height:1.4;color:#9aa4b1;border-top:1px solid #232a34;padding-top:7px}
+/* Approve or reject: only once B has finished and asks */
+.answer .approve .who{display:block;font-size:12.5px;color:#c9d0da;margin-bottom:6px}
+/* The glossary on Test results folds away */
+details.t-key>summary{display:flex;align-items:baseline;gap:12px;cursor:pointer;list-style:none}
+details.t-key>summary::-webkit-details-marker{display:none}
+details.t-key>summary h2{margin:0}
+details.t-key>summary span{font-size:13px;color:#7FB6FF}
+details.t-key[open]>summary{margin-bottom:12px}
+details.t-key>summary::after{content:"Show";margin-left:auto;font-size:13px;color:#7FB6FF;font-weight:600}
+details.t-key[open]>summary::after{content:"Hide"}
+/* The data model: a button to see the whole drawing */
+.legend button{pointer-events:auto;font:inherit;font-size:12px;color:#7FB6FF;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.three{max-height:calc(100% - 110px);overflow:auto}   /* never under the buttons */
+@media (max-height:700px){   /* a zoomed-in or short screen: the essentials only */
+  .three .nm .ds,.three .whyb,.case em,.graphbox .legend{display:none}
+  .caseline{padding:6px 12px;gap:2px 12px}.caseline .cq{font-size:14px}
+  .case{padding:6px 12px}
+}
+.graphbox .legend{background:rgba(18,22,28,.9);padding:5px 10px;border-radius:8px;width:max-content;max-width:calc(100% - 36px)}
+#kn-graph .graphbox .legend{bottom:14px;opacity:1}   /* no buttons on this page: the key sits at the bottom, over nothing */

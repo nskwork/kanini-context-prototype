@@ -10,7 +10,7 @@
 <div id="sky" aria-hidden="true"></div>
 <div class="app">
   <header class="top">
-    <div class="brand"><span class="logo" aria-hidden="true"></span><span class="name">Kanini Context</span></div>
+    <div class="brand"><span class="logo" aria-hidden="true"></span><span class="name">Kanini Context</span><span class="proto" title="A working prototype with made-up patients. Not for clinical or payer decisions.">Prototype</span></div>
     <nav class="pages" id="pages" aria-label="Pages">
       <button type="button" data-page="sources" aria-current="false">Policy sources</button>
       <button type="button" data-page="knowledge" aria-current="false">Approved rules</button>
@@ -66,6 +66,7 @@
   <!-- Ask -->
   <section class="page" id="page-ask" aria-label="Ask">
     <nav class="cases" id="orders" aria-label="Cases"></nav>
+    <div class="caseline" id="caseline" aria-live="polite"></div>
     <div class="panel stage2">
       <div class="graph-wrap" id="ask-graph">
         <div class="graphbox" id="graphbox">
@@ -116,8 +117,8 @@
   <!-- Testing -->
   <section class="page scroll hidden" id="page-testing" aria-label="Testing">
     <div class="scores" id="t-scores"></div>
-    <div class="panel t-key" aria-label="How to read this page">
-      <h2>How to read this page</h2>
+    <details class="panel t-key" id="t-key">
+      <summary><h2>How to read this page</h2><span>The words used below, in plain terms</span></summary>
       <dl>
         <div><dt>Prior authorization</dt><dd>Approval a doctor must get from the patient's health plan before giving a drug, so the plan will pay for it.</dd></div>
         <div><dt>Kanini Context</dt><dd>The approved rules, each checked against its official document, which an AI (or plain code) asks instead of reading the documents again.</dd></div>
@@ -133,7 +134,7 @@
         <div><dt>The pack</dt><dd>The approved rules Kanini Context holds: the plans, regions and drugs that have been curated so far.</dd></div>
         <div><dt>Guardrail</dt><dd>A check in code, not in the AI, that makes the recorded answer match the rules' answer whatever the AI wrote.</dd></div>
       </dl>
-    </div>
+    </details>
     <div class="t-row">
       <div class="panel t-bars"><h2>AI tokens per question</h2><p class="sub">Average text the AI read (input tokens) to answer one case.</p><div id="t-bars"></div></div>
       <div class="panel t-fails"><h2>What went wrong without context</h2><div id="t-fails"></div>
