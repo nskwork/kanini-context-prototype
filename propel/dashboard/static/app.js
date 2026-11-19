@@ -1410,7 +1410,11 @@
     box.classList.remove("hidden");
   }
   /* ---------------------------------------------------------------- Knowledge page */
-  const WHERE = [["Tennessee", (r) => /\bTN\b|Tennessee/.test(r.applies_in || "")], ["Ohio", (r) => /\bOH\b|Ohio/.test(r.applies_in || "")],
+  // one filter per Medicare contractor region (all nine states the rules cover), the UHC plan, and nationwide rules
+  const inStates = (...st) => (r) => st.some(([code, name]) => new RegExp(`\\b${code}\\b|${name}`).test(r.applies_in || ""));
+  const WHERE = [["Kentucky, Ohio", inStates(["KY", "Kentucky"], ["OH", "Ohio"])],
+    ["Alabama, Georgia, Tennessee", inStates(["AL", "Alabama"], ["GA", "Georgia"], ["TN", "Tennessee"])],
+    ["North and South Carolina, Virginia, West Virginia", inStates(["NC", "North Carolina"], ["SC", "South Carolina"], ["VA", "Virginia"], ["WV", "West Virginia"])],
     ["UHC Advantage", (r) => /UHC Medicare Advantage/.test(r.applies_in || "")], ["Nationwide", (r) => /nationwide/.test(r.applies_in || "")]];
   const whereText = (s) => String(s || "").replace(/Medicare A\/B Jurisdiction \w+ \(([^:]+): ([^)]+)\)/g, "$2")
     .replace(/;/g, ",");
