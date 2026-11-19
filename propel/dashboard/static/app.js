@@ -1440,15 +1440,18 @@
     const cell = (v) => (v == null || v === "" ? '<td class="none">–</td>' : v === true ? "<td>yes</td>" : v === false ? "<td>no</td>"
       : `<td>${esc(typeof v === "object" ? JSON.stringify(v) : String(v))}</td>`);
     box.innerHTML = `<div class="st-head"><div class="chips" id="st-views">${views.map((v) => `<button type="button" data-v="${esc(v.name)}" aria-pressed="${v.name === cur.name}">${esc(STORED_NAMES[v.name] || v.name)} <small>${v.rows.length}</small></button>`).join("")}</div>`
-      + `<p class="st-about">${esc(cur.about)} <b>${cur.rows.length} ${cur.rows.length === 1 ? "row" : "rows"}</b>, all shown.</p>`
+      + `<p class="st-about">${esc(cur.about)} <b id="st-n">${cur.rows.length} ${cur.rows.length === 1 ? "row" : "rows"}, all shown</b>.</p>`
       + `<input type="search" class="search" id="st-q" placeholder="Filter these rows" aria-label="Filter these rows"></div>`
       + (cur.error ? `<p class="empty">${esc(cur.error)}</p>`
         : `<div class="st-wrap"><table class="mini st-table"><thead><tr>${cur.cols.map((c) => `<th${cur.notes[c] ? ` title="${esc(cur.notes[c])}"` : ""}>${head(c)}</th>`).join("")}</tr></thead>`
           + `<tbody>${cur.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("")}</tbody></table></div>`)
       + `<details class="sql"><summary>The query</summary><pre>${esc(cur.sql)}</pre></details>`;
     box.querySelectorAll("#st-views button").forEach((b) => (b.onclick = () => renderStored(b.dataset.v)));
-    $("st-q").oninput = (e) => { const q = e.target.value.trim().toLowerCase();
-      box.querySelectorAll(".st-table tbody tr").forEach((tr) => tr.classList.toggle("hidden", !!q && !tr.textContent.toLowerCase().includes(q))); };
+    $("st-q").oninput = (e) => {   // the count says how many rows the filter leaves
+      const q = e.target.value.trim().toLowerCase(); let shown = 0;
+      box.querySelectorAll(".st-table tbody tr").forEach((tr) => { const hide = !!q && !tr.textContent.toLowerCase().includes(q); tr.classList.toggle("hidden", hide); if (!hide) shown++; });
+      $("st-n").textContent = q ? `${shown} of ${cur.rows.length} rows shown` : `${cur.rows.length} ${cur.rows.length === 1 ? "row" : "rows"}, all shown`;
+    };
   }
   async function knShow(k) {
     S.kTab = k;

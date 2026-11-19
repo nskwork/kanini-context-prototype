@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import datetime
 import json
 import os
 import re
@@ -480,6 +481,8 @@ STEP_MA = ("Policies stored for this plan", """SELECT DISTINCT plan, citation, d
 
 
 def _plain(v):
+    if isinstance(v, datetime.timedelta):   # a stored interval reads as days, not seconds
+        return f"{v.days} days" if not v.seconds else str(v)
     return v.isoformat() if hasattr(v, "isoformat") else v
 
 
