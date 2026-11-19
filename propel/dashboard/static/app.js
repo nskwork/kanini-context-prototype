@@ -1415,34 +1415,11 @@
   const whereText = (s) => String(s || "").replace(/Medicare A\/B Jurisdiction \w+ \(([^:]+): ([^)]+)\)/g, "$2")
     .replace(/;/g, ",");
   const KF = { where: null, kind: null, q: "", refs: null, caseLabel: "", one: null };
-  function caseRules(o, refs) {   // from the Ask page: the rules this case's answer rests on, with the question box
+  function caseRules(o, refs) {   // from the order page: the rules this case's answer rests on
     KF.refs = refs; KF.caseLabel = `Case ${S.orders.indexOf(o) + 1} · ${caseName(o)}`; KF.one = null; KF.where = KF.kind = null; KF.q = "";
     if ($("kn-search")) $("kn-search").value = "";
-    $("kn-answer").innerHTML = "";
     S.kTab = "rules"; showPage("knowledge");
   }
-  function askScope() { return KF.one ? [KF.one] : KF.refs || []; }
-  function renderAskLabel() {
-    const one = KF.one && S.kn && S.kn.rules.find((r) => r.rule_ref === KF.one);
-    $("kn-ask-label").innerHTML = one ? `Ask about this rule: <b>${esc(one.citation)}</b>, ${esc(one.rule_type.toLowerCase())} <button type="button" class="x" id="kn-one-x" aria-label="Ask about all rules again">×</button>`
-      : KF.refs ? `Ask about the rules for <b>${esc(KF.caseLabel)}</b>` : "Ask about the rules";
-    if ($("kn-one-x")) $("kn-one-x").onclick = () => { KF.one = null; renderAskLabel(); $("kn-answer").innerHTML = ""; };
-  }
-  async function askRules(q) {
-    const out = $("kn-answer");
-    if (!q.trim()) { out.innerHTML = ""; return; }
-    out.innerHTML = '<p class="note">Looking in the stored rules…</p>';
-    const r = await fetch(`/api/ask?q=${encodeURIComponent(q)}&refs=${encodeURIComponent(askScope().join(","))}`);
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { out.innerHTML = `<p class="note">${esc(d.detail || "Not available.")}</p>`; return; }
-    const mark = (t) => { let h = esc(t || ""); d.words.forEach((w) => { h = h.replace(new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"), "<mark>$1</mark>"); }); return h; };
-    out.innerHTML = !d.results.length
-      ? `<p class="note">None of the ${d.scope} rules${KF.one || KF.refs ? " in scope" : ""} mention ${d.words.map((w) => `“${esc(w)}”`).join(" or ")}.</p>`
-      : `<p class="note">${d.mode === "every word" ? "Matching rules" : "Closest matching rules"}, from ${d.scope} rule${d.scope > 1 ? "s" : ""}${KF.one || KF.refs ? " in scope" : ""}. Each shows the approved rule and the exact words of its source document.</p>`
-        + d.results.map((x) => `<div class="hit"><p class="s">${mark(x.summary)}</p>${x.quote ? `<blockquote>${mark(x.quote)}<cite>${esc(x.citation)}${x.page ? ", page " + esc(x.page) : ""} <span class="rid" title="Rule reference">${esc(x.rule_ref)}</span></cite></blockquote>` : ""}</div>`).join("")
-        + `<details class="sql"><summary>Show the query</summary><pre>${esc(d.sql)}</pre></details>`;
-  }
-  $("kn-ask").onsubmit = (e) => { e.preventDefault(); askRules($("kn-q").value); };
   // Everything stored: every view over the knowledge and every node and link of the graph, all rows, with the query
   const STORED_NAMES = { documents: "Documents", rules: "Rules", policy_scopes: "Where each policy applies", medicare_programs: "Medicare programs",
     codes: "Drug codes", medicare_regions: "States and regions", releases: "Releases", graph_nodes: "Graph: every node", graph_links: "Graph: every link" };
@@ -1506,23 +1483,17 @@
     $("kn-case").classList.toggle("hidden", !KF.refs);
     if (KF.refs) {
       $("kn-case").innerHTML = `Showing the ${KF.refs.length} rules behind <b>${esc(KF.caseLabel)}</b> <button type="button" class="linkish" id="kn-case-x">Show all rules</button>`;
-      $("kn-case-x").onclick = () => { KF.refs = null; KF.one = null; $("kn-answer").innerHTML = ""; renderRules(); };
+      $("kn-case-x").onclick = () => { KF.refs = null; KF.one = null; renderRules(); };
     }
-    renderAskLabel();
     const rows = S.kn.rules.filter((r) => (!KF.refs || KF.refs.includes(r.rule_ref)) && (!wf || wf(r)) && (!KF.kind || r.rule_type === KF.kind)
       && (!KF.q || [r.summary, r.citation, r.subject, r.rule_ref, r.quote, r.applies_in].join(" ").toLowerCase().includes(KF.q)));
     $("kn-count").textContent = `${rows.length} of ${S.kn.rules.length} rules`;
     $("kn-list").innerHTML = rows.map((r) => `<article class="panel rc" tabindex="0" role="button" aria-expanded="false" aria-label="${esc(r.summary)}: show the quote"><div class="kd">${esc(r.rule_type)} · ${esc(whereText(r.applies_in))}</div>`
       + `<div class="side">${esc(r.citation)}${r.page ? " · page " + esc(r.page) : ""}</div><p class="s">${esc(r.summary)}</p>`
       + `<div class="m">Approved${r.approved_by ? " by " + esc(r.approved_by) : ""} ${ago(r.approved_at)} · in force from ${ago(r.effective_from)}${r.effective_to ? " to " + ago(r.effective_to) : ""}</div>`
-      + (r.quote ? `<blockquote class="hidden">${esc(r.quote)}<cite>${esc(r.citation)}${r.page ? ", page " + esc(r.page) : ""} <span class="rid" title="Rule reference">${esc(r.rule_ref)}</span></cite></blockquote>` : "")
-      + `<button type="button" class="linkish ask1" data-ref="${esc(r.rule_ref)}">Ask about this rule</button></article>`).join("")
+      + (r.quote ? `<blockquote class="hidden">${esc(r.quote)}<cite>${esc(r.citation)}${r.page ? ", page " + esc(r.page) : ""} <span class="rid" title="Rule reference">${esc(r.rule_ref)}</span></cite></blockquote>` : "") + "</article>").join("")
       || '<p class="empty">No rule matches.</p>';
     $("kn-list").querySelectorAll(".rc").forEach((a) => (a.onclick = (e) => {
-      if (e.target.classList.contains("ask1")) {
-        KF.one = e.target.dataset.ref; renderAskLabel(); $("kn-answer").innerHTML = "";
-        $("kn-ask").scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }); $("kn-q").focus(); return;
-      }
       const q = a.querySelector("blockquote");
       if (q) { q.classList.toggle("hidden"); a.setAttribute("aria-expanded", String(!q.classList.contains("hidden"))); }
     }));
