@@ -104,6 +104,52 @@ def _graph_name(c) -> str | None:
     return row[0] if row else None
 
 
+# "Everything stored": every view over the stored knowledge, and every node and link of the graph. The names are a fixed
+# list; each query is fixed and read-only, with a time limit. Nothing the browser sends becomes SQL.
+STORED_VIEWS = ["documents", "rules", "policy_scopes", "medicare_programs", "codes", "medicare_regions", "releases"]
+
+
+@app.get("/api/stored")
+def stored():
+    out = []
+    with db() as c, c.transaction():
+        c.execute("SET TRANSACTION READ ONLY")
+        c.execute("SET LOCAL statement_timeout = '5000ms'")
+        desc = dict(c.execute("""SELECT c.relname, obj_description(c.oid, 'pg_class') FROM pg_class c
+                                  JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'kc_views'""").fetchall())
+        for v in STORED_VIEWS:
+            sql = f"SELECT * FROM kc_views.{v}"
+            try:
+                with c.transaction():
+                    cur = c.execute(sql)
+                    cols = [d.name for d in cur.description]
+                    rows = [[_plain(x) for x in r] for r in cur.fetchall()]
+                    notes = dict(c.execute("""SELECT a.attname, col_description(a.attrelid, a.attnum) FROM pg_attribute a
+                                               WHERE a.attrelid = %s::regclass AND a.attnum > 0 AND NOT a.attisdropped""",
+                                           (f"kc_views.{v}",)).fetchall())
+                out.append({"name": v, "about": desc.get(v) or "", "sql": sql + ";", "cols": cols, "notes": notes, "rows": rows})
+            except psycopg.Error:
+                out.append({"name": v, "about": desc.get(v) or "", "sql": sql + ";", "cols": [], "notes": {}, "rows": [],
+                            "error": REBUILD})
+    g = graph()
+    if not g["graph"]:
+        return {"views": out}
+    byid = {n["gid"]: n for n in g["nodes"]}
+    label = lambda n: str(n.get("name") or n.get("citation") or n.get("id") or n["gid"])  # noqa: E731
+    props = lambda n: "; ".join(f"{k.replace('_', ' ')}: {v}" for k, v in n.items()  # noqa: E731  every stored property
+                                if k not in ("gid", "kind", "name") and v not in (None, "", [], {}))
+    out.append({"name": "graph_nodes", "about": "Every node of the knowledge graph (Apache AGE): its kind, its name, how many links it has and every property stored on it.",
+                "sql": f"SELECT * FROM cypher('{g['graph']}', $$ MATCH (n) RETURN id(n), label(n), properties(n) $$) AS (i agtype, l agtype, p agtype);",
+                "cols": ["kind", "name", "links", "stored_properties"], "notes": {},
+                "rows": sorted([[n["kind"], label(n), sum(1 for e in g["edges"] if n["gid"] in (e["s"], e["t"])), props(n)] for n in g["nodes"]])})
+    out.append({"name": "graph_links", "about": "Every link of the knowledge graph: what it joins, and how.",
+                "sql": f"SELECT * FROM cypher('{g['graph']}', $$ MATCH (a)-[e]->(b) RETURN id(a), id(b), label(e) $$) AS (a agtype, b agtype, l agtype);",
+                "cols": ["from_kind", "from", "link", "to_kind", "to"], "notes": {},
+                "rows": sorted([[byid[e["s"]]["kind"], label(byid[e["s"]]), e["rel"].lower().replace("_", " "), byid[e["t"]]["kind"], label(byid[e["t"]])]
+                                for e in g["edges"] if e["s"] in byid and e["t"] in byid])})
+    return {"views": out}
+
+
 @app.get("/api/graph")
 def graph():
     """Every vertex and edge of the release's knowledge graph (Apache AGE), as built by release/build.py."""

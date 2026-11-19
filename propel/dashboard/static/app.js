@@ -1443,12 +1443,40 @@
         + `<details class="sql"><summary>Show the query</summary><pre>${esc(d.sql)}</pre></details>`;
   }
   $("kn-ask").onsubmit = (e) => { e.preventDefault(); askRules($("kn-q").value); };
+  // Everything stored: every view over the knowledge and every node and link of the graph, all rows, with the query
+  const STORED_NAMES = { documents: "Documents", rules: "Rules", policy_scopes: "Where each policy applies", medicare_programs: "Medicare programs",
+    codes: "Drug codes", medicare_regions: "States and regions", releases: "Releases", graph_nodes: "Graph: every node", graph_links: "Graph: every link" };
+  async function renderStored(name) {
+    const box = $("kn-stored");
+    if (!S.stored) {
+      box.innerHTML = '<p class="empty">Loading everything stored…</p>';
+      try { const r = await fetch("/api/stored"); if (!r.ok) throw new Error(); S.stored = (await r.json()).views; }
+      catch (_) { box.innerHTML = '<p class="empty">The stored data is not available: the dashboard server or the database is not reachable.</p>'; return; }
+    }
+    const views = S.stored, cur = views.find((v) => v.name === (name || S.storedView)) || views[0];
+    S.storedView = cur.name;
+    const head = (c) => esc(words(c).replace(/^\w/, (x) => x.toUpperCase()));
+    const cell = (v) => (v == null || v === "" ? '<td class="none">–</td>' : v === true ? "<td>yes</td>" : v === false ? "<td>no</td>"
+      : `<td>${esc(typeof v === "object" ? JSON.stringify(v) : String(v))}</td>`);
+    box.innerHTML = `<div class="st-head"><div class="chips" id="st-views">${views.map((v) => `<button type="button" data-v="${esc(v.name)}" aria-pressed="${v.name === cur.name}">${esc(STORED_NAMES[v.name] || v.name)} <small>${v.rows.length}</small></button>`).join("")}</div>`
+      + `<p class="st-about">${esc(cur.about)} <b>${cur.rows.length} ${cur.rows.length === 1 ? "row" : "rows"}</b>, all shown.</p>`
+      + `<input type="search" class="search" id="st-q" placeholder="Filter these rows" aria-label="Filter these rows"></div>`
+      + (cur.error ? `<p class="empty">${esc(cur.error)}</p>`
+        : `<div class="st-wrap"><table class="mini st-table"><thead><tr>${cur.cols.map((c) => `<th${cur.notes[c] ? ` title="${esc(cur.notes[c])}"` : ""}>${head(c)}</th>`).join("")}</tr></thead>`
+          + `<tbody>${cur.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("")}</tbody></table></div>`)
+      + `<details class="sql"><summary>The query</summary><pre>${esc(cur.sql)}</pre></details>`;
+    box.querySelectorAll("#st-views button").forEach((b) => (b.onclick = () => renderStored(b.dataset.v)));
+    $("st-q").oninput = (e) => { const q = e.target.value.trim().toLowerCase();
+      box.querySelectorAll(".st-table tbody tr").forEach((tr) => tr.classList.toggle("hidden", !!q && !tr.textContent.toLowerCase().includes(q))); };
+  }
   async function knShow(k) {
     S.kTab = k;
     document.querySelectorAll("#kn-show button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
-    const graph = k !== "rules";
-    $("kn-rules").classList.toggle("hidden", graph); $("kn-graph").classList.toggle("hidden", !graph);
-    $("kn-where-box").classList.toggle("hidden", graph); $("kn-kind-box").classList.toggle("hidden", graph);
+    const graph = k === "graph" || k === "schema";
+    $("kn-rules").classList.toggle("hidden", k !== "rules"); $("kn-graph").classList.toggle("hidden", !graph);
+    $("kn-stored").classList.toggle("hidden", k !== "stored");
+    $("kn-where-box").classList.toggle("hidden", k !== "rules"); $("kn-kind-box").classList.toggle("hidden", k !== "rules");
+    if (k === "stored") { await renderStored(); return; }
     if (graph) {
       placeGraph("knowledge");
       await setView(k === "schema" ? "onto" : "inst");

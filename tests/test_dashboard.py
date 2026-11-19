@@ -185,3 +185,13 @@ def test_explain_shows_the_stored_rows_behind_each_step(client):
     assert not any(r[2] == "unknown" and "Hematocrit" in r[1] for r in checks)   # an option not needed is left out
     uhc = client.get("/api/explain", params={"patient": "maria-uhc"}).json()
     assert uhc["rows"][0][0]["title"] == "Policies stored for this plan" and uhc["rows"][3][0]["rows"] == []
+
+
+def test_everything_stored_lists_every_view_and_the_whole_graph(client):
+    v = {x["name"]: x for x in client.get("/api/stored").json()["views"]}
+    assert set(v) == {"documents", "rules", "policy_scopes", "medicare_programs", "codes", "medicare_regions", "releases",
+                      "graph_nodes", "graph_links"}
+    assert all(x["rows"] and x["about"] and x["sql"].startswith("SELECT") and "error" not in x for x in v.values())
+    g = client.get("/api/graph").json()
+    assert len(v["graph_nodes"]["rows"]) == len(g["nodes"]) and len(v["graph_links"]["rows"]) == len(g["edges"])
+    assert len(v["rules"]["rows"]) == len(client.get("/api/knowledge").json()["rules"])
